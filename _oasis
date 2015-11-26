@@ -1,0 +1,30 @@
+OASISFormat: 0.4
+Name:        angstrom
+Version:     0.1.0
+Synopsis:    Parser combinator library built for speed and memory efficiency
+Authors:     Spiros Eliopoulos <spiros@inhabitedtype.com>
+Maintainers: Spiros Eliopoulos <spiros@inhabitedtype.com>
+Homepage:    https://github.com/inhabitedtype/angstrom
+Copyrights:  (C) 2015 Inhabited Type LLC
+License:     BSD-3-clause
+Plugins:     META (0.4), DevFiles (0.4)
+BuildTools: ocamlbuild
+
+Library angstrom
+  Path:         lib
+  Findlibname:  angstrom
+  BuildDepends: cstruct, result
+  Modules:      Angstrom
+
+Executable test_angstrom
+  Path:             lib_test
+  MainIs:           test_angstrom.ml
+  Build$:           flag(tests)
+  CompiledObject:   best
+  Install:          false
+  BuildDepends:     angstrom, alcotest
+
+Test test_angstrom
+  Run$:             flag(tests)
+  Command:          $test_angstrom
+  WorkingDirectory: lib_test

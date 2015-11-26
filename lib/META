@@ -1,0 +1,13 @@
+# OASIS_START
+# DO NOT EDIT (digest: df2d187895e25b3acdbdc108d7296ad1)
+version = "0.1.0"
+description =
+"Parser combinator library built for speed and memory efficiency"
+requires = "cstruct result"
+archive(byte) = "angstrom.cma"
+archive(byte, plugin) = "angstrom.cma"
+archive(native) = "angstrom.cmxa"
+archive(native, plugin) = "angstrom.cmxs"
+exists_if = "angstrom.cma"
+# OASIS_STOP
+

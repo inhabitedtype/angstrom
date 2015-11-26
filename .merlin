@@ -1,0 +1,5 @@
+S lib/**
+B _build/**
+
+PKG cstruct result
+PKG alcotest cohttp uri
