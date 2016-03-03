@@ -11,6 +11,10 @@ Plugins:     META (0.4), DevFiles (0.4)
 BuildTools: ocamlbuild
 
 
+Flag async
+  Description: build the async libraries
+  Default: false
+
 Flag lwt
   Description: build the lwt libraries
   Default: false
@@ -38,6 +42,15 @@ Library angstrom_lwt
   Install$:       flag(lwt)
   BuildDepends:   angstrom, lwt, result
   Modules:        Angstrom_lwt
+
+Library angstrom_async
+  Path:           async
+  Findlibname:    async
+  Findlibparent:  angstrom
+  Build$:         flag(async)
+  Install$:       flag(async)
+  BuildDepends:   angstrom, async, result, threads
+  Modules:        Angstrom_async
 
 Executable test_angstrom
   Path:             lib_test

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 0c06e306733656d837cf9c98a88d095f)
+# DO NOT EDIT (digest: d3e9530613deee76627079193bbdd077)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -26,6 +26,13 @@ true: annot, bin_annot
 <lwt/*.ml{,i,y}>: pkg_lwt
 <lwt/*.ml{,i,y}>: pkg_result
 <lwt/*.ml{,i,y}>: use_angstrom
+# Library angstrom_async
+"async/angstrom_async.cmxs": use_angstrom_async
+<async/*.ml{,i,y}>: pkg_async
+<async/*.ml{,i,y}>: pkg_cstruct
+<async/*.ml{,i,y}>: pkg_result
+<async/*.ml{,i,y}>: pkg_threads
+<async/*.ml{,i,y}>: use_angstrom
 # Executable test_angstrom
 <lib_test/test_angstrom.{native,byte}>: pkg_alcotest
 <lib_test/test_angstrom.{native,byte}>: pkg_cstruct
