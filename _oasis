@@ -10,6 +10,11 @@ License:     BSD-3-clause
 Plugins:     META (0.4), DevFiles (0.4)
 BuildTools: ocamlbuild
 
+
+Flag lwt
+  Description: build the lwt libraries
+  Default: false
+
 Library angstrom
   Path:         lib
   Findlibname:  angstrom
@@ -24,6 +29,15 @@ Document api
   Install:              true
   XOCamlBuildPath:      lib
   XOCamlBuildLibraries: angstrom
+
+Library angstrom_lwt
+  Path:           lwt
+  Findlibname:    lwt
+  Findlibparent:  angstrom
+  Build$:         flag(lwt)
+  Install$:       flag(lwt)
+  BuildDepends:   angstrom, lwt, result
+  Modules:        Angstrom_lwt
 
 Executable test_angstrom
   Path:             lib_test
