@@ -17,6 +17,14 @@ Library angstrom
   BuildDepends: cstruct, result
   Modules:      Angstrom
 
+Document api
+  Title:                Documentation and API reference
+  Type:                 ocamlbuild (0.4)
+  BuildTools+:          ocamldoc
+  Install:              true
+  XOCamlBuildPath:      lib
+  XOCamlBuildLibraries: angstrom
+
 Executable test_angstrom
   Path:             lib_test
   MainIs:           test_angstrom.ml
