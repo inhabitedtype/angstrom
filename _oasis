@@ -13,6 +13,7 @@ BuildTools: ocamlbuild
 Library angstrom
   Path:         lib
   Findlibname:  angstrom
+  NativeOpt:    -inline 20
   BuildDepends: cstruct, result
   Modules:      Angstrom
 
