@@ -26,7 +26,6 @@ let csv =
 (* : string -> string list list *)
 let parse_csv input =
   parse_only csv input
-  fun input -> parse_only csv input
 ```
 
 ## Development
