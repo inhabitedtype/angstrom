@@ -202,9 +202,13 @@ let (<|>) p q =
 
 (** BEGIN: getting input *)
 
-let prompt buf pos fail succ =
+let rec prompt buf pos fail succ =
   let k = function
     | None       -> fail buf pos Complete
+    | Some (`String "") ->
+      prompt buf pos fail succ
+    | Some (`Cstruct cs) when Cstruct.len cs = 0 ->
+      prompt buf pos fail succ
     | Some input ->
       B.copy_in buf input;
       succ buf pos Incomplete
