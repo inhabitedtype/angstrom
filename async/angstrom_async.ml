@@ -38,17 +38,13 @@ open Async.Std
 
 let rec finalize state result =
   match state, result with
-  | Partial k, `Eof                          -> finalize (k None)                 `Eof
-  | Partial k, `Eof_with_unconsumed_data str -> finalize (k (Some (`String str))) `Eof
-  | Partial _, `Stopped _ -> assert false
-  | _, (`Eof | `Eof_with_unconsumed_data _) -> assert false
-  | (Fail _ | Done _) as state, `Stopped result ->
+  | state    , `Eof_with_unconsumed_data str -> finalize (feed state (`String str)) `Eof
+  | Partial k, `Eof                          -> finalize (k None)                   `Eof
+  | Partial _, `Stopped ()                   -> assert false
+  | (Fail(buf, _, _) | Done(buf, _)) as state, (`Eof | `Stopped ()) ->
     (* buf may contain some data, but there's another copy of it in reader's
      * internal buffer. *)
-    assert (snd result = state_to_result state);
-    match result with
-    | None  , r -> Cstruct.create 0, r
-    | Some b, r -> b, r
+    buf, state_to_result state
 
 let parse ?initial_input p reader =
   let state = ref (parse ?input:initial_input p) in
@@ -63,16 +59,20 @@ let parse ?initial_input p reader =
      * the reader would result in a gap in the input.
      *)
     match !state with
-    | Done(buf, _) as state ->
+    | Done(buf, r) ->
       let len_left = Cstruct.len buf in
-      if len_left <= len
-        then return (`Stop_consumed((None    , state_to_result state), len - len_left))
-        else return (`Stop          (Some buf, state_to_result state))
-    | Fail(buf, _, _) as state ->
+      if len_left <= len then begin
+        state := Done(Cstruct.create 0, r);
+        return (`Stop_consumed((), len - len_left))
+      end else
+        return (`Stop ())
+    | Fail(buf, tags, msg) ->
       let len_left = Cstruct.len buf in
-      if len_left = len
-        then return (`Stop_consumed((None     , state_to_result state), 0))
-        else return (`Stop          (Some buf , state_to_result state))
+      if len_left = len then begin
+        state := Fail(Cstruct.create 0, tags, msg);
+        return (`Stop_consumed((), 0))
+      end else
+        return (`Stop ())
     | Partial k ->
       return `Continue
   in
