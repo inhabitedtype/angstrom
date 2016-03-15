@@ -17,10 +17,25 @@ module Alcotest = struct
         | _             , _              -> false
     end in
     (module M: TESTABLE with type t = M.t)
+
+  let none (type a) =
+    let module M = struct
+      type t = a
+      let pp fmt _ = Format.pp_print_string fmt "Alcotest.none"
+      let equal _ _ = false
+    end in
+    (module M: TESTABLE with type t = M.t)
+
+  let any (type a) =
+    let module M = struct
+      type t = a
+      let pp fmt _ = Format.pp_print_string fmt "Alcotest.any"
+      let equal _ _ = true
+    end in
+    (module M: TESTABLE with type t = M.t)
 end
 
-let check ?size ~msg test p is r =
-  let p = p <* end_of_input in
+let check ?size f p is =
   let state =
     List.fold_left (fun state chunk ->
       feed state (`String chunk))
@@ -31,33 +46,108 @@ let check ?size ~msg test p is r =
     | Partial k -> state_to_result (k None)
     | _         -> state_to_result state
   in
-  Alcotest.(check (result test string)) msg
-    (Result.Ok r) result
+  f result
 
-let complete =
-  let check_c ~msg p s r = check ~msg Alcotest.char   p [s] r in
-  let check_s ~msg p s r = check ~msg Alcotest.string p [s] r in
-  [ "single 'a' as char", `Quick, begin fun () ->
-      check_c ~msg:"any_char" any_char "a" 'a';
-      check_c ~msg:"not 'b'" (not_char 'b') "a" 'a';
-      check_c ~msg:"char a" (char 'a') "a" 'a';
-      check_c ~msg:"char a | char b" (char 'a' <|> char 'b') "a" 'a';
-      check_c ~msg:"char b | char a" (char 'b' <|> char 'a') "a" 'a';
-    end
-  ; "single 'a' as string", `Quick, begin fun () ->
-      check_s ~msg:"take 1" (take 1) "a" "a";
-      check_s ~msg:"take_while (='a')" (take_while (fun c -> c = 'a')) "a" "a";
-      check_s ~msg:"take_while1 (='a')" (take_while1 (fun c -> c = 'a')) "a" "a";
-      check_s ~msg:"string 'a'" (string "a") "a" "a";
-      check_s ~msg:"string 'a' | string 'b'" (string "a" <|> string "b") "a" "a";
-      check_s ~msg:"string 'b' | string 'a'" (string "b" <|> string "a") "a" "a";
-      check_s ~msg:"string_ci 'a'" (string_ci "a") "a" "a";
-      check_s ~msg:"string_ci 'A'" (string_ci "A") "a" "a";
-    end ]
-;;
+let check_ok ?size ~msg test p is r =
+  let r = Result.Ok r in
+  check ?size (fun result -> Alcotest.(check (result test string)) msg r result)
+    p is
+
+let check_fail ?size ~msg p is =
+  let r = Result.Error "" in
+  check ?size (fun result -> Alcotest.(check (result none any)) msg r result)
+    p is
+
+let check_c  ?size ~msg p is r = check_ok ?size ~msg Alcotest.char            p is r
+let check_lc ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list char)     p is r
+let check_co ?size ~msg p is r = check_ok ?size ~msg Alcotest.(option char)   p is r
+let check_s  ?size ~msg p is r = check_ok ?size ~msg Alcotest.string          p is r
+let check_ls ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list string)   p is r
+
+let basic_constructors =
+  [ "peek_char", `Quick, begin fun () ->
+      check_co ~msg:"singleton input"  peek_char ["t"]    (Some 't');
+      check_co ~msg:"longer input"     peek_char ["true"] (Some 't');
+      check_co ~msg:"empty input"      peek_char [""]     None;
+  end
+  ; "peek_char_fail", `Quick, begin fun () ->
+      check_c    ~msg:"singleton input"  peek_char_fail ["t"]    't';
+      check_c    ~msg:"longer input"     peek_char_fail ["true"] 't';
+      check_fail ~msg:"empty input"      peek_char_fail [""]
+  end
+  ; "char", `Quick, begin fun () ->
+      check_c    ~msg:"singleton 'a'" (char 'a') ["a"]     'a';
+      check_c    ~msg:"prefix 'a'"    (char 'a') ["asdf"]  'a';
+      check_fail ~msg:"'a' failure"   (char 'a') ["b"];
+      check_fail ~msg:"empty buffer"  (char 'a') [""]
+  end
+  ; "not_char", `Quick, begin fun () ->
+      check_c    ~msg:"not 'a' singleton" (not_char 'a') ["b"] 'b';
+      check_c    ~msg:"not 'a' prefix"    (not_char 'a') ["baba"] 'b';
+      check_fail ~msg:"not 'a' failure"   (not_char 'a') ["a"];
+      check_fail ~msg:"empty buffer"      (not_char 'a') [""]
+  end
+  ; "any_char", `Quick, begin fun () ->
+      check_c    ~msg:"non-empty buffer" any_char ["a"] 'a';
+      check_fail ~msg:"empty buffer"     any_char [""]
+  end
+  ; "string", `Quick, begin fun () ->
+      check_s ~msg:"empty string, non-empty buffer" (string "")     ["asdf"] "";
+      check_s ~msg:"empty string, empty buffer"     (string "")     [""]     "";
+      check_s ~msg:"exact string match"             (string "asdf") ["asdf"] "asdf";
+      check_s ~msg:"string is prefix of input"      (string "as")   ["asdf"] "as";
+
+      check_fail ~msg:"input is prefix of string"     (string "asdf") ["asd"];
+      check_fail ~msg:"non-empty string, empty input" (string "test") [""]
+  end
+  ; "string_ci", `Quick, begin fun () ->
+      check_s ~msg:"empty string, non-empty input"  (string_ci "")     ["asdf"] "";
+      check_s ~msg:"empty string, empty input"      (string_ci "")     [""]     "";
+      check_s ~msg:"exact string match"             (string_ci "asdf") ["AsDf"] "AsDf";
+      check_s ~msg:"string is prefix of input"      (string_ci "as")   ["AsDf"] "As";
+
+      check_fail ~msg:"input is prefix of string"     (string_ci "asdf") ["Asd"];
+      check_fail ~msg:"non-empty string, empty input" (string_ci "test") [""]
+  end
+  ]
+
+let monadic =
+  [ "fail", `Quick, begin fun () ->
+    check_fail ~msg:"non-empty input" (fail "<msg>") ["asdf"];
+    check_fail ~msg:"empty input"     (fail "<msg>") [""]
+  end
+  ; "return", `Quick, begin fun () ->
+    check_s ~msg:"non-empty input" (return "test") ["asdf"] "test";
+    check_s ~msg:"empty input"     (return "test") [""]     "test";
+  end
+  ; "bind", `Quick, begin fun () ->
+    check_s ~msg:"data dependency" (take 2 >>= fun s -> string s) ["asas"] "as";
+  end
+  ]
+
+let applicative =
+  [ "applicative", `Quick, begin fun () ->
+    check_s ~msg:"`foo *> bar` returns bar" (string "foo" *> string "bar") ["foobar"] "bar";
+    check_s ~msg:"`foo <* bar` returns bar" (string "foo" <* string "bar") ["foobar"] "foo";
+  end
+  ]
+
+let alternative =
+  [ "alternative", `Quick, begin fun () ->
+      check_c ~msg:"char a | char b" (char 'a' <|> char 'b') ["a"] 'a';
+      check_c ~msg:"char b | char a" (char 'b' <|> char 'a') ["a"] 'a';
+      check_s ~msg:"string 'a' | string 'b'" (string "a" <|> string "b") ["a"] "a";
+      check_s ~msg:"string 'b' | string 'a'" (string "b" <|> string "a") ["a"] "a";
+  end ]
+
+let combinators =
+  [ "many", `Quick, begin fun () ->
+      check_lc ~msg:"empty input"   (many (char 'a')) [""]  [];
+      check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
+      check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
+  end ]
 
 let incremental =
-  let check_s ?size ~msg p ss r = check ?size ~msg Alcotest.string p ss r in
   [ "within chunk boundary", `Quick, begin fun () ->
       check_s ~msg:"string on each side of 2 inputs"
         (string "this" *> string "that") ["this"; "that"] "that";
@@ -87,5 +177,9 @@ let incremental =
 
 let () =
   Alcotest.run "test suite"
-    [ "complete input"   , complete
-    ; "incremental input", incremental ]
+    [ "basic constructors"    , basic_constructors
+    ; "monadic interface"     , monadic
+    ; "applicative interface" , applicative
+    ; "alternative"           , alternative
+    ; "combinators"           , combinators
+    ; "incremental input"     , incremental ]
