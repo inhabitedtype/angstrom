@@ -48,7 +48,7 @@ For building and running the tests during development, you will need to install
 the `alcotest` package and reconfigure the build process to enable tests:
 
 ```bash
-opam install aclotest
+opam install alcotest
 ./configure --enable-tests
 make && make test
 ```
