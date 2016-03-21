@@ -55,10 +55,12 @@ module B = struct
     reuse buffer
 
   let _writable_space t =
-    A.dim t.buffer.Cstruct.buffer - t.buffer.Cstruct.len
+    let { Cstruct.buffer; len } = t.buffer in
+    A.dim buffer - len
 
   let _trailing_space t =
-    A.dim t.buffer.Cstruct.buffer - Cstruct.(t.buffer.off + t.buffer.len)
+    let { Cstruct.buffer; off; len } = t.buffer in
+    A.dim buffer - (off + len)
 
   let debug t =
     Printf.sprintf "debug - buf: %s, trailing: %d, writable: %d\n%!"
@@ -77,7 +79,7 @@ module B = struct
     while space + !size - init_size < to_copy do
       size := (3 * !size) / 2
     done;
-    let buffer = Cstruct.(set_len (create !size) t.buffer.Cstruct.len) in
+    let buffer = Cstruct.(set_len (create !size)) t.buffer.Cstruct.len in
     Cstruct.blit t.buffer 0 buffer 0 t.buffer.Cstruct.len;
     t.buffer <- buffer
   ;;
