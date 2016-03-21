@@ -418,10 +418,10 @@ let take_rest =
   go []
 
 let char c =
-  satisfy (fun c' -> c = c') <?> (String.init 1 (fun _ -> c))
+  satisfy (fun c' -> c = c') <?> (String.make 1 c)
 
 let not_char c =
-  satisfy (fun c' -> c <> c') <?> ("not " ^ String.init 1 (fun _ -> c))
+  satisfy (fun c' -> c <> c') <?> ("not " ^ String.make 1 c)
 
 let any_char =
   satisfy (fun _ -> true)
