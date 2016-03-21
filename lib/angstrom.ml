@@ -452,12 +452,12 @@ let many_till p t =
   fix (fun m ->
     (return cons <*> p <*> m) <|> (t *> return []))
 
-let sep_by1 p s =
+let sep_by1 s p =
   fix (fun m ->
     return cons <*> p <*> ((s *> m) <|> return []))
 
-let sep_by p s =
-  (return cons <*> p <*> (s *> (sep_by1 p s <|> return []))) <|> return []
+let sep_by s p =
+  (return cons <*> p <*> (s *> (sep_by1 s p <|> return []))) <|> return []
 
 let rec list ps =
   match ps with

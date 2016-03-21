@@ -140,11 +140,11 @@ val many_till : 'a t -> 'b t -> 'a list t
 (** [many_till p e] runs parser [p] {i zero} or more times until action [e]
     succeeds and returns the list of result from the runs of [p]. *)
 
-val sep_by : 'a t -> 'b t -> 'a list t
-(** [sep_by p s] runs [p] {i zero} or more times, interspersing runs of [s] in between. *)
+val sep_by : 'a t -> 'b t -> 'b list t
+(** [sep_by s p] runs [p] {i zero} or more times, interspersing runs of [s] in between. *)
 
-val sep_by1 : 'a t -> 'b t -> 'a list t
-(** [sep_by1 p s] runs [p] {i one} or more times, interspersing runs of [s] in between. *)
+val sep_by1 : 'a t -> 'b t -> 'b list t
+(** [sep_by1 s p] runs [p] {i one} or more times, interspersing runs of [s] in between. *)
 
 val fix : ('a t -> 'a t) -> 'a t
 (** [fix f] computes the fixpoint of [f] and runs the resultant parser,

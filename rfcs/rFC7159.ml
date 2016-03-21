@@ -74,10 +74,10 @@ let value =
   fix (fun v ->
     let obj =
       let member = return (fun x y -> (x, y)) <*> _str <* ns <*> v in
-      lcb *> sep_by member vs <* rcb >>| fun ms -> `Object ms
+      lcb *> sep_by vs member <* rcb >>| fun ms -> `Object ms
     in
     let arr =
-      lsb *> sep_by v vs <* rsb >>| fun vs -> `Array vs
+      lsb *> sep_by vs v <* rsb >>| fun vs -> `Array vs
     in
     choice [_false; _null; _true; obj; arr; str; num])
 
