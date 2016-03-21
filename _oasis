@@ -23,7 +23,7 @@ Library angstrom
   Path:         lib
   Findlibname:  angstrom
   NativeOpt:    -inline 20
-  BuildDepends: cstruct, result
+  BuildDepends: cstruct (>= 0.6.0), result
   Modules:      Angstrom
 
 Document api
