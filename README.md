@@ -19,7 +19,7 @@ open Angstrom
 
 let comma  = char ','
 let value  = take_while (fun c -> c <> ',' && c <> '\n' && c <> '\r')
-let record = sep_by value comma in
+let record = sep_by comma value in
 let csv =
   many (record <* end_of_line)
 
