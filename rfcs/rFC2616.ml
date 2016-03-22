@@ -17,10 +17,14 @@ module P = struct
   let is_colon_or_space c =
     is_space c || is_colon c
 
-  let is_separator c = String.contains "()<>@,;:\\\"/[]?={} \t" c
+  let is_separator, is_token =
+    let separators = "()<>@,;:\\\"/[]?={} \t" in
+    let is_separator c = String.contains separators c in
+    let is_token c = c <> 127 && c > 31 && not (String.contains separators c)
+    (is_separator, is_token)
 end
 
-let token = satisfy (fun c -> c <> 127 && c > 31 && not (is_separator c))
+let token = satisfy P.is_token
 let digits = take_while1 P.is_digit
 let separator = satisfy P.is_separator
 let spaces = skip_while P.is_space
@@ -58,8 +62,8 @@ let response_first_line =
 let header =
   let colon = spaces *> char ':' <* spaces in
   (fun key value -> (key, value))
-    <$> take_till P.is_colon_or_space
-    <*> take_till P.is_eol
+    <$> token
+    <*> colon *> take_till P.is_eol
 
 let request =
   (fun (meth, uri, version) headers -> (meth, uri, version, headers))
