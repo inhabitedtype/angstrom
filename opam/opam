@@ -21,7 +21,7 @@ build-test: [
 ]
 depends: [
   "alcotest" {test}
-  "cstruct"
+  "cstruct" {>= "0.6.0"}
   "ocamlfind" {build}
   "result"
 ]

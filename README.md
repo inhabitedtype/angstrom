@@ -2,6 +2,8 @@
 
 Angstrom is a parser combinator library built for speed and memory efficiency.
 
+[![Build Status](https://travis-ci.org/inhabitedtype/angstrom.svg?branch=master)](https://travis-ci.org/inhabitedtype/angstrom)
+
 ## Installation
 
 Install the library and its depenencies via [OPAM][opam]:
