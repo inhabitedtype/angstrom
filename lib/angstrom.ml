@@ -34,13 +34,94 @@
 module A = Bigarray.Array1
 module B = struct
   (** XXX(seliopou): Look into replacing this with a circular buffer. *)
+  type cstruct_buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+  type cstruct = {
+    buffer : cstruct_buffer;
+    off : int;
+    len : int;
+  }
+
+  module Cstruct = struct
+
+    external unsafe_blit_string_to_bigstring : string -> int -> cstruct_buffer -> int -> int -> unit = "caml_blit_string_to_bigstring" "noalloc"
+
+    external unsafe_blit_bigstring_to_bigstring : cstruct_buffer -> int -> cstruct_buffer -> int -> int -> unit = "caml_blit_bigstring_to_bigstring" "noalloc"
+
+    external unsafe_blit_bigstring_to_bytes : cstruct_buffer -> int -> Bytes.t -> int -> int -> unit = "caml_blit_bigstring_to_string" "noalloc"
+
+    let blit_from_string src srcoff dst dstoff len =
+      unsafe_blit_string_to_bigstring src srcoff dst.buffer (dst.off+dstoff) len
+
+    let set_len t len = { t with len }
+
+    let add_len t len =
+      let len = t.len + len in
+      {t with len}
+
+    let len t = t.len
+
+    let create len =
+      let buffer = Bigarray.(Array1.create char c_layout len) in
+      { buffer ; len ; off = 0 }
+
+    let of_string ?allocator buf =
+      let buflen = String.length buf in
+      match allocator with
+      |None ->
+        let c = create buflen  in
+        blit_from_string buf 0 c 0 buflen;
+        c
+      |Some fn ->
+        let c = fn buflen in
+        blit_from_string buf 0 c 0 buflen;
+        set_len c buflen
+
+    let of_bigarray ?(off=0) ?len buffer =
+      let dim = Bigarray.Array1.dim buffer in
+      let len =
+        match len with
+        | None     -> dim - off
+        | Some len -> len in
+      { buffer; off; len }
+
+    let pp_t ppf t =
+      Format.fprintf ppf "[%d,%d](%d)" t.off t.len (Bigarray.Array1.dim t.buffer)
+
+    let debug cstruct =
+      let max_len = Bigarray.Array1.dim cstruct.buffer in
+      Format.asprintf "%a" pp_t cstruct
+
+    let blit src srcoff dst dstoff len =
+      unsafe_blit_bigstring_to_bigstring src.buffer (src.off+srcoff) dst.buffer (dst.off+dstoff) len
+
+    let sub t off0 len =
+      let off = t.off + off0 in
+      { t with off; len }
+
+    let shift t amount =
+      let off = t.off + amount in
+      let len = t.len - amount in
+      { t with off; len }
+
+    let get_char t i =
+      EndianBigstring.BigEndian.get_char t.buffer (t.off+i)
+
+
+    let copy src srcoff len =
+      let b = Bytes.create len in
+      unsafe_blit_bigstring_to_bytes src.buffer (src.off+srcoff) b 0 len;
+      (* The following call is safe, since b is not visible elsewhere. *)
+      Bytes.unsafe_to_string b
+  end
+
   type t =
-    { mutable buffer : Cstruct.t
+    { mutable buf : cstruct
     ; mutable offset : int
     }
 
   let reuse buffer =
-    { buffer; offset = 0 }
+    { buf = buffer; offset = 0 }
 
   let of_string str =
     let buffer = Cstruct.of_string str in
@@ -55,33 +136,33 @@ module B = struct
     reuse buffer
 
   let _writable_space t =
-    let { Cstruct.buffer; len } = t.buffer in
+    let { buffer; len } = t.buf in
     A.dim buffer - len
 
   let _trailing_space t =
-    let { Cstruct.buffer; off; len } = t.buffer in
+    let { buffer; off; len } = t.buf in
     A.dim buffer - (off + len)
 
   let debug t =
     Printf.sprintf "debug - buf: %s, trailing: %d, writable: %d\n%!"
-      (Cstruct.debug t.buffer) (_trailing_space t) (_writable_space t)
+      (Cstruct.debug t.buf) (_trailing_space t) (_writable_space t)
 
   let _compress t =
-    let off, len = 0, Cstruct.len t.buffer in
-    let buffer = Cstruct.of_bigarray ~off ~len t.buffer.Cstruct.buffer in
-    Cstruct.blit t.buffer 0 buffer 0 len;
-    t.buffer <- buffer
+    let off, len = 0, Cstruct.len t.buf in
+    let buffer = Cstruct.of_bigarray ~off ~len t.buf.buffer in
+    Cstruct.blit t.buf 0 buffer 0 len;
+    t.buf <- buffer
 
   let _grow t to_copy =
-    let init_size = A.dim t.buffer.Cstruct.buffer in
+    let init_size = A.dim t.buf.buffer in
     let size  = ref init_size in
     let space = _writable_space t in
     while space + !size - init_size < to_copy do
       size := (3 * !size) / 2
     done;
-    let buffer = Cstruct.(set_len (create !size)) t.buffer.Cstruct.len in
-    Cstruct.blit t.buffer 0 buffer 0 t.buffer.Cstruct.len;
-    t.buffer <- buffer
+    let buffer = Cstruct.(set_len (create !size) t.buf.len) in
+    Cstruct.blit t.buf 0 buffer 0 t.buf.len;
+    t.buf <- buffer
   ;;
 
   let _ensure_space t len =
@@ -92,7 +173,7 @@ module B = struct
     else
       _grow t len
     end;
-    t.buffer <- Cstruct.add_len t.buffer len
+    t.buf <- Cstruct.add_len t.buf len
   ;;
 
   let copy_in t =
@@ -100,27 +181,27 @@ module B = struct
     | `String str ->
       let len = String.length str in
       _ensure_space t len;
-      let len' = Cstruct.len t.buffer - len in
-      let allocator _ = Cstruct.sub t.buffer len' len in
+      let len' = Cstruct.len t.buf - len in
+      let allocator _ = Cstruct.sub t.buf len' len in
       ignore (Cstruct.of_string ~allocator str)
     | `Cstruct cs ->
       let len = Cstruct.len cs in
       _ensure_space t len;
-      let len' = Cstruct.len t.buffer - len in
-      Cstruct.blit cs 0 t.buffer len' len
+      let len' = Cstruct.len t.buf - len in
+      Cstruct.blit cs 0 t.buf len' len
 
   let commit t pos =
-    t.buffer <- Cstruct.shift t.buffer (pos - t.offset);
+    t.buf <- Cstruct.shift t.buf (pos - t.offset);
     t.offset <- pos
 
   let input_length t =
-    Cstruct.len t.buffer + t.offset
+    Cstruct.len t.buf + t.offset
 
   let get t i =
-    Cstruct.get_char t.buffer (i - t.offset)
+    Cstruct.get_char t.buf (i - t.offset)
 
   let substring t pos len =
-    Cstruct.copy t.buffer (pos - t.offset) len
+    Cstruct.copy t.buf (pos - t.offset) len
 
   let count_while t pos f =
     let i = ref pos in
@@ -131,7 +212,7 @@ module B = struct
     !i - pos
 
   let unread t pos =
-    Cstruct.shift t.buffer (pos - t.offset)
+    Cstruct.shift t.buf (pos - t.offset)
 end
 
 type more =
@@ -140,12 +221,12 @@ type more =
 
 type input =
   [ `String  of string
-  | `Cstruct of Cstruct.t ]
+  | `Cstruct of B.cstruct ]
 
 type 'a state =
-  | Fail    of Cstruct.t * string list * string
+  | Fail    of B.cstruct * string list * string
   | Partial of (input option -> 'a state)
-  | Done    of Cstruct.t * 'a
+  | Done    of B.cstruct * 'a
 
 type 'a failure = B.t -> int -> more -> string list -> string -> 'a state
 type ('a, 'r) success = B.t -> int -> more -> 'a -> 'r state
@@ -209,7 +290,7 @@ let rec prompt buf pos fail succ =
     | None       -> fail buf pos Complete
     | Some (`String "") ->
       prompt buf pos fail succ
-    | Some (`Cstruct cs) when Cstruct.len cs = 0 ->
+    | Some (`Cstruct cs) when B.Cstruct.len cs = 0 ->
       prompt buf pos fail succ
     | Some input ->
       B.copy_in buf input;
@@ -489,7 +570,7 @@ let parse_only p input =
 let copy_into_leftover l bytes =
   let buf  = B.reuse l in
   B.copy_in buf bytes;
-  buf.B.buffer
+  buf.B.buf
 
 let feed state bytes =
   match state with

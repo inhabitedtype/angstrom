@@ -36,6 +36,16 @@
 type 'a t
 (** A parser for values of type ['a]. *)
 
+module B : sig
+  type cstruct_buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+  type cstruct = {
+    buffer : cstruct_buffer;
+    off : int;
+    len : int;
+  }
+end
+
 
 (** {2 Basic parsers} *)
 
@@ -203,14 +213,15 @@ val (<* ) : 'a t -> 'b t -> 'a t
 
 (** {2 Running} *)
 
+
 type input =
   [ `String  of string
-  | `Cstruct of Cstruct.t ]
+  | `Cstruct of B.cstruct ]
 
 type 'a state =
-  | Fail    of Cstruct.t * string list * string
+  | Fail    of B.cstruct * string list * string
   | Partial of (input option -> 'a state)
-  | Done    of Cstruct.t * 'a
+  | Done    of B.cstruct * 'a
 
 val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
 (** [parse ?initial_buffer_size ?input t] runs [t] on [input], if present, and
@@ -218,7 +229,7 @@ val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
     [initial_buffer_size] (defaulting to 4k bytes) to do input buffering and
     automatically grow the buffer as needed. *)
 
-val parse_with_buffer : 'a t -> Cstruct.t -> 'a state
+val parse_with_buffer : 'a t -> B.cstruct -> 'a state
 (** [parse_with_buffer t buffer] runs [t] with a user-allocated buffer [buffer]
     that the parser can take total ownership of. The view into [buffers] should
     be set to the bytes that can be used as input. The remainder of the space
