@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d3e9530613deee76627079193bbdd077)
+# DO NOT EDIT (digest: 4da77eed24cd7c9d878103c650607bd9)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -16,30 +16,54 @@ true: annot, bin_annot
 "_darcs": not_hygienic
 # Library angstrom
 "lib/angstrom.cmxs": use_angstrom
+<lib/*.ml{,i,y}>: oasis_library_angstrom_ccopt
+"lib/angstrom_stubs.c": oasis_library_angstrom_ccopt
 <lib/angstrom.{cma,cmxa}>: oasis_library_angstrom_native
 <lib/*.ml{,i,y}>: oasis_library_angstrom_native
-<lib/*.ml{,i,y}>: pkg_cstruct
+"lib/angstrom_stubs.c": oasis_library_angstrom_native
+<lib/angstrom.{cma,cmxa}>: use_libangstrom_stubs
+<lib/*.ml{,i,y}>: pkg_bigarray
+<lib/*.ml{,i,y}>: pkg_bytes
+<lib/*.ml{,i,y}>: pkg_ocplib-endian
+<lib/*.ml{,i,y}>: pkg_ocplib-endian.bigstring
 <lib/*.ml{,i,y}>: pkg_result
+"lib/angstrom_stubs.c": pkg_bigarray
+"lib/angstrom_stubs.c": pkg_bytes
+"lib/angstrom_stubs.c": pkg_ocplib-endian
+"lib/angstrom_stubs.c": pkg_ocplib-endian.bigstring
+"lib/angstrom_stubs.c": pkg_result
 # Library angstrom_lwt
 "lwt/angstrom_lwt.cmxs": use_angstrom_lwt
-<lwt/*.ml{,i,y}>: pkg_cstruct
+<lwt/*.ml{,i,y}>: pkg_bigarray
+<lwt/*.ml{,i,y}>: pkg_bytes
 <lwt/*.ml{,i,y}>: pkg_lwt
+<lwt/*.ml{,i,y}>: pkg_ocplib-endian
+<lwt/*.ml{,i,y}>: pkg_ocplib-endian.bigstring
 <lwt/*.ml{,i,y}>: pkg_result
 <lwt/*.ml{,i,y}>: use_angstrom
 # Library angstrom_async
 "async/angstrom_async.cmxs": use_angstrom_async
 <async/*.ml{,i,y}>: pkg_async
-<async/*.ml{,i,y}>: pkg_cstruct
+<async/*.ml{,i,y}>: pkg_bigarray
+<async/*.ml{,i,y}>: pkg_bytes
+<async/*.ml{,i,y}>: pkg_ocplib-endian
+<async/*.ml{,i,y}>: pkg_ocplib-endian.bigstring
 <async/*.ml{,i,y}>: pkg_result
 <async/*.ml{,i,y}>: pkg_threads
 <async/*.ml{,i,y}>: use_angstrom
 # Executable test_angstrom
 <lib_test/test_angstrom.{native,byte}>: pkg_alcotest
-<lib_test/test_angstrom.{native,byte}>: pkg_cstruct
+<lib_test/test_angstrom.{native,byte}>: pkg_bigarray
+<lib_test/test_angstrom.{native,byte}>: pkg_bytes
+<lib_test/test_angstrom.{native,byte}>: pkg_ocplib-endian
+<lib_test/test_angstrom.{native,byte}>: pkg_ocplib-endian.bigstring
 <lib_test/test_angstrom.{native,byte}>: pkg_result
 <lib_test/test_angstrom.{native,byte}>: use_angstrom
 <lib_test/*.ml{,i,y}>: pkg_alcotest
-<lib_test/*.ml{,i,y}>: pkg_cstruct
+<lib_test/*.ml{,i,y}>: pkg_bigarray
+<lib_test/*.ml{,i,y}>: pkg_bytes
+<lib_test/*.ml{,i,y}>: pkg_ocplib-endian
+<lib_test/*.ml{,i,y}>: pkg_ocplib-endian.bigstring
 <lib_test/*.ml{,i,y}>: pkg_result
 <lib_test/*.ml{,i,y}>: use_angstrom
 # OASIS_STOP

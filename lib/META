@@ -1,9 +1,9 @@
 # OASIS_START
-# DO NOT EDIT (digest: 9a0e26abb5cd2edbb7060416d12fa297)
+# DO NOT EDIT (digest: 2e89842bcfa1c2543fbfa9fd4558aab0)
 version = "0.1.0"
 description =
 "Parser combinator library built for speed and memory efficiency"
-requires = "cstruct result"
+requires = "bytes bigarray ocplib-endian ocplib-endian.bigstring result"
 archive(byte) = "angstrom.cma"
 archive(byte, plugin) = "angstrom.cma"
 archive(native) = "angstrom.cmxa"

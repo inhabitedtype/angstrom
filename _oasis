@@ -23,7 +23,9 @@ Library angstrom
   Path:         lib
   Findlibname:  angstrom
   NativeOpt:    -inline 20
-  BuildDepends: cstruct (>= 0.6.0), result
+  BuildDepends: bytes, bigarray, ocplib-endian, ocplib-endian.bigstring, result
+  CSources:     angstrom_stubs.c
+  CCOpt:        -O3 -Wall
   Modules:      Angstrom
 
 Document api
