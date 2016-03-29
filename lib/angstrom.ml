@@ -34,10 +34,10 @@
 module A = Bigarray.Array1
 module B = struct
   (** XXX(seliopou): Look into replacing this with a circular buffer. *)
-  type cstruct_buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   type cstruct = {
-    buffer : cstruct_buffer;
+    buffer : buffer;
     off : int;
     len : int;
   }
@@ -65,11 +65,11 @@ module B = struct
 
     *)
 
-    external unsafe_blit_string_to_bigstring : string -> int -> cstruct_buffer -> int -> int -> unit = "caml_blit_string_to_bigstring" "noalloc"
+    external unsafe_blit_string_to_bigstring : string -> int -> buffer -> int -> int -> unit = "caml_blit_string_to_bigstring" "noalloc"
 
-    external unsafe_blit_bigstring_to_bigstring : cstruct_buffer -> int -> cstruct_buffer -> int -> int -> unit = "caml_blit_bigstring_to_bigstring" "noalloc"
+    external unsafe_blit_bigstring_to_bigstring : buffer -> int -> buffer -> int -> int -> unit = "caml_blit_bigstring_to_bigstring" "noalloc"
 
-    external unsafe_blit_bigstring_to_bytes : cstruct_buffer -> int -> Bytes.t -> int -> int -> unit = "caml_blit_bigstring_to_string" "noalloc"
+    external unsafe_blit_bigstring_to_bytes : buffer -> int -> Bytes.t -> int -> int -> unit = "caml_blit_bigstring_to_string" "noalloc"
 
     let blit_from_string src srcoff dst dstoff len =
       unsafe_blit_string_to_bigstring src srcoff dst.buffer (dst.off+dstoff) len
@@ -106,12 +106,8 @@ module B = struct
         | Some len -> len in
       { buffer; off; len }
 
-    let pp_t ppf t =
-      Format.fprintf ppf "[%d,%d](%d)" t.off t.len (Bigarray.Array1.dim t.buffer)
-
-    let debug cstruct =
-      let max_len = Bigarray.Array1.dim cstruct.buffer in
-      Format.asprintf "%a" pp_t cstruct
+    let debug t =
+      Format.sprintf "[%d,%d](%d)" t.off t.len (Bigarray.Array1.dim t.buffer)
 
     let blit src srcoff dst dstoff len =
       unsafe_blit_bigstring_to_bigstring src.buffer (src.off+srcoff) dst.buffer (dst.off+dstoff) len

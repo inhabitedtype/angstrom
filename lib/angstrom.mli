@@ -37,10 +37,10 @@ type 'a t
 (** A parser for values of type ['a]. *)
 
 module B : sig
-  type cstruct_buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+  type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
   type cstruct = {
-    buffer : cstruct_buffer;
+    buffer : buffer;
     off : int;
     len : int;
   }
