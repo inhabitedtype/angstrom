@@ -170,9 +170,9 @@ let incremental =
     end
   ; "across chunk boundary with commit", `Quick, begin fun () ->
       check_s ~size:4 ~msg:"string on each side of 2 chunks"
-        (string "this" *> commit *> string "that") ["this"; "that"] "that";
+        (commit (string "this") *> string "that") ["this"; "that"] "that";
       check_s ~size:3 ~msg:"string on each side of 3 chunks"
-        (string "thi" *> string "st" *> commit *> string "hat") ["thi"; "st"; "hat"] "hat";
+        (commit (string "thi" *> string "st") *> string "hat") ["thi"; "st"; "hat"] "hat";
     end ]
 
 let () =

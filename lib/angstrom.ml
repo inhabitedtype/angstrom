@@ -153,15 +153,23 @@ type ('a, 'r) success = B.t -> int -> more -> 'a -> 'r state
 let fail_k    buf pos _ marks msg = Fail(B.unread buf pos, marks, msg)
 let succeed_k buf pos _       v   = Done(B.unread buf pos, v)
 
+let opt_map ~f = function
+  | None -> None
+  | Some x -> Some (f x)
+
+let run_fail = function
+  | None -> fail_k
+  | Some k -> k
+
 type 'a t =
-  { run : 'r. B.t -> int -> more -> 'r failure -> ('a, 'r) success -> 'r state }
+  { run : 'r. B.t -> int -> more -> 'r failure option -> ('a, 'r) success -> 'r state }
 
 let return : type a. a -> a t =
   fun v -> { run = fun buf pos more _fail succ -> succ buf pos more v }
 
 let fail msg =
   { run = fun buf pos more fail succ ->
-    fail buf pos more [] msg
+    run_fail fail buf pos more [] msg
   }
 
 let (>>=) p f =
@@ -192,14 +200,16 @@ let (<* ) a b =
 
 let (<?>) p mark =
   { run = fun buf pos more fail succ ->
-    let fail' buf' pos' more' marks msg = fail buf' pos' more' (mark::marks) msg in
+    let fail' = opt_map fail ~f:(fun fail ->
+      fun buf' pos' more' marks msg -> fail buf' pos' more' (mark::marks) msg)
+    in
     p.run buf pos more fail' succ
   }
 
 let (<|>) p q =
   { run = fun buf pos more fail succ ->
     let fail' buf' pos' more' _marks _msg = q.run buf' pos more' fail succ in
-    p.run buf pos more fail' succ
+    p.run buf pos more (Some fail') succ
   }
 
 (** BEGIN: getting input *)
@@ -220,10 +230,10 @@ let rec prompt buf pos fail succ =
 let demand_input =
   { run = fun buf pos more fail succ ->
     match more with
-    | Complete   -> fail buf pos more [] "not enough input"
+    | Complete   -> run_fail fail buf pos more [] "not enough input"
     | Incomplete ->
       let succ' buf' pos' more' = succ buf' pos' more' ()
-      and fail' buf' pos' more' = fail buf' pos' more' [] "not enough input" in
+      and fail' buf' pos' more' = run_fail fail buf' pos' more' [] "not enough input" in
       prompt buf pos fail' succ'
   }
 
@@ -270,11 +280,11 @@ let ensure n =
 let end_of_input =
   { run = fun buf pos more fail succ ->
     if pos < B.input_length buf then
-      fail buf pos more [] "end_of_input"
+      run_fail fail buf pos more [] "end_of_input"
     else if more = Complete then
       succ buf pos more ()
     else
-      let succ' buf' pos' more' = fail buf' pos' more' [] "end_of_input"
+      let succ' buf' pos' more' = run_fail fail buf' pos' more' [] "end_of_input"
       and fail' buf' pos' more' = succ buf' pos' more' () in
       prompt buf pos fail' succ'
   }
@@ -308,11 +318,10 @@ let available =
 let get_buffer_and_pos =
   { run = fun buf pos more _fail succ -> succ buf pos more (buf, pos) }
 
-let commit =
+let commit p =
   { run = fun buf pos more _fail succ ->
     B.commit buf pos;
-    succ buf pos more ()
-  }
+    p.run buf pos more None succ }
 
 let peek_char =
   { run = fun buf pos more fail succ ->
@@ -472,15 +481,15 @@ let end_of_line =
 let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
   let buf  = B.create ~size:initial_buffer_size () in
   B.copy_in buf input;
-  p.run buf 0 Incomplete fail_k succeed_k
+  p.run buf 0 Incomplete None succeed_k
 
 let parse_with_buffer p buf =
-  p.run (B.reuse buf) 0 Incomplete fail_k succeed_k
+  p.run (B.reuse buf) 0 Incomplete None succeed_k
 
 let parse_only p input =
   let buf = B.create () in
   B.copy_in buf input;
-  match p.run buf 0 Complete fail_k succeed_k with
+  match p.run buf 0 Complete None succeed_k with
   | Fail(_, []   , err) -> Result.Error err
   | Fail(_, marks, err) -> Result.Error (String.concat " > " marks ^ ": " ^ err)
   | Done(_, v)          -> Result.Ok v

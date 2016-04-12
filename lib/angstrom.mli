@@ -165,7 +165,7 @@ val (<?>) : 'a t -> string -> 'a t
 (** [p <?> name] associates [name] with the parser [p], which will be reported
     in the case of failure. *)
 
-val commit : unit t
+val commit : 'a t -> 'a t
 (** [commit] prevents backtracking beyond the current position of the input.
     Any consumed input that is still buffered will potentially be overridden to
     make room for new incremental input. *)
