@@ -6,6 +6,7 @@ authors: [ "Spiros Eliopoulos <spiros@inhabitedtype.com>" ]
 license: "BSD-3-clause"
 homepage: "https://github.com/inhabitedtype/angstrom"
 bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
+dev-repo: "https://github.com/inhabitedtype/angstrom.git"
 build: [
   ["ocaml" "setup.ml" "-configure" "--prefix" prefix]
   ["ocaml" "setup.ml" "-build"]
