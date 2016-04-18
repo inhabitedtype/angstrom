@@ -46,8 +46,6 @@ type 'a t
     len : int;
   }
 end**)
-(**type B = Angstrom_cstruct*)
-
 
 (** {2 Basic parsers} *)
 

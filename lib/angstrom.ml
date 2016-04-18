@@ -33,13 +33,12 @@
 open Angstrom_cstruct
 
 module A = Bigarray.Array1
-module Cstruct = Angstrom_cstruct
 
 module B = struct
   (** XXX(seliopou): Look into replacing this with a circular buffer. *)
 
   type t =
-    { mutable buf : Cstruct.t
+    { mutable buf : Angstrom_cstruct.t
     ; mutable offset : int
     }
 
@@ -47,15 +46,15 @@ module B = struct
     { buf = buffer; offset = 0 }
 
   let of_string str =
-    let buffer = Cstruct.of_string str in
+    let buffer = Angstrom_cstruct.of_string str in
     reuse buffer
 
   let of_bigarray ?off ?len bytes =
-    let buffer = Cstruct.of_bigarray ?off ?len bytes in
+    let buffer = Angstrom_cstruct.of_bigarray ?off ?len bytes in
     reuse buffer
 
   let create ?(size=0x1000) () =
-    let buffer = Cstruct.(set_len (create size) 0) in
+    let buffer = Angstrom_cstruct.(set_len (create size) 0) in
     reuse buffer
 
   let _writable_space t =
@@ -68,12 +67,12 @@ module B = struct
 
   let debug t =
     Printf.sprintf "debug - buf: %s, trailing: %d, writable: %d\n%!"
-      (Cstruct.debug t.buf) (_trailing_space t) (_writable_space t)
+      (Angstrom_cstruct.debug t.buf) (_trailing_space t) (_writable_space t)
 
   let _compress t =
-    let off, len = 0, Cstruct.len t.buf in
-    let buffer = Cstruct.of_bigarray ~off ~len t.buf.buffer in
-    Cstruct.blit t.buf 0 buffer 0 len;
+    let off, len = 0, Angstrom_cstruct.len t.buf in
+    let buffer = Angstrom_cstruct.of_bigarray ~off ~len t.buf.buffer in
+    Angstrom_cstruct.blit t.buf 0 buffer 0 len;
     t.buf <- buffer
 
   let _grow t to_copy =
@@ -83,8 +82,8 @@ module B = struct
     while space + !size - init_size < to_copy do
       size := (3 * !size) / 2
     done;
-    let buffer = Cstruct.(set_len (create !size) t.buf.len) in
-    Cstruct.blit t.buf 0 buffer 0 t.buf.len;
+    let buffer = Angstrom_cstruct.(set_len (create !size) t.buf.len) in
+    Angstrom_cstruct.blit t.buf 0 buffer 0 t.buf.len;
     t.buf <- buffer
   ;;
 
@@ -96,7 +95,7 @@ module B = struct
     else
       _grow t len
     end;
-    t.buf <- Cstruct.add_len t.buf len
+    t.buf <- Angstrom_cstruct.add_len t.buf len
   ;;
 
   let copy_in t =
@@ -104,27 +103,27 @@ module B = struct
     | `String str ->
       let len = String.length str in
       _ensure_space t len;
-      let len' = Cstruct.len t.buf - len in
-      let allocator _ = Cstruct.sub t.buf len' len in
-      ignore (Cstruct.of_string ~allocator str)
+      let len' = Angstrom_cstruct.len t.buf - len in
+      let allocator _ = Angstrom_cstruct.sub t.buf len' len in
+      ignore (Angstrom_cstruct.of_string ~allocator str)
     | `Cstruct cs ->
-      let len = Cstruct.len cs in
+      let len = Angstrom_cstruct.len cs in
       _ensure_space t len;
-      let len' = Cstruct.len t.buf - len in
-      Cstruct.blit cs 0 t.buf len' len
+      let len' = Angstrom_cstruct.len t.buf - len in
+      Angstrom_cstruct.blit cs 0 t.buf len' len
 
   let commit t pos =
-    t.buf <- Cstruct.shift t.buf (pos - t.offset);
+    t.buf <- Angstrom_cstruct.shift t.buf (pos - t.offset);
     t.offset <- pos
 
   let input_length t =
-    Cstruct.len t.buf + t.offset
+    Angstrom_cstruct.len t.buf + t.offset
 
   let get t i =
-    Cstruct.get_char t.buf (i - t.offset)
+    Angstrom_cstruct.get_char t.buf (i - t.offset)
 
   let substring t pos len =
-    Cstruct.copy t.buf (pos - t.offset) len
+    Angstrom_cstruct.copy t.buf (pos - t.offset) len
 
   let count_while t pos f =
     let i = ref pos in
@@ -135,7 +134,7 @@ module B = struct
     !i - pos
 
   let unread t pos =
-    Cstruct.shift t.buf (pos - t.offset)
+    Angstrom_cstruct.shift t.buf (pos - t.offset)
 end
 
 type more =
@@ -144,12 +143,12 @@ type more =
 
 type input =
   [ `String  of string
-  | `Cstruct of Cstruct.t ]
+  | `Cstruct of Angstrom_cstruct.t ]
 
 type 'a state =
-  | Fail    of Cstruct.t * string list * string
+  | Fail    of Angstrom_cstruct.t * string list * string
   | Partial of (input option -> 'a state)
-  | Done    of Cstruct.t * 'a
+  | Done    of Angstrom_cstruct.t * 'a
 
 type 'a failure = B.t -> int -> more -> string list -> string -> 'a state
 type ('a, 'r) success = B.t -> int -> more -> 'a -> 'r state
@@ -213,7 +212,7 @@ let rec prompt buf pos fail succ =
     | None       -> fail buf pos Complete
     | Some (`String "") ->
       prompt buf pos fail succ
-    | Some (`Cstruct cs) when Cstruct.len cs = 0 ->
+    | Some (`Cstruct cs) when Angstrom_cstruct.len cs = 0 ->
       prompt buf pos fail succ
     | Some input ->
       B.copy_in buf input;
