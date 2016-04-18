@@ -30,110 +30,16 @@
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
+open Angstrom_cstruct
 
 module A = Bigarray.Array1
+module Cstruct = Angstrom_cstruct
+
 module B = struct
   (** XXX(seliopou): Look into replacing this with a circular buffer. *)
-  type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-  type cstruct = {
-    buffer : buffer;
-    off : int;
-    len : int;
-  }
-
-  module Cstruct = struct
-    (**
-     This submodule contains a portion of Cstruct (v.1.9.0, taken from
-     https://github.com/mirage/ocaml-cstruct) code used inside angstrom
-     (to remove package dependency). Currently security checks in methods are neglected.
-     Thus, this module's code is licensed by:
-
-    * Copyright (c) 2012 Anil Madhavapeddy <anil@recoil.org>
-    *
-    * Permission to use, copy, modify, and distribute this software for any
-    * purpose with or without fee is hereby granted, provided that the above
-    * copyright notice and this permission notice appear in all copies.
-    *
-    * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-    * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-    * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-    * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-    * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-    * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-    * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-    *)
-
-    external unsafe_blit_string_to_bigstring : string -> int -> buffer -> int -> int -> unit = "caml_blit_string_to_bigstring" "noalloc"
-
-    external unsafe_blit_bigstring_to_bigstring : buffer -> int -> buffer -> int -> int -> unit = "caml_blit_bigstring_to_bigstring" "noalloc"
-
-    external unsafe_blit_bigstring_to_bytes : buffer -> int -> Bytes.t -> int -> int -> unit = "caml_blit_bigstring_to_string" "noalloc"
-
-    let blit_from_string src srcoff dst dstoff len =
-      unsafe_blit_string_to_bigstring src srcoff dst.buffer (dst.off+dstoff) len
-
-    let set_len t len = { t with len }
-
-    let add_len t len =
-      let len = t.len + len in
-      {t with len}
-
-    let len t = t.len
-
-    let create len =
-      let buffer = Bigarray.(Array1.create char c_layout len) in
-      { buffer ; len ; off = 0 }
-
-    let of_string ?allocator buf =
-      let buflen = String.length buf in
-      match allocator with
-      |None ->
-        let c = create buflen  in
-        blit_from_string buf 0 c 0 buflen;
-        c
-      |Some fn ->
-        let c = fn buflen in
-        blit_from_string buf 0 c 0 buflen;
-        set_len c buflen
-
-    let of_bigarray ?(off=0) ?len buffer =
-      let dim = Bigarray.Array1.dim buffer in
-      let len =
-        match len with
-        | None     -> dim - off
-        | Some len -> len in
-      { buffer; off; len }
-
-    let debug t =
-      Format.sprintf "[%d,%d](%d)" t.off t.len (Bigarray.Array1.dim t.buffer)
-
-    let blit src srcoff dst dstoff len =
-      unsafe_blit_bigstring_to_bigstring src.buffer (src.off+srcoff) dst.buffer (dst.off+dstoff) len
-
-    let sub t off0 len =
-      let off = t.off + off0 in
-      { t with off; len }
-
-    let shift t amount =
-      let off = t.off + amount in
-      let len = t.len - amount in
-      { t with off; len }
-
-    let get_char t i =
-      EndianBigstring.BigEndian.get_char t.buffer (t.off+i)
-
-
-    let copy src srcoff len =
-      let b = Bytes.create len in
-      unsafe_blit_bigstring_to_bytes src.buffer (src.off+srcoff) b 0 len;
-      (* The following call is safe, since b is not visible elsewhere. *)
-      Bytes.unsafe_to_string b
-  end
 
   type t =
-    { mutable buf : cstruct
+    { mutable buf : Cstruct.t
     ; mutable offset : int
     }
 
@@ -238,12 +144,12 @@ type more =
 
 type input =
   [ `String  of string
-  | `Cstruct of B.cstruct ]
+  | `Cstruct of Cstruct.t ]
 
 type 'a state =
-  | Fail    of B.cstruct * string list * string
+  | Fail    of Cstruct.t * string list * string
   | Partial of (input option -> 'a state)
-  | Done    of B.cstruct * 'a
+  | Done    of Cstruct.t * 'a
 
 type 'a failure = B.t -> int -> more -> string list -> string -> 'a state
 type ('a, 'r) success = B.t -> int -> more -> 'a -> 'r state
@@ -307,7 +213,7 @@ let rec prompt buf pos fail succ =
     | None       -> fail buf pos Complete
     | Some (`String "") ->
       prompt buf pos fail succ
-    | Some (`Cstruct cs) when B.Cstruct.len cs = 0 ->
+    | Some (`Cstruct cs) when Cstruct.len cs = 0 ->
       prompt buf pos fail succ
     | Some input ->
       B.copy_in buf input;

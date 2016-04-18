@@ -27,6 +27,7 @@ Library angstrom
   CSources:     angstrom_stubs.c
   CCOpt:        -O3 -Wall
   Modules:      Angstrom
+  InternalModules: Angstrom_cstruct
 
 Document api
   Title:                Documentation and API reference

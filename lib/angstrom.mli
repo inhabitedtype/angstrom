@@ -30,21 +30,23 @@
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
+open Angstrom_cstruct
 
 (** A parser combinator library built for speed and memory efficiency. *)
 
 type 'a t
 (** A parser for values of type ['a]. *)
 
-module B : sig
+(**module B : sig
   type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-  type cstruct = {
+  type t = {
     buffer : buffer;
     off : int;
     len : int;
   }
-end
+end**)
+(**type B = Angstrom_cstruct*)
 
 
 (** {2 Basic parsers} *)
@@ -216,12 +218,12 @@ val (<* ) : 'a t -> 'b t -> 'a t
 
 type input =
   [ `String  of string
-  | `Cstruct of B.cstruct ]
+  | `Cstruct of Angstrom_cstruct.t ]
 
 type 'a state =
-  | Fail    of B.cstruct * string list * string
+  | Fail    of Angstrom_cstruct.t * string list * string
   | Partial of (input option -> 'a state)
-  | Done    of B.cstruct * 'a
+  | Done    of Angstrom_cstruct.t * 'a
 
 val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
 (** [parse ?initial_buffer_size ?input t] runs [t] on [input], if present, and
@@ -229,7 +231,7 @@ val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
     [initial_buffer_size] (defaulting to 4k bytes) to do input buffering and
     automatically grow the buffer as needed. *)
 
-val parse_with_buffer : 'a t -> B.cstruct -> 'a state
+val parse_with_buffer : 'a t -> Angstrom_cstruct.t -> 'a state
 (** [parse_with_buffer t buffer] runs [t] with a user-allocated buffer [buffer]
     that the parser can take total ownership of. The view into [buffers] should
     be set to the bytes that can be used as input. The remainder of the space
