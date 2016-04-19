@@ -30,22 +30,13 @@
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
-open Angstrom_cstruct
 
 (** A parser combinator library built for speed and memory efficiency. *)
 
+open Angstrom_cstruct
+
 type 'a t
 (** A parser for values of type ['a]. *)
-
-(**module B : sig
-  type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-  type t = {
-    buffer : buffer;
-    off : int;
-    len : int;
-  }
-end**)
 
 (** {2 Basic parsers} *)
 
