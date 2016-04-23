@@ -45,7 +45,7 @@ let uri =
     <$> take_till P.is_space
 
 let meth = lex token
-let eol = end_of_line <* commit
+let eol = end_of_line
 
 let request_first_line =
   (fun meth uri version -> (meth, uri, version)
@@ -54,7 +54,7 @@ let request_first_line =
     <*> lex version
 
 let response_first_line =
-  (fun version status msg -> (version, status, msg))
+  commit @@ (fun version status msg -> (version, status, msg))
     <$> lex version
     <*> take_till P.is_space
     <*> take_till P.is_eol
@@ -81,27 +81,25 @@ module K = struct
       if len = 0 then
         return ()
       else
-        begin match size with
+        commit (begin match size with
         | None      -> available >>| fun size -> min len size
         | Some size -> return (min len size)
-        end
-        >>= fun size -> take size
+        end >>= take)
         >>= fun buf  ->
           k buf;
-          commit *> loop (len - size)
+          loop (len - size)
     in
     loop len
 
   let chunked_body ?size k =
     let chunk =
-      take_while1 P.is_hex <* semi
-      >>= fun s -> hex s   <* commit
+      commit (take_while1 P.is_hex <* semi >>= hex)
       >>= fun size ->
         if size = 0L
           then many skip_line *> return ()
           else fixed_body size k <* end_of_line
     in
-    many1 (chunk *> commit)
+    many1 (commit chunk)
 
   let unknown_body k : unit t =
     let chunk =
@@ -112,7 +110,7 @@ module K = struct
     in
     (* XXX(seliopou): better make sure this isn't used with a keep-alive
      * connection. *)
-    many (chunk <* commit) *> end_of_input *> commit
+    many (commit chunk) *> commit end_of_input
 
   let body ?size encoding k : unit t =
     match encoding with
