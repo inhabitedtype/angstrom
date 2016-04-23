@@ -319,9 +319,17 @@ let get_buffer_and_pos =
   { run = fun buf pos more _fail succ -> succ buf pos more (buf, pos) }
 
 let commit p =
-  { run = fun buf pos more _fail succ ->
-    B.commit buf pos;
-    p.run buf pos more None succ }
+  { run = fun buf pos more fail succ ->
+    let failr = ref fail in
+    let succ' buf' pos' more' v =
+      B.commit buf' pos';
+      failr := None;
+      succ buf' pos' more' v
+    and fail' = opt_map fail ~f:(fun _ ->
+      fun buf' pos' more' marks msg ->
+      run_fail !failr buf' pos' more' marks msg)
+    in
+    p.run buf pos more fail' succ' }
 
 let peek_char =
   { run = fun buf pos more fail succ ->
@@ -479,7 +487,7 @@ let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
 
 let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
-  let buf  = B.create ~size:initial_buffer_size () in
+  let buf = B.create ~size:initial_buffer_size () in
   B.copy_in buf input;
   p.run buf 0 Incomplete None succeed_k
 
