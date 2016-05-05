@@ -138,6 +138,11 @@ let alternative =
       check_c ~msg:"char b | char a" (char 'b' <|> char 'a') ["a"] 'a';
       check_s ~msg:"string 'a' | string 'b'" (string "a" <|> string "b") ["a"] "a";
       check_s ~msg:"string 'b' | string 'a'" (string "b" <|> string "a") ["a"] "a";
+  end
+  ; "commit", `Quick, begin fun () ->
+      check_c ~msg:"commit (char a) | char b" (commit (char 'a') <|> char 'b') ["a"] 'a';
+      check_c ~msg:"commit (char b) | char a" (commit (char 'b') <|> char 'a') ["a"] 'a';
+      check_fail ~msg:"" ((commit (string "ab") <|> string "a") *> string "bd") ["abd"];
   end ]
 
 let combinators =
