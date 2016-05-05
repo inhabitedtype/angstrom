@@ -8,7 +8,9 @@ homepage: "https://github.com/inhabitedtype/angstrom"
 bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "https://github.com/inhabitedtype/angstrom.git"
 build: [
-  ["ocaml" "setup.ml" "-configure" "--prefix" prefix]
+  ["ocaml" "setup.ml" "-configure" "--prefix" prefix
+    "--%{lwt:enable}%-lwt"
+    "--%{async:enable}%-async"]
   ["ocaml" "setup.ml" "-build"]
 ]
 install: ["ocaml" "setup.ml" "-install"]
