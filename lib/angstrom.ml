@@ -31,149 +31,303 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-module A = Bigarray.Array1
-module B = struct
-  (** XXX(seliopou): Look into replacing this with a circular buffer. *)
-  type t =
-    { mutable buffer : Cstruct.t
-    ; mutable offset : int
-    }
-
-  let reuse buffer =
-    { buffer; offset = 0 }
-
-  let of_string str =
-    let buffer = Cstruct.of_string str in
-    reuse buffer
-
-  let of_bigarray ?off ?len bytes =
-    let buffer = Cstruct.of_bigarray ?off ?len bytes in
-    reuse buffer
-
-  let create ?(size=0x1000) () =
-    let buffer = Cstruct.(set_len (create size) 0) in
-    reuse buffer
-
-  let _writable_space t =
-    let { Cstruct.buffer; len } = t.buffer in
-    A.dim buffer - len
-
-  let _trailing_space t =
-    let { Cstruct.buffer; off; len } = t.buffer in
-    A.dim buffer - (off + len)
-
-  let debug t =
-    Printf.sprintf "debug - buf: %s, trailing: %d, writable: %d\n%!"
-      (Cstruct.debug t.buffer) (_trailing_space t) (_writable_space t)
-
-  let _compress t =
-    let off, len = 0, Cstruct.len t.buffer in
-    let buffer = Cstruct.of_bigarray ~off ~len t.buffer.Cstruct.buffer in
-    Cstruct.blit t.buffer 0 buffer 0 len;
-    t.buffer <- buffer
-
-  let _grow t to_copy =
-    let init_size = A.dim t.buffer.Cstruct.buffer in
-    let size  = ref init_size in
-    let space = _writable_space t in
-    while space + !size - init_size < to_copy do
-      size := (3 * !size) / 2
-    done;
-    let buffer = Cstruct.(set_len (create !size)) t.buffer.Cstruct.len in
-    Cstruct.blit t.buffer 0 buffer 0 t.buffer.Cstruct.len;
-    t.buffer <- buffer
-  ;;
-
-  let _ensure_space t len =
-    begin if _trailing_space t >= len then
-      () (* there is enough room at the end *)
-    else if _writable_space t >= len then
-      _compress t
-    else
-      _grow t len
-    end;
-    t.buffer <- Cstruct.add_len t.buffer len
-  ;;
-
-  let copy_in t =
-    function
-    | `String str ->
-      let len = String.length str in
-      _ensure_space t len;
-      let len' = Cstruct.len t.buffer - len in
-      let allocator _ = Cstruct.sub t.buffer len' len in
-      ignore (Cstruct.of_string ~allocator str)
-    | `Cstruct cs ->
-      let len = Cstruct.len cs in
-      _ensure_space t len;
-      let len' = Cstruct.len t.buffer - len in
-      Cstruct.blit cs 0 t.buffer len' len
-
-  let commit t pos =
-    t.buffer <- Cstruct.shift t.buffer (pos - t.offset);
-    t.offset <- pos
-
-  let input_length t =
-    Cstruct.len t.buffer + t.offset
-
-  let get t i =
-    Cstruct.get_char t.buffer (i - t.offset)
-
-  let substring t pos len =
-    Cstruct.copy t.buffer (pos - t.offset) len
-
-  let count_while t pos f =
-    let i = ref pos in
-    let len = input_length t in
-    while !i < len && f (get t !i) do
-      incr i
-    done;
-    !i - pos
-
-  let unread t pos =
-    Cstruct.shift t.buffer (pos - t.offset)
-end
-
 type more =
   | Complete
   | Incomplete
 
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
 type input =
-  [ `String  of string
-  | `Cstruct of Cstruct.t ]
+  [ `String    of string
+  | `Bigstring of bigstring ]
+
+let input_length input =
+  match input with
+  | `String s    -> String.length s
+  | `Bigstring b -> Bigarray.Array1.dim b
+
+module Input = struct
+  type t =
+    { mutable committed : int
+    ; initial_committed : int
+    ; input : input
+    }
+
+  let create initial_committed input =
+    { committed = initial_committed
+    ; initial_committed
+    ; input
+    }
+
+  let length { initial_committed; input}  =
+    input_length input + initial_committed
+
+  let consumed { committed; initial_committed } =
+    committed - initial_committed
+
+  let committed t =
+    t.committed
+
+  let uncommitted t =
+    input_length t.input - committed t
+
+  let substring { initial_committed; input } pos len =
+    let off = pos - initial_committed in
+    match input with
+    | `String    s -> String.sub s off len
+    | `Bigstring b -> Cstruct.to_string (Cstruct.of_bigarray ~off ~len b)
+
+  let get { initial_committed; input } pos =
+    let pos = pos - initial_committed in
+    match input with
+    | `String s    -> String.unsafe_get s pos
+    | `Bigstring b -> Bigarray.Array1.unsafe_get b pos
+
+
+  let count_while { initial_committed; input } pos f =
+    let i = ref (pos - initial_committed) in
+    let len = input_length input in
+    begin match input with
+    | `String s    ->
+      while !i < len && f (String.unsafe_get s !i) do incr i; done
+    | `Bigstring b ->
+      while !i < len && f (Bigarray.Array1.unsafe_get b !i) do incr i; done
+    end;
+    !i - (pos - initial_committed)
+
+  let commit t committed =
+    t.committed <- committed
+
+end
+
+type unconsumed =
+  { buffer : bigstring
+  ; off : int
+  ; len : int }
+
+(* Encapsulate state with an object, Smalltalk style. Callers are not putting
+ * this in tight loops so none of that performance jibber jabber. *)
+class buffer cstruct =
+  let internal = ref cstruct in
+  let _writable_space t =
+    let { Cstruct.buffer; len } = !internal in
+    Bigarray.Array1.dim buffer - len
+  in
+  let _trailing_space t =
+    let { Cstruct.buffer; off; len } = !internal in
+    Bigarray.Array1.dim buffer - (off + len)
+  in
+  let compress () =
+    let off, len = 0, Cstruct.len !internal in
+    let buffer = Cstruct.of_bigarray ~off ~len (!internal).Cstruct.buffer in
+    Cstruct.blit !internal 0 buffer 0 len;
+    internal := buffer
+  in
+  let grow to_copy =
+    let init_size = Bigarray.Array1.dim (!internal).Cstruct.buffer in
+    let size  = ref init_size in
+    let space = _writable_space () in
+    while space + !size - init_size < to_copy do
+      size := (3 * !size) / 2
+    done;
+    let buffer = Cstruct.(set_len (create !size)) (!internal).Cstruct.len in
+    Cstruct.blit !internal 0 buffer 0 (!internal).Cstruct.len;
+    internal := buffer
+  in
+  let ensure_space len =
+    (* XXX(seliopou): could use some heuristics here to determine whether its
+     * worth it to compress or grow *)
+    begin if _trailing_space () >= len then
+      () (* there is enough room at the end *)
+    else if _writable_space () >= len then
+      compress ()
+    else
+      grow len
+    end;
+    (* The above will grow the internal buffer but not change the length of the
+     * view into the buffer. So it's necesasry to add the desired length at
+     * this point. *)
+    internal := Cstruct.add_len !internal len
+  in
+object
+  method feed (input:input) =
+    let len = input_length input in
+    ensure_space len;
+    let off = Cstruct.len !internal - len in
+    match input with
+    | `String s ->
+      let allocator _ = Cstruct.sub !internal off len in
+      ignore (Cstruct.of_string ~allocator s)
+    | `Bigstring b ->
+      Cstruct.blit (Cstruct.of_bigarray b) 0 !internal off len
+
+  method consume len =
+    internal := Cstruct.shift !internal len
+
+  method internal =
+    Cstruct.to_bigarray !internal
+
+  method unconsumed =
+    let { Cstruct.buffer; off; len } = !internal in
+    { buffer; off; len }
+end
+
+let buffer_of_cstruct cstruct =
+  new buffer cstruct
+
+let buffer_of_size size =
+  new buffer Cstruct.(set_len (create size) 0)
+
+let buffer_of_bigstring ?(off=0) ?len bigstring =
+  buffer_of_cstruct (Cstruct.of_bigarray ~off ?len bigstring)
+
+let buffer_of_unconsumed { buffer; off; len} =
+  buffer_of_bigstring ~off ~len buffer
 
 type 'a state =
-  | Fail    of Cstruct.t * string list * string
-  | Partial of (input option -> 'a state)
-  | Done    of Cstruct.t * 'a
+  | Partial of 'a partial
+  | Done    of 'a
+  | Fail    of string list * string
+and 'a partial =
+  { consumed : int
+  ; continue : input -> more -> 'a state }
 
-type 'a failure = B.t -> int -> more -> string list -> string -> 'a state
-type ('a, 'r) success = B.t -> int -> more -> 'a -> 'r state
+type 'a with_input =
+  Input.t ->  int -> more -> 'a
 
-let fail_k    buf pos _ marks msg = Fail(B.unread buf pos, marks, msg)
-let succeed_k buf pos _       v   = Done(B.unread buf pos, v)
+type 'a failure = (string list -> string -> 'a state) with_input
+type ('a, 'r) success = ('a -> 'r state) with_input
+
+let fail_k    buf pos _ marks msg = Fail(marks, msg)
+let succeed_k buf pos _       v   = Done(v)
 
 type 'a t =
-  { run : 'r. B.t -> int -> more -> 'r failure -> ('a, 'r) success -> 'r state }
+  { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_input }
+
+let fail_to_string marks err =
+  String.concat " > " marks ^ ": " ^ err
+
+module Unbuffered = struct
+  type nonrec more = more =
+    | Complete
+    | Incomplete
+
+  type nonrec 'a state = 'a state =
+    | Partial of 'a partial
+    | Done    of 'a
+    | Fail    of string list * string
+  and 'a partial = 'a partial =
+    { consumed : int
+    ; continue : input -> more -> 'a state }
+
+  let state_to_option = function
+    | Done v -> Some v
+    | _      -> None
+
+  let state_to_result = function
+    | Done v            -> Result.Ok v
+    | Partial _         -> Result.Error "incomplete input"
+    | Fail (marks, err) -> Result.Error (fail_to_string marks err)
+
+  let parse ?(input=`String "") p =
+    p.run (Input.create 0 input) 0 Incomplete fail_k succeed_k
+
+  let parse_only p input =
+    state_to_result (p.run (Input.create 0 input) 0 Complete fail_k succeed_k)
+end
+
+module Buffered = struct
+  type nonrec unconsumed = unconsumed =
+    { buffer : bigstring
+    ; off : int
+    ; len : int }
+
+  type 'a state =
+    | Partial of ([ input | `Eof ] -> 'a state)
+    | Done    of unconsumed * 'a
+    | Fail    of unconsumed * string list * string
+
+  let from_unbuffered_state ~f buffer = function
+    | Unbuffered.Partial p      -> Partial (f p)
+    | Unbuffered.Done v         -> Done(buffer#unconsumed, v)
+    | Unbuffered.Fail (ms, err) -> Fail(buffer#unconsumed, ms, err)
+
+  let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
+    if initial_buffer_size < 1 then
+      failwith "parse: invalid argument, initial_buffer_size < 1";
+    let initial_buffer_size = max initial_buffer_size (input_length input) in
+    let buffer = buffer_of_size initial_buffer_size in
+    buffer#feed input;
+    let rec f p =
+      ();
+      function
+      | `Eof  -> from_unbuffered_state buffer ~f (p.continue (`Bigstring buffer#internal) Complete)
+      | #input as input ->
+        buffer#consume p.consumed;
+        buffer#feed input;
+        from_unbuffered_state buffer ~f (p.continue (`Bigstring buffer#internal) Incomplete)
+    in
+    from_unbuffered_state buffer ~f (Unbuffered.parse ~input:(`Bigstring buffer#internal) p)
+
+  let feed state input =
+    match state with
+    | Partial k            -> k input
+    | Fail(us, marks, msg) ->
+      begin match input with
+      | `Eof   -> state
+      | #input as input ->
+        let buffer = buffer_of_unconsumed us in
+        buffer#feed input;
+        Fail(buffer#unconsumed, marks, msg)
+      end
+    | Done(us, v) ->
+      begin match input with
+      | `Eof   -> state
+      | #input as input ->
+        let buffer = buffer_of_unconsumed us in
+        buffer#feed input;
+        Done(buffer#unconsumed, v)
+      end
+
+  let state_to_option = function
+    | Done(_, v) -> Some v
+    | _          -> None
+
+  let state_to_result = function
+    | Partial _           -> Result.Error "incomplete input"
+    | Done(_, v)          -> Result.Ok v
+    | Fail(_, marks, err) -> Result.Error (fail_to_string marks err)
+
+  let state_to_unconsumed = function
+    | (Done(us, _) | Fail(us, _, _)) -> Some us
+    | _                              -> None
+
+end
+
+let parse_only p input =
+  Unbuffered.parse_only p input
 
 let return : type a. a -> a t =
-  fun v -> { run = fun buf pos more _fail succ -> succ buf pos more v }
+  fun v ->
+    { run = fun input pos more _fail succ ->
+      succ input pos more v }
 
 let fail msg =
-  { run = fun buf pos more fail succ ->
-    fail buf pos more [] msg
+  { run = fun input pos more fail succ ->
+    fail input pos more [] msg
   }
 
 let (>>=) p f =
-  { run = fun buf pos more fail succ ->
-    let succ' buf' pos' more' v = (f v).run buf' pos' more' fail succ in
-    p.run buf pos more fail succ'
+  { run = fun input pos more fail succ ->
+    let succ' input' pos' more' v = (f v).run input' pos' more' fail succ in
+    p.run input pos more fail succ'
   }
 
 let (>>|) p f =
-  { run = fun buf pos more fail succ ->
-    let succ' buf' pos' more' v = succ buf' pos' more' (f v) in
-    p.run buf pos more fail succ'
+  { run = fun input pos more fail succ ->
+    let succ' input' pos' more' v = succ input' pos' more' (f v) in
+    p.run input pos more fail succ'
   }
 
 let (<$>) f m =
@@ -191,76 +345,83 @@ let (<* ) a b =
   b >>| fun _ -> x
 
 let (<?>) p mark =
-  { run = fun buf pos more fail succ ->
-    let fail' buf' pos' more' marks msg = fail buf' pos' more' (mark::marks) msg in
-    p.run buf pos more fail' succ
+  { run = fun input pos more fail succ ->
+    let fail' input' pos' more' marks msg =
+      fail input' pos' more' (mark::marks) msg in
+    p.run input pos more fail' succ
   }
 
 let (<|>) p q =
-  { run = fun buf pos more fail succ ->
-    let fail' buf' pos' more' _marks _msg = q.run buf' pos more' fail succ in
-    p.run buf pos more fail' succ
+  { run = fun input pos more fail succ ->
+    let fail' input' _ more' _marks _msg = q.run input' pos more' fail succ in
+    p.run input pos more fail' succ
   }
 
 (** BEGIN: getting input *)
 
-let rec prompt buf pos fail succ =
-  let k = function
-    | None       -> fail buf pos Complete
-    | Some (`String "") ->
-      prompt buf pos fail succ
-    | Some (`Cstruct cs) when Cstruct.len cs = 0 ->
-      prompt buf pos fail succ
-    | Some input ->
-      B.copy_in buf input;
-      succ buf pos Incomplete
+let rec prompt input pos fail succ =
+  let uncommitted = Input.uncommitted input in
+  let committed   = Input.committed input in
+  (* The continuation should not hold any references to input above. *)
+  let continue input more =
+    let length = input_length input in
+    if length < uncommitted then
+      failwith "prompt: input shrunk!";
+    let input = Input.create committed input in
+    if length = uncommitted then
+      if more = Complete then
+        fail input pos Complete
+      else
+        prompt input pos fail succ
+    else
+      succ input pos more
   in
-  Partial k
+  Partial { consumed = Input.consumed input; continue }
 
 let demand_input =
-  { run = fun buf pos more fail succ ->
+  { run = fun input pos more fail succ ->
     match more with
-    | Complete   -> fail buf pos more [] "not enough input"
+    | Complete   -> fail input pos more [] "not enough input"
     | Incomplete ->
-      let succ' buf' pos' more' = succ buf' pos' more' ()
-      and fail' buf' pos' more' = fail buf' pos' more' [] "not enough input" in
-      prompt buf pos fail' succ'
+      let succ' input' pos' more' = succ input' pos' more' ()
+      and fail' input' pos' more' = fail input' pos' more' [] "not enough input" in
+      prompt input pos fail' succ'
   }
 
 let want_input =
-  { run = fun buf pos more _fail succ ->
-    if pos < B.input_length buf then
-      succ buf pos more true
+  { run = fun input pos more _fail succ ->
+    if pos < Input.length input then
+      succ input pos more true
     else if more = Complete then
-      succ buf pos more false
+      succ input pos more false
     else
-      let succ' buf' pos' more' = succ buf' pos' more' true
-      and fail' buf' pos' more' = succ buf' pos' more' false in
-      prompt buf pos fail' succ'
+      let succ' input' pos' more' = succ input' pos' more' true
+      and fail' input' pos' more' = succ input' pos' more' false in
+      prompt input pos fail' succ'
   }
 
-let ensure_suspended n buf pos more fail succ =
+let ensure_suspended n input pos more fail succ =
   let rec go =
-    { run = fun buf' pos' more' fail' succ' ->
-      if pos' + n <= B.input_length buf' then
-        succ' buf' pos' more' ()
+    { run = fun input' pos' more' fail' succ' ->
+      if pos' + n <= Input.length input' then
+        succ' input' pos' more' ()
       else
-        (demand_input >>= fun () -> go).run buf' pos' more' fail' succ'
+        (demand_input >>= fun () -> go).run input' pos' more' fail' succ'
     }
   in
-  (demand_input >>= fun () -> go).run buf pos more fail succ
+  (demand_input >>= fun () -> go).run input pos more fail succ
 
 let unsafe_substring n =
-  { run = fun buf pos more fail succ ->
-    succ buf pos more (B.substring buf pos n)
+  { run = fun input pos more fail succ ->
+    succ input pos more (Input.substring input pos n)
   }
 
 let ensure n =
-  { run = fun buf pos more fail succ ->
-    if pos + n <= B.input_length buf then
-      succ buf pos more ()
+  { run = fun input pos more fail succ ->
+    if pos + n <= Input.length input then
+      succ input pos more ()
     else
-      ensure_suspended n buf pos more fail succ
+      ensure_suspended n input pos more fail succ
   }
   >>= fun () -> unsafe_substring n
 
@@ -268,71 +429,74 @@ let ensure n =
 (** END: getting input *)
 
 let end_of_input =
-  { run = fun buf pos more fail succ ->
-    if pos < B.input_length buf then
-      fail buf pos more [] "end_of_input"
+  { run = fun input pos more fail succ ->
+    if pos < Input.length input then
+      fail input pos more [] "end_of_input"
     else if more = Complete then
-      succ buf pos more ()
+      succ input pos more ()
     else
-      let succ' buf' pos' more' = fail buf' pos' more' [] "end_of_input"
-      and fail' buf' pos' more' = succ buf' pos' more' () in
-      prompt buf pos fail' succ'
+      let succ' input' pos' more' = fail input' pos' more' [] "end_of_input"
+      and fail' input' pos' more' = succ input' pos' more' () in
+      prompt input pos fail' succ'
   }
 
 let end_of_buffer =
-  { run = fun buf pos more fail succ ->
-    succ buf pos more (pos = B.input_length buf)
+  { run = fun input pos more fail succ ->
+    succ input pos more (pos = Input.length input)
   }
 
 let spans_chunks n =
-  { run = fun buf pos more fail succ ->
-    if pos + n < B.input_length buf || more = Complete then
-      succ buf pos more false
+  { run = fun input pos more fail succ ->
+    if pos + n < Input.length input || more = Complete then
+      succ input pos more false
     else
-      let succ' buf' pos' more' = succ buf' pos' more' true
-      and fail' buf' pos' more' = succ buf' pos' more' false in
-      prompt buf pos fail' succ'
+      let succ' input' pos' more' = succ input' pos' more' true
+      and fail' input' pos' more' = succ input' pos' more' false in
+      prompt input pos fail' succ'
   }
 
 let advance n =
-  { run = fun buf pos more _fail succ -> succ buf (pos + n) more () }
+  { run = fun input pos more _fail succ -> succ input (pos + n) more () }
 
 let pos =
-  { run = fun buf pos more _fail succ -> succ buf pos more pos }
+  { run = fun input pos more _fail succ -> succ input pos more pos }
 
 let available =
-  { run = fun buf pos more _fail succ ->
-    succ buf pos more (B.input_length buf - pos)
+  { run = fun input pos more _fail succ ->
+    succ input pos more (Input.length input - pos)
   }
 
 let get_buffer_and_pos =
-  { run = fun buf pos more _fail succ -> succ buf pos more (buf, pos) }
+  { run = fun input pos more _fail succ -> succ input pos more (input, pos) }
 
 let commit =
-  { run = fun buf pos more _fail succ ->
-    B.commit buf pos;
-    succ buf pos more ()
+  { run = fun input pos more _fail succ ->
+    Input.commit input pos;
+    succ input pos more ()
   }
 
 let peek_char =
-  { run = fun buf pos more fail succ ->
-    if pos < B.input_length buf then
-      succ buf pos more (Some (B.get buf pos))
+  { run = fun input pos more fail succ ->
+    if pos < Input.length input then
+      succ input pos more (Some (Input.get input pos))
     else if more = Complete then
-      succ buf pos more None
+      succ input pos more None
     else
-      let succ' buf' pos' more' = succ buf' pos' more' (Some (B.get buf' pos'))
-      and fail' buf' pos' more' = succ buf' pos' more' None in
-      prompt buf pos fail' succ'
+      let succ' input' pos' more' =
+        succ input' pos' more' (Some (Input.get input' pos'))
+      and fail' input' pos' more' =
+        succ input' pos' more' None in
+      prompt input pos fail' succ'
   }
 
 let peek_char_fail =
-  { run = fun buf pos more fail succ ->
-    if pos < B.input_length buf then
-      succ buf pos more (B.get buf pos)
+  { run = fun input pos more fail succ ->
+    if pos < Input.length input then
+      succ input pos more (Input.get input pos)
     else
-      let succ' buf' pos' more' () = succ buf' pos' more' (B.get buf' pos') in
-      ensure_suspended 1 buf pos more fail succ'
+      let succ' input' pos' more' () =
+        succ input' pos' more' (Input.get input' pos') in
+      ensure_suspended 1 input pos more fail succ'
   }
 
 let satisfy f =
@@ -350,8 +514,8 @@ let skip f =
 let count_while ?(init=0) f =
   (* NB: does not advance position. *)
   let rec go acc =
-    get_buffer_and_pos >>= fun (buf, pos) ->
-      let n = B.count_while buf (pos + acc) f in
+    get_buffer_and_pos >>= fun (input, pos) ->
+      let n = Input.count_while input (pos + acc) f in
       spans_chunks (n + acc)
       >>= function
         | true  -> go (n + acc)
@@ -393,8 +557,8 @@ let take_while1 f =
     | false -> return ()
   end >>= fun () ->
   get_buffer_and_pos
-  >>= fun (buf, pos) ->
-    let init = B.count_while buf pos f in
+  >>= fun (input, pos) ->
+    let init = Input.count_while input pos f in
     if init = 0 then
       fail "take_while1"
     else
@@ -459,14 +623,14 @@ let count n p =
 
 let many p =
   fix (fun m ->
-    (return cons <*> p <*> m) <|> return [])
+    (cons <$> p <*> m) <|> return [])
 
 let many1 p =
-  return cons <*> p <*> many p
+  cons <$> p <*> many p
 
 let many_till p t =
   fix (fun m ->
-    (return cons <*> p <*> m) <|> (t *> return []))
+    (cons <$> p <*> m) <|> (t *> return []))
 
 let sep_by1 s p =
   fix (fun m ->
@@ -484,40 +648,3 @@ let skip_many1 p =
 
 let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
-
-let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
-  let buf  = B.create ~size:initial_buffer_size () in
-  B.copy_in buf input;
-  p.run buf 0 Incomplete fail_k succeed_k
-
-let parse_with_buffer p buf =
-  p.run (B.reuse buf) 0 Incomplete fail_k succeed_k
-
-let parse_only p input =
-  let buf = B.create () in
-  B.copy_in buf input;
-  match p.run buf 0 Complete fail_k succeed_k with
-  | Fail(_, []   , err) -> Result.Error err
-  | Fail(_, marks, err) -> Result.Error (String.concat " > " marks ^ ": " ^ err)
-  | Done(_, v)          -> Result.Ok v
-  | Partial _           -> assert false
-
-let copy_into_leftover l bytes =
-  let buf  = B.reuse l in
-  B.copy_in buf bytes;
-  buf.B.buffer
-
-let feed state bytes =
-  match state with
-  | Fail (l, marks, msg) -> Fail(copy_into_leftover l bytes, marks, msg)
-  | Partial k            -> k (Some bytes)
-  | Done (l, v)          -> Done(copy_into_leftover l bytes, v)
-
-let state_to_option = function
-  | Done (_, v) -> Some v
-  | _           -> None
-
-let state_to_result = function
-  | Done (buf', v)          -> Result.Ok v
-  | Partial _               -> Result.Error "incomplete input"
-  | Fail (buf', marks, err) -> Result.Error (String.concat " > " marks ^ ": " ^ err)
