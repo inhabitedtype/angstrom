@@ -36,14 +36,13 @@ open Async.Std
 
 
 val parse :
-    ?initial_input:input
+     ?pushback:(unit -> unit Deferred.t)
   -> 'a t
   -> Reader.t
-  -> (Cstruct.t * ('a, string) Result.result) Deferred.t
+  -> ('a, string) Result.result Deferred.t
 
 val parse_many :
-    ?initial_input:input
-  -> 'a t
-  -> Reader.t
+     'a t
   -> ('a -> unit Deferred.t)
-  -> (Cstruct.t * (unit, string) Result.result) Deferred.t
+  -> Reader.t
+  -> (unit, string) Result.result Deferred.t
