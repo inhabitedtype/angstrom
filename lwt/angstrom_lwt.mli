@@ -35,14 +35,13 @@ open Angstrom
 
 
 val parse :
-    ?initial_input:input
+     ?pushback:(unit -> unit Lwt.t)
   -> 'a t
   -> Lwt_io.input_channel
-  -> (Cstruct.t * ('a, string) Result.result) Lwt.t
+  -> (Buffered.unconsumed * ('a, string) Result.result) Lwt.t
 
 val parse_many :
-    ?initial_input:input
-  -> 'a t
-  -> Lwt_io.input_channel
+     'a t
   -> ('a -> unit Lwt.t)
-  -> (Cstruct.t * (unit, string) Result.result) Lwt.t
+  -> Lwt_io.input_channel
+  -> (Buffered.unconsumed * (unit, string) Result.result) Lwt.t
