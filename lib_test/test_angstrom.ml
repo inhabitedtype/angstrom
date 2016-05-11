@@ -109,6 +109,12 @@ let basic_constructors =
       check_fail ~msg:"input is prefix of string"     (string_ci "asdf") ["Asd"];
       check_fail ~msg:"non-empty string, empty input" (string_ci "test") [""]
   end
+  ; "take_while", `Quick, begin fun () ->
+      check_s ~msg:"true, non-empty input"  (take_while (fun _ -> true)) ["asdf"] "asdf";
+      check_s ~msg:"true, empty input"      (take_while (fun _ -> true)) [""] "";
+      check_s ~msg:"false, non-empty input" (take_while (fun _ -> false)) ["asdf"] "";
+      check_s ~msg:"false, empty input"     (take_while (fun _ -> false)) [""] "";
+  end
   ]
 
 let monadic =
