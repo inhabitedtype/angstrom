@@ -5,7 +5,7 @@ Synopsis:    Parser combinator library built for speed and memory efficiency
 Authors:     Spiros Eliopoulos <spiros@inhabitedtype.com>
 Maintainers: Spiros Eliopoulos <spiros@inhabitedtype.com>
 Homepage:    https://github.com/inhabitedtype/angstrom
-Copyrights:  (C) 2015 Inhabited Type LLC
+Copyrights:  (C) 2016 Inhabited Type LLC
 License:     BSD-3-clause
 Plugins:     META (0.4), DevFiles (0.4)
 BuildTools: ocamlbuild
