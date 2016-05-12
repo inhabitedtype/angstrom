@@ -1,7 +1,7 @@
 OASISFormat: 0.4
 Name:        angstrom
 Version:     0.1.0
-Synopsis:    Parser combinator library built for speed and memory efficiency
+Synopsis:    Parser combinators built for speed and memory efficiency
 Authors:     Spiros Eliopoulos <spiros@inhabitedtype.com>
 Maintainers: Spiros Eliopoulos <spiros@inhabitedtype.com>
 Homepage:    https://github.com/inhabitedtype/angstrom

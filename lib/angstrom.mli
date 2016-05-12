@@ -31,7 +31,7 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-(** Parser combinators for speed and memory-efficiency.
+(** Parser combinators built for speed and memory-efficiency.
 
     Angstrom is a parser-combinator library that provides a monadic and
     applicative interface for constructing parsers with unbounded lookahead.
