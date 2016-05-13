@@ -352,7 +352,7 @@ let count_while ?(init=0) f =
   let rec go acc =
     get_buffer_and_pos >>= fun (buf, pos) ->
       let n = B.count_while buf (pos + acc) f in
-      spans_chunks n
+      spans_chunks (n + acc)
       >>= function
         | true  -> go (n + acc)
         | false -> return (n + acc)
