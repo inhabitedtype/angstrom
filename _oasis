@@ -19,10 +19,13 @@ Flag lwt
   Description: build the lwt libraries
   Default: false
 
+Flag benchmarks
+  Description: build benchmark executables
+  Default: false
+
 Library angstrom
   Path:         lib
   Findlibname:  angstrom
-  NativeOpt:    -inline 20
   BuildDepends: cstruct (>= 0.6.0), result
   Modules:      Angstrom
 
@@ -59,6 +62,30 @@ Executable test_angstrom
   CompiledObject:   best
   Install:          false
   BuildDepends:     angstrom, alcotest
+
+Executable pure_benchmark
+  Path:             benchmarks
+  MainIs:           pure_benchmark.ml
+  Build$:           flag(benchmarks)
+  CompiledObject:   best
+  Install:          false
+  BuildDepends:     angstrom, async, core_bench, threads
+
+Executable async_benchmark
+  Path:             benchmarks
+  MainIs:           async_benchmark.ml
+  Build$:           flag(benchmarks)
+  CompiledObject:   best
+  Install:          false
+  BuildDepends:     angstrom, angstrom.async, async, threads
+
+Executable lwt_benchmark
+  Path:             benchmarks
+  MainIs:           lwt_benchmark.ml
+  Build$:           flag(benchmarks)
+  CompiledObject:   best
+  Install:          false
+  BuildDepends:     angstrom, angstrom.lwt, lwt.unix
 
 Test test_angstrom
   Run$:             flag(tests)
