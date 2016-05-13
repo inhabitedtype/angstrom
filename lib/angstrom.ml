@@ -31,10 +31,6 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-type more =
-  | Complete
-  | Incomplete
-
 type bigstring =
   (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
@@ -101,7 +97,7 @@ module Input = struct
 
 end
 
-type unconsumed =
+type _unconsumed =
   { buffer : bigstring
   ; off : int
   ; len : int }
@@ -166,7 +162,8 @@ object
     internal := Cstruct.shift !internal len
 
   method internal =
-    Cstruct.to_bigarray !internal
+    let { Cstruct.buffer; off; len } = !internal in
+    Bigarray.Array1.sub buffer off len
 
   method unconsumed =
     let { Cstruct.buffer; off; len } = !internal in
@@ -185,41 +182,33 @@ let buffer_of_bigstring ?(off=0) ?len bigstring =
 let buffer_of_unconsumed { buffer; off; len} =
   buffer_of_bigstring ~off ~len buffer
 
-type 'a state =
-  | Partial of 'a partial
-  | Done    of 'a
-  | Fail    of string list * string
-and 'a partial =
-  { consumed : int
-  ; continue : input -> more -> 'a state }
-
-type 'a with_input =
-  Input.t ->  int -> more -> 'a
-
-type 'a failure = (string list -> string -> 'a state) with_input
-type ('a, 'r) success = ('a -> 'r state) with_input
-
-let fail_k    buf pos _ marks msg = Fail(marks, msg)
-let succeed_k buf pos _       v   = Done(v)
-
-type 'a t =
-  { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_input }
-
-let fail_to_string marks err =
-  String.concat " > " marks ^ ": " ^ err
-
 module Unbuffered = struct
-  type nonrec more = more =
+  type more =
     | Complete
     | Incomplete
 
-  type nonrec 'a state = 'a state =
+  type 'a state =
     | Partial of 'a partial
     | Done    of 'a
     | Fail    of string list * string
-  and 'a partial = 'a partial =
+  and 'a partial =
     { consumed : int
     ; continue : input -> more -> 'a state }
+
+  type 'a with_input =
+    Input.t ->  int -> more -> 'a
+
+  type 'a failure = (string list -> string -> 'a state) with_input
+  type ('a, 'r) success = ('a -> 'r state) with_input
+
+  let fail_k    buf pos _ marks msg = Fail(marks, msg)
+  let succeed_k buf pos _       v   = Done(v)
+
+  type 'a t =
+    { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_input }
+
+  let fail_to_string marks err =
+    String.concat " > " marks ^ ": " ^ err
 
   let state_to_option = function
     | Done v -> Some v
@@ -237,8 +226,24 @@ module Unbuffered = struct
     state_to_result (p.run (Input.create 0 input) 0 Complete fail_k succeed_k)
 end
 
+type more = Unbuffered.more =
+  | Complete
+  | Incomplete
+
+type 'a state = 'a Unbuffered.state =
+  | Partial of 'a partial
+  | Done    of 'a
+  | Fail    of string list * string
+and 'a partial = 'a Unbuffered.partial =
+  { consumed : int
+  ; continue : input -> more -> 'a state }
+
+type 'a t = 'a Unbuffered.t =
+  { run : 'r. ('r Unbuffered.failure -> ('a, 'r) Unbuffered.success -> 'r state) Unbuffered.with_input }
+
+
 module Buffered = struct
-  type nonrec unconsumed = unconsumed =
+  type unconsumed = _unconsumed =
     { buffer : bigstring
     ; off : int
     ; len : int }
@@ -297,7 +302,7 @@ module Buffered = struct
   let state_to_result = function
     | Partial _           -> Result.Error "incomplete input"
     | Done(_, v)          -> Result.Ok v
-    | Fail(_, marks, err) -> Result.Error (fail_to_string marks err)
+    | Fail(_, marks, err) -> Result.Error (Unbuffered.fail_to_string marks err)
 
   let state_to_unconsumed = function
     | (Done(us, _) | Fail(us, _, _)) -> Some us
