@@ -145,6 +145,12 @@ let combinators =
       check_lc ~msg:"empty input"   (many (char 'a')) [""]  [];
       check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
       check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
+  end
+  ; "sep_by1", `Quick, begin fun () ->
+      let parser = sep_by1 (char ',') (char 'a') in
+      check_lc ~msg:"single char"     parser ["a"]    ['a'];
+      check_lc ~msg:"many chars"      parser ["a,a"]  ['a'; 'a'];
+      check_lc ~msg:"no trailing sep"  parser ["a,"]   ['a'];
   end ]
 
 let incremental =
