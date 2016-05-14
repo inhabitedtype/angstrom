@@ -128,6 +128,9 @@ val list : 'a t list -> 'a list t
 (** [list ps] runs each [p] in [ps] in sequence, returning a list of results of
     each [p]. *)
 
+val count : int -> 'a t -> 'a list t
+(** [count n p] runs [p] [n] times, returning a list of the results. *)
+
 val many : 'a t -> 'a list t
 (** [many p] runs [p] {i zero} or more times and returns a list of results from
     the runs of [p]. *)

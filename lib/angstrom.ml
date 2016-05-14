@@ -443,6 +443,15 @@ let option x p =
 
 let cons x xs = x :: xs
 
+let count n p =
+  if n < 0 then
+    failwith "count: invalid argument, n < 0";
+  let rec loop = function
+    | 0 -> return []
+    | n -> cons <$> p <*> (loop (n - 1))
+  in
+  loop n
+
 let many p =
   fix (fun m ->
     (return cons <*> p <*> m) <|> return [])
