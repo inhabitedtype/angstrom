@@ -352,7 +352,7 @@ let count_while ?(init=0) f =
   let rec go acc =
     get_buffer_and_pos >>= fun (buf, pos) ->
       let n = B.count_while buf (pos + acc) f in
-      spans_chunks n
+      spans_chunks (n + acc)
       >>= function
         | true  -> go (n + acc)
         | false -> return (n + acc)
@@ -456,10 +456,10 @@ let many_till p t =
 
 let sep_by1 s p =
   fix (fun m ->
-    return cons <*> p <*> ((s *> m) <|> return []))
+    cons <$> p <*> ((s *> m) <|> return []))
 
 let sep_by s p =
-  (return cons <*> p <*> (s *> (sep_by1 s p <|> return []))) <|> return []
+  (cons <$> p <*> ((s *> sep_by1 s p) <|> return [])) <|> return []
 
 let rec list ps =
   match ps with
