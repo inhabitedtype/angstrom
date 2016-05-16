@@ -157,6 +157,12 @@ let combinators =
       check_lc ~msg:"single char"     parser ["a"]    ['a'];
       check_lc ~msg:"many chars"      parser ["a,a"]  ['a'; 'a'];
       check_lc ~msg:"no trailing sep"  parser ["a,"]   ['a'];
+  end
+  ; "count", `Quick, begin fun () ->
+    check_lc ~msg:"empty input" (count 0 (char 'a')) [""] [];
+    check_lc ~msg:"exact input" (count 1 (char 'a')) ["a"] ['a'];
+    check_lc ~msg:"additonal input" (count 2 (char 'a')) ["aaa"] ['a'; 'a'];
+    check_fail ~msg:"bad input" (count 2 (char 'a')) ["abb"];
   end ]
 
 let incremental =
