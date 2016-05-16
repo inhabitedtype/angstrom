@@ -128,6 +128,9 @@ val list : 'a t list -> 'a list t
 (** [list ps] runs each [p] in [ps] in sequence, returning a list of results of
     each [p]. *)
 
+val count : int -> 'a t -> 'a list t
+(** [count n p] runs [p] [n] times, returning a list of the results. *)
+
 val many : 'a t -> 'a list t
 (** [many p] runs [p] {i zero} or more times and returns a list of results from
     the runs of [p]. *)
@@ -145,6 +148,12 @@ val sep_by : 'a t -> 'b t -> 'b list t
 
 val sep_by1 : 'a t -> 'b t -> 'b list t
 (** [sep_by1 s p] runs [p] {i one} or more times, interspersing runs of [s] in between. *)
+
+val skip_many : 'a t -> unit t
+(** [skip_many p] runs [p] {i zero} or more times, discarding the results.*)
+
+val skip_many1 : 'a t -> unit t
+(** [skip_many1 p] runs [p] {i one} or more times, discarding the results. *)
 
 val fix : ('a t -> 'a t) -> 'a t
 (** [fix f] computes the fixpoint of [f] and runs the resultant parser,

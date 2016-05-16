@@ -443,6 +443,20 @@ let option x p =
 
 let cons x xs = x :: xs
 
+let rec list ps =
+  match ps with
+  | []    -> return []
+  | p::ps -> cons <$> p <*> list ps
+
+let count n p =
+  if n < 0 then
+    failwith "count: invalid argument, n < 0";
+  let rec loop = function
+    | 0 -> return []
+    | n -> cons <$> p <*> (loop (n - 1))
+  in
+  loop n
+
 let many p =
   fix (fun m ->
     (return cons <*> p <*> m) <|> return [])
@@ -461,10 +475,12 @@ let sep_by1 s p =
 let sep_by s p =
   (cons <$> p <*> ((s *> sep_by1 s p) <|> return [])) <|> return []
 
-let rec list ps =
-  match ps with
-  | []    -> return []
-  | p::ps -> return cons <*> p <*> list ps
+let skip_many p =
+  fix (fun m ->
+    (p *> m) <|> return ())
+
+let skip_many1 p =
+  p *> skip_many p
 
 let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
