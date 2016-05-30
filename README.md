@@ -1,13 +1,12 @@
 # Angstrom
 
-Angstrom is a parser-combinator library that provides a monadic and applicative
-interface for constructing parsers with unbounded lookahead. Its parsers can
-consume input incrementally, whether in a blocking or non-blocking environment.
-To achieve efficient incremental parsing, Angstrom offers both a buffered and
-unbuffered interface to input streams, with the unbuffered interface enabling
-zero-copy IO. With these features and low-level iteration parser primitives,
-Angstrom makes it easy to write efficient, expressive, and reusable parsers
-suitable for high-performance applications.
+Angstrom is a parser-combinator library that makes it easy to write efficient,
+expressive, and reusable parsers suitable for high-performance applications. It
+exposes monadic and applicative interfaces for composition, and supports
+incremental input through buffered and unbuffered interfaces. Both interfaces
+give the user total control over the blocking behavior of their application,
+with the unbuffered interface enabling zero-copy IO. Parsers are backtracking
+by default and support unbounded lookahead.
 
 [![Build Status](https://travis-ci.org/inhabitedtype/angstrom.svg?branch=master)](https://travis-ci.org/inhabitedtype/angstrom)
 
@@ -24,15 +23,15 @@ opam install angstrom
 
 ## Usage
 
-Angstrom includes implementations of various RFCs in its source distribution,
-including an [HTTP parser][http] and a [JSON parser][json]. Angstrom is written
-with network protocols and serialization formats in mind, so these are
+Angstrom is written with network protocols and serialization formats in mind.
+As such, the source distribution includes implementations of various RFCs, such
+as an [HTTP parser][http] and a [JSON parser][json]. These parsers are
 illustrative of real-world applications of the library.
 
 [http]: https://github.com/inhabitedtype/angstrom/blob/master/rfcs/rFC2616.ml
 [json]: https://github.com/inhabitedtype/angstrom/blob/master/rfcs/rFC7159.ml
 
-However, it is an informal tradition for OCaml parser-combinator libraries to
+However it is an informal tradition for OCaml parser-combinator libraries to
 include in their READMEs a parser for a simple arithmetic expression language.
 The code below implements a parser for such a language and computes the
 numerical result of the expression as parsing progresses. Because Angstrom is
