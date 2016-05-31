@@ -358,7 +358,16 @@ let (<?>) p mark =
 
 let (<|>) p q =
   { run = fun input pos more fail succ ->
-    let fail' input' _ more' _marks _msg = q.run input' pos more' fail succ in
+    let fail' input' pos' more' marks msg =
+      (* The only two constructors that introduce new failure continuations are
+       * [<?>] and [<|>]. If the initial input position is less than the length
+       * of the committed input, then calling the failure continuation will
+       * have the effect of unwinding all choices and collecting marks along
+       * the way. *)
+      if pos < Input.committed input' then
+        fail input' pos' more marks msg
+      else
+        q.run input' pos more' fail succ in
     p.run input pos more fail' succ
   }
 
