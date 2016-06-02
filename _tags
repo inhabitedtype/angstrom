@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: d3e9530613deee76627079193bbdd077)
+# DO NOT EDIT (digest: aa7f1dd0b77b01fc33593284a9747480)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -16,8 +16,6 @@ true: annot, bin_annot
 "_darcs": not_hygienic
 # Library angstrom
 "lib/angstrom.cmxs": use_angstrom
-<lib/angstrom.{cma,cmxa}>: oasis_library_angstrom_native
-<lib/*.ml{,i,y}>: oasis_library_angstrom_native
 <lib/*.ml{,i,y}>: pkg_cstruct
 <lib/*.ml{,i,y}>: pkg_result
 # Library angstrom_lwt
@@ -42,4 +40,35 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: pkg_cstruct
 <lib_test/*.ml{,i,y}>: pkg_result
 <lib_test/*.ml{,i,y}>: use_angstrom
+# Executable pure_benchmark
+<benchmarks/pure_benchmark.{native,byte}>: pkg_async
+<benchmarks/pure_benchmark.{native,byte}>: pkg_core_bench
+<benchmarks/pure_benchmark.{native,byte}>: pkg_cstruct
+<benchmarks/pure_benchmark.{native,byte}>: pkg_result
+<benchmarks/pure_benchmark.{native,byte}>: pkg_threads
+<benchmarks/pure_benchmark.{native,byte}>: use_angstrom
+<benchmarks/*.ml{,i,y}>: pkg_core_bench
+# Executable async_benchmark
+<benchmarks/async_benchmark.{native,byte}>: pkg_async
+<benchmarks/async_benchmark.{native,byte}>: pkg_cstruct
+<benchmarks/async_benchmark.{native,byte}>: pkg_result
+<benchmarks/async_benchmark.{native,byte}>: pkg_threads
+<benchmarks/async_benchmark.{native,byte}>: use_angstrom
+<benchmarks/async_benchmark.{native,byte}>: use_angstrom_async
+<benchmarks/*.ml{,i,y}>: pkg_async
+<benchmarks/*.ml{,i,y}>: pkg_threads
+<benchmarks/*.ml{,i,y}>: use_angstrom_async
+# Executable lwt_benchmark
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_cstruct
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_lwt
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_lwt.unix
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_result
+<benchmarks/lwt_benchmark.{native,byte}>: use_angstrom
+<benchmarks/lwt_benchmark.{native,byte}>: use_angstrom_lwt
+<benchmarks/*.ml{,i,y}>: pkg_cstruct
+<benchmarks/*.ml{,i,y}>: pkg_lwt
+<benchmarks/*.ml{,i,y}>: pkg_lwt.unix
+<benchmarks/*.ml{,i,y}>: pkg_result
+<benchmarks/*.ml{,i,y}>: use_angstrom
+<benchmarks/*.ml{,i,y}>: use_angstrom_lwt
 # OASIS_STOP

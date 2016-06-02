@@ -1,5 +1,5 @@
 (*----------------------------------------------------------------------------
-    Copyright (c) 2015 Inhabited Type LLC.
+    Copyright (c) 2016 Inhabited Type LLC.
 
     All rights reserved.
 
@@ -32,58 +32,49 @@
   ----------------------------------------------------------------------------*)
 
 module R = Result
-open Angstrom
+open Angstrom.Unbuffered
 open Core.Std
 open Async.Std
 
 let rec finalize state result =
+  (* It is very important to understand the assumptions that go into the second
+   * case. If execution reaches that case, then that means that the parser has
+   * commited all the way up to the last byte that was read by the reader, and
+   * the reader's internal buffer is empty. If the parser hadn't committed up
+   * to the last byte, then the reader buffer would not be empty and execution
+   * would hit the first case rather than the second.
+   *
+   * In other words, the second case looks wrong but it's not. *)
   match state, result with
-  | state    , `Eof_with_unconsumed_data str -> finalize (feed state (`String str)) `Eof
-  | Partial k, `Eof                          -> finalize (k None)                   `Eof
-  | Partial _, `Stopped ()                   -> assert false
-  | (Fail(buf, _, _) | Done(buf, _)) as state, (`Eof | `Stopped ()) ->
-    (* buf may contain some data, but there's another copy of it in reader's
-     * internal buffer. *)
-    buf, state_to_result state
+  | Partial p, `Eof_with_unconsumed_data s -> finalize (p.continue (`String s ) Complete) `Eof
+  | Partial p, `Eof                        -> finalize (p.continue (`String "") Complete) `Eof
+  | Partial _, `Stopped ()                 -> assert false
+  | state    , _                           -> state_to_result state
 
-let parse ?initial_input p reader =
-  let state = ref (parse ?input:initial_input p) in
-  let handle_chunk (buf:Bigstring.t) ~pos ~len =
-    state := feed !state (`Cstruct (Cstruct.of_bigarray ~len ~off:pos buf));
-    (* These statements apply both to the Fail and Done cases:
-     *
-     * if len_left > len, then the parser was buffering input that can't be
-     * written back to the reader.
-     *
-     * if len_left < len, then the parser consumed input and writing back to
-     * the reader would result in a gap in the input.
-     *)
-    match !state with
-    | Done(buf, r) ->
-      let len_left = Cstruct.len buf in
-      if len_left <= len then begin
-        state := Done(Cstruct.create 0, r);
-        return (`Stop_consumed((), len - len_left))
-      end else
-        return (`Stop ())
-    | Fail(buf, tags, msg) ->
-      let len_left = Cstruct.len buf in
-      if len_left = len then begin
-        state := Fail(Cstruct.create 0, tags, msg);
-        return (`Stop_consumed((), 0))
-      end else
-        return (`Stop ())
-    | Partial k ->
-      return `Continue
+let response = function
+  | Partial p -> `Consumed(p.consumed, `Need_unknown)
+  | _         -> `Stop ()
+
+let default_pushback () = Deferred.unit
+
+let parse ?(pushback=default_pushback) p reader =
+  let state = ref (parse p) in
+  let handle_chunk buf ~pos ~len =
+    begin match !state with
+    | Partial p ->
+      state := p.continue (`Bigstring (Bigstring.sub_shared ~pos ~len buf)) Incomplete;
+    | _         -> ()
+    end;
+    pushback () >>| fun () -> response !state
   in
   Reader.read_one_chunk_at_a_time reader ~handle_chunk >>| fun result ->
     finalize !state result
 
-let rec parse_many ?initial_input p reader k =
-  parse ?initial_input p reader
-  >>= function
-    | buf, R.Ok a    ->
-      k a >>= fun () ->
-      parse_many ~initial_input:(`Cstruct buf) p reader k
-    | buf, R.Error a ->
-      return (buf, R.Error a)
+let async_many e k =
+  Angstrom.(skip_many (e <* commit >>| k) <?> "async_many")
+
+let parse_many p write reader =
+  let wait = ref (default_pushback ()) in
+  let k x = wait := write x in
+  let pushback () = !wait in
+  parse ~pushback (async_many p k) reader

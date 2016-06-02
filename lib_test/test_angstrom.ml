@@ -36,17 +36,13 @@ module Alcotest = struct
 end
 
 let check ?size f p is =
+  let open Buffered in
   let state =
     List.fold_left (fun state chunk ->
       feed state (`String chunk))
     (parse ?initial_buffer_size:size p) is
   in
-  let result =
-    match state with
-    | Partial k -> state_to_result (k None)
-    | _         -> state_to_result state
-  in
-  f result
+  f (state_to_result (feed state `Eof))
 
 let check_ok ?size ~msg test p is r =
   let r = Result.Ok r in
