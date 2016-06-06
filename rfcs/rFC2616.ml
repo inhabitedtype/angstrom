@@ -60,7 +60,7 @@ let request_first_line =
 let response_first_line =
   (fun version status msg -> (version, status, msg))
     <$> lex version
-    <*> take_till P.is_space
+    <*> lex (take_till P.is_space)
     <*> take_till P.is_eol
 
 let header =
