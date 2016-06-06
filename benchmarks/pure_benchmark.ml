@@ -13,16 +13,11 @@ let read file =
   with_file ~mode:[O_RDONLY] file ~f:(fun fd ->
     loop 0 size fd)
 
-let many' p =
-  let open Angstrom in
-  fix (fun m ->
-    (p *> m) <|> return ())
-
 (* For input files involving trailing numbers, .e.g, [http-requests.txt.100],
  * go into the [benchmarks/data] directory and use the [replicate] script to
  * generate the file, i.e.,
  *
- *   [./replicate http-requests.txt.100]
+ *   [./replicate http-requests.txt 100]
  *
  *)
 let main () =
@@ -34,7 +29,7 @@ let main () =
       | R.Ok _ -> ()
       | R.Error err -> failwith err);
     Bench.Test.create ~name:"http" (fun () ->
-      match Angstrom.(parse_only (many' RFC2616.request) (`String http_get)) with
+      match Angstrom.(parse_only (skip_many RFC2616.request) (`String http_get)) with
       | R.Ok _ -> ()
       | R.Error err -> failwith err)
   ])
