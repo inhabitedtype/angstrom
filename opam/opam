@@ -9,6 +9,7 @@ bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "https://github.com/inhabitedtype/angstrom.git"
 build: [
   ["ocaml" "setup.ml" "-configure" "--prefix" prefix
+    "--%{base-unix:enable}%-unix"
     "--%{lwt:enable}%-lwt"
     "--%{async:enable}%-async"]
   ["ocaml" "setup.ml" "-build"]
@@ -27,4 +28,7 @@ depends: [
   "cstruct" {>= "0.6.0"}
   "ocamlfind" {build}
   "result"
+]
+depopts: [
+  "base-unix"
 ]
