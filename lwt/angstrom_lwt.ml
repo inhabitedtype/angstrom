@@ -34,7 +34,7 @@
 open Angstrom.Buffered
 open Lwt.Infix
 
-let default_pushback () = Lwt_main.yield ()
+let default_pushback () = Lwt.return_unit
 
 let parse ?(pushback=default_pushback) p in_chan =
   let size  = Lwt_io.buffer_size in_chan in
