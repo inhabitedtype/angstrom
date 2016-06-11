@@ -23,6 +23,11 @@ Flag benchmarks
   Description: build benchmark executables
   Default: false
 
+Flag unix
+  Description: build the unix library
+  Default: true
+
+
 Library angstrom
   Path:         lib
   Findlibname:  angstrom
@@ -36,6 +41,15 @@ Document api
   Install:              true
   XOCamlBuildPath:      lib
   XOCamlBuildLibraries: angstrom
+
+Library angstrom_unix
+  Path:           unix
+  Findlibname:    unix
+  Findlibparent:  angstrom
+  Build$:         flag(unix)
+  Install$:       flag(unix)
+  BuildDepends:   angstrom, result
+  Modules:        Angstrom_unix
 
 Library angstrom_lwt
   Path:           lwt

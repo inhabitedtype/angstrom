@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: f9ec6e1bab1748e905e2f7dd8b786fe5)
+# DO NOT EDIT (digest: 5e973c8a2b28390df0ad3953aec83eba)
 version = "0.1.0"
 description = "Parser combinators built for speed and memory efficiency"
 requires = "cstruct result"
@@ -8,6 +8,17 @@ archive(byte, plugin) = "angstrom.cma"
 archive(native) = "angstrom.cmxa"
 archive(native, plugin) = "angstrom.cmxs"
 exists_if = "angstrom.cma"
+package "unix" (
+ version = "0.1.0"
+ description = "Parser combinators built for speed and memory efficiency"
+ requires = "angstrom result"
+ archive(byte) = "angstrom_unix.cma"
+ archive(byte, plugin) = "angstrom_unix.cma"
+ archive(native) = "angstrom_unix.cmxa"
+ archive(native, plugin) = "angstrom_unix.cmxs"
+ exists_if = "angstrom_unix.cma"
+)
+
 package "lwt" (
  version = "0.1.0"
  description = "Parser combinators built for speed and memory efficiency"
