@@ -24,20 +24,20 @@ opam install angstrom
 ## Usage
 
 Angstrom is written with network protocols and serialization formats in mind.
-As such, the source distribution includes implementations of various RFCs, such
-as an [HTTP parser][http] and a [JSON parser][json]. These parsers are
-illustrative of real-world applications of the library.
+As such, its source distribution includes implementations of various RFCs that
+are illustrative of real-world applications of the library. These include an
+[HTTP parser][http] and a [JSON parser][json].
 
 [http]: https://github.com/inhabitedtype/angstrom/blob/master/rfcs/rFC2616.ml
 [json]: https://github.com/inhabitedtype/angstrom/blob/master/rfcs/rFC7159.ml
 
-However it is an informal tradition for OCaml parser-combinator libraries to
-include in their READMEs a parser for a simple arithmetic expression language.
-The code below implements a parser for such a language and computes the
-numerical result of the expression as parsing progresses. Because Angstrom is
-written with network protocols and serialization libraries in mind, it does not
-include combinators for creating infix expression parsers. Such combinators,
-e.g., `chainl1`, are nevertheless simple to define.
+In addition, it is an informal tradition for OCaml parser-combinator libraries
+to include in their READMEs a parser for a simple arithmetic expression
+language. The code below implements a parser for such a language and computes
+the numerical result of the expression as it is being parsed. Because Angstrom
+is written with network protocols and serialization libraries in mind, it does
+not include combinators for creating infix expression parsers. Such
+combinators, e.g., `chainl1`, are nevertheless simple to define.
 
 ```ocaml
 open Angstrom
@@ -70,16 +70,17 @@ let eval (str:string) : int =
 ## Comparison to Other Libraries
 
 There are several other parser-combinator libraries available for OCaml that
-may suit your needs. Most of them are derivatives of or inspired by [Parsec][].
-As such, they do not provide lookahead by default, but instead require the use
-of a `try` combinator to achieve lookahead. They also all seem to assume that
-IO can be done via lazy character streams, as it is typically done in Haskell.
-While this may work well for some use-cases in OCaml, it requires blocking IO
-if the entire input is not available when parsing begins&mdash;an approach that
-is inherently incompatible with monadic concurrency libraries such as [Async]
-and [Lwt], and writing highly concurrent applications in general. Another
-consequence of this approach to IO is that the parsers cannot iterate over
-sections of its input in a tight loop (e.g., `take_while` or `skip_while`).
+may suit your needs, and are worth considering. Most of them are derivatives of
+or inspired by [Parsec][]. As such, they require the use of a `try` combinator
+to achieve backtracking, rather than providing it by default. They also all use
+something akin to a lazy character stream as the underlying input abstraction.
+While this suits Haskell quite nicely, it requires blocking read calls when the
+entire input is not immediately available&mdash;an approach that is inherently
+incompatible with monadic concurrency libraries such as [Async] and [Lwt], and
+writing high-performance, concurrent applications in general. Another
+consequence of this approach to modeling and retrieving input is that the
+parsers cannot iterate over sections of input in a tight loop, which adversely
+affects performance.
 
 Below is a table that compares the features of Angstrom agains the those of
 other parser-combinator libraries.
@@ -92,8 +93,8 @@ other parser-combinator libraries.
 Feature \ Library                   | Angstrom | [mparser] | [planck] | [opal] |
 ------------------------------------|:--------:|:---------:|:--------:|:------:|
 Monadic interface                   | ✅        | ✅         | ✅        | ✅      |
-Unbounded lookahead                 | ✅        | ✅         | ✅        | ✅      |
-Lookahead by default                | ✅        | ❌         | ❌        | ❌      |
+Backtracking by default             | ✅        | ❌         | ❌        | ❌      |
+Unbounded lookahead                 | ❌        | ✅         | ✅        | ❌      |
 Reports line numbers in errors      | ❌        | ✅         | ❌        | ❌      |
 Efficient `take_while`/`skip_while` | ✅        | ❌         | ❌        | ❌      |
 Unbuffered (zero-copy) interface    | ✅        | ❌         | ❌        | ❌      |
