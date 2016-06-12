@@ -93,8 +93,8 @@ other parser-combinator libraries.
 Feature \ Library                   | Angstrom | [mparser] | [planck] | [opal] |
 ------------------------------------|:--------:|:---------:|:--------:|:------:|
 Monadic interface                   | ✅        | ✅         | ✅        | ✅      |
-Unbounded lookahead                 | ✅        | ✅         | ✅        | ✅      |
 Backtracking by default             | ✅        | ❌         | ❌        | ❌      |
+Unbounded lookahead                 | ❌        | ✅         | ✅        | ❌      |
 Reports line numbers in errors      | ❌        | ✅         | ❌        | ❌      |
 Efficient `take_while`/`skip_while` | ✅        | ❌         | ❌        | ❌      |
 Unbuffered (zero-copy) interface    | ✅        | ❌         | ❌        | ❌      |
