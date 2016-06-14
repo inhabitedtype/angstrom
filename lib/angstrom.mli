@@ -260,6 +260,27 @@ val (<* ) : 'a t -> 'b t -> 'a t
 (** [p <* q] runs [p], then runs [q], discards its result, and returns the
     result of [p]. *)
 
+val lift : ('a -> 'b) -> 'a t -> 'b t
+val lift2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
+val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
+(** The [liftn] family of functions promote functions to the parser monad.
+    For any of these functions, the following equivalence holds:
+
+{[liftn f p1 ... pn = f <$> p1 <*> ... <*> pn]}
+
+    These functions are more efficient than using the applicative interface
+    directly, mostly in terms of memory allocation but also in terms of speed.
+    Prefer them over the applicative interface, even when the artiy of the
+    function to be lifted exceeds the maximum [n] for which there is an
+    implementation for [liftn]. In other words, if [f] has an arity of [5] but
+    only [lift4] is provided, do the following:
+
+{[lift4 f m1 m2 m3 m4 <*> m5]}
+
+    Even with the partial application, it will be more efficient the
+    applicative implementation. *)
+
 
 (** {2 Running} *)
 

@@ -339,15 +339,64 @@ let (<$>) f m =
   m >>| f
 
 let (<*>) f m =
-  f >>= fun f ->
-  m >>| f
+  (* f >>= fun f -> m >>| f *)
+  { run = fun input pos more fail succ ->
+    let succ0 input0 pos0 more0 f =
+      let succ1 input1 pos1 more1 m = succ input1 pos1 more1 (f m) in
+      m.run input0 pos0 more0 fail succ1
+    in
+    f.run input pos more fail succ0 }
+
+let lift f m =
+  f <$> m
+
+let lift2 f m1 m2 =
+  { run = fun input pos more fail succ ->
+    let succ1 input1 pos1 more1 m1 =
+      let succ2 input2 pos2 more2 m2 = succ input2 pos2 more2 (f m1 m2) in
+      m2.run input1 pos1 more1 fail succ2
+    in
+    m1.run input pos more fail succ1 }
+
+let lift3 f m1 m2 m3 =
+  { run = fun input pos more fail succ ->
+    let succ1 input1 pos1 more1 m1 =
+      let succ2 input2 pos2 more2 m2 =
+        let succ3 input3 pos3 more3 m3 =
+          succ input3 pos3 more3 (f m1 m2 m3) in
+        m3.run input2 pos2 more2 fail succ3 in
+      m2.run input1 pos1 more1 fail succ2
+    in
+    m1.run input pos more fail succ1 }
+
+let lift4 f m1 m2 m3 m4 =
+  { run = fun input pos more fail succ ->
+    let succ1 input1 pos1 more1 m1 =
+      let succ2 input2 pos2 more2 m2 =
+        let succ3 input3 pos3 more3 m3 =
+          let succ4 input4 pos4 more4 m4 =
+            succ input4 pos4 more4 (f m1 m2 m3 m4) in
+          m4.run input3 pos3 more3 fail succ4 in
+        m3.run input2 pos2 more2 fail succ3 in
+      m2.run input1 pos1 more1 fail succ2
+    in
+    m1.run input pos more fail succ1 }
 
 let ( *>) a b =
-  a >>= fun _ -> b
+  (* a >>= fun _ -> b *)
+  { run = fun input pos more fail succ ->
+    let succ' input' pos' more' _ = b.run input' pos' more' fail succ in
+    a.run input pos more fail succ'
+  }
 
 let (<* ) a b =
-  a >>= fun x ->
-  b >>| fun _ -> x
+  (* a >>= fun x -> b >>| fun _ -> x *)
+  { run = fun input pos more fail succ ->
+    let succ0 input0 pos0 more0 x =
+      let succ1 input1 pos1 more1 _ = succ input1 pos1 more1 x in
+      b.run input0 pos0 more0 fail succ1
+    in
+    a.run input pos more fail succ0 }
 
 let (<?>) p mark =
   { run = fun input pos more fail succ ->
@@ -624,34 +673,34 @@ let cons x xs = x :: xs
 let rec list ps =
   match ps with
   | []    -> return []
-  | p::ps -> cons <$> p <*> list ps
+  | p::ps -> lift2 cons p (list ps)
 
 let count n p =
   if n < 0 then
     failwith "count: invalid argument, n < 0";
   let rec loop = function
     | 0 -> return []
-    | n -> cons <$> p <*> (loop (n - 1))
+    | n -> lift2 cons p (loop (n - 1))
   in
   loop n
 
 let many p =
   fix (fun m ->
-    (cons <$> p <*> m) <|> return [])
+    (lift2 cons p m) <|> return [])
 
 let many1 p =
-  cons <$> p <*> many p
+  lift2 cons p (many p)
 
 let many_till p t =
   fix (fun m ->
-    (cons <$> p <*> m) <|> (t *> return []))
+    (lift2 cons p m) <|> (t *> return []))
 
 let sep_by1 s p =
   fix (fun m ->
-    cons <$> p <*> ((s *> m) <|> return []))
+    lift2 cons p ((s *> m) <|> return []))
 
 let sep_by s p =
-  (cons <$> p <*> ((s *> sep_by1 s p) <|> return [])) <|> return []
+  (lift2 cons p ((s *> sep_by1 s p) <|> return [])) <|> return []
 
 let skip_many p =
   fix (fun m ->
