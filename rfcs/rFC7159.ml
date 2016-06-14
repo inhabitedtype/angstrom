@@ -59,11 +59,11 @@ let _str =
       | '\x72' -> return "\x0d"
       | '\x74' -> return "\x09"
       | '\x75' ->
-        (fun a b c d ->
+        lift4 (fun a b c d ->
           Printf.sprintf "%c%c"
             Char.(chr (0x10 * (code a) + (code b)))
             Char.(chr (0x10 * (code c) + (code d))))
-          <$> hex <*> hex <*> hex <*> hex
+          hex hex hex hex
       | _     -> fail "invalid escape sequence"
     end <?> "escaped char"
   in
@@ -76,7 +76,7 @@ let str =
 let json =
   let pair x y = (x, y) in
   fix (fun json ->
-    let member = pair <$> _str <* ns <*> json in
+    let member = lift2 pair (_str <* ns) json in
     let obj = lcb *> sep_by vs member <* rcb >>| fun ms -> `Object ms in
     let arr = lsb *> sep_by vs json   <* rsb >>| fun vs -> `Array  vs in
     ws *> peek_char_fail
