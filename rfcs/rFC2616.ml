@@ -36,11 +36,10 @@ let spaces = skip_while P.is_space
 let lex p = p <* spaces
 
 let version =
-  string "HTTP/" *> begin
-  (fun major minor -> major, minor)
-    <$> (digits <* char '.')
-    <*> digits
-  end
+  string "HTTP/" *>
+  lift2 (fun major minor -> major, minor)
+    (digits <* char '.')
+    digits
 
 let uri =
   take_till P.is_space
@@ -49,29 +48,29 @@ let meth = token
 let eol = string "\r\n"
 
 let request_first_line =
-  (fun meth uri version -> (meth, uri, version))
-    <$> lex meth
-    <*> lex uri
-    <*> version
+  lift3 (fun meth uri version -> (meth, uri, version))
+    (lex meth)
+    (lex uri)
+    version
 
 let response_first_line =
-  (fun version status msg -> (version, status, msg))
-    <$> lex version
-    <*> lex (take_till P.is_space)
-    <*> take_till P.is_eol
+  lift3 (fun version status msg -> (version, status, msg))
+    (lex version)
+    (lex (take_till P.is_space))
+    (take_till P.is_eol)
 
 let header =
-  let colon = spaces *> char ':' <* spaces in
-  (fun key value -> (key, value))
-    <$> token
-    <*> colon *> take_till P.is_eol
+  let colon = char ':' <* spaces in
+  lift2 (fun key value -> (key, value))
+    token
+    (colon *> take_till P.is_eol)
 
 let request =
-  (fun (meth, uri, version) headers -> (meth, uri, version, headers))
-    <$> (request_first_line   <* eol)
-    <*> (many (header <* eol) <* eol)
+  lift2 (fun (meth, uri, version) headers -> (meth, uri, version, headers))
+    (request_first_line   <* eol)
+    (many (header <* eol) <* eol)
 
 let response =
-  (fun (version, status, msg) headers -> (version, status, msg, headers))
-   <$> (response_first_line  <* eol)
-   <*> (many (header <* eol) <* eol)
+  lift2 (fun (version, status, msg) headers -> (version, status, msg, headers))
+    (response_first_line  <* eol)
+    (many (header <* eol) <* eol)

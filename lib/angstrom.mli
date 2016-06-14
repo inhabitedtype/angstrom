@@ -187,11 +187,11 @@ val fix : ('a t -> 'a t) -> 'a t
     expression comprising the left hand slide of the alternative operator
     [<|>]. This expression runs the parser [p] followed by the parser [m], and
     after which the result of [p] is cons'd onto the list that [m] produces.
-    The left-hand size of the alternative operator provides a base case for the
-    combinator: if [p] fails and the parse cannot proceed, return an empty
+    The right-hand side of the alternative operator provides a base case for
+    the combinator: if [p] fails and the parse cannot proceed, return an empty
     list.
 
-    Another illustration of the uses of [fix] is in constructing a JSON parser.
+    Another way to illustrate the uses of [fix] is to construct a JSON parser.
     Assuming that parsers exist for the basic types such as [false], [true],
     [null], strings, and numbers, the question then becomes how to define a
     parser for objects and arrays? Both contain values that are themselves JSON
@@ -259,6 +259,27 @@ val ( *>) : 'a t -> 'b t -> 'b t
 val (<* ) : 'a t -> 'b t -> 'a t
 (** [p <* q] runs [p], then runs [q], discards its result, and returns the
     result of [p]. *)
+
+val lift : ('a -> 'b) -> 'a t -> 'b t
+val lift2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
+val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
+(** The [liftn] family of functions promote functions to the parser monad.
+    For any of these functions, the following equivalence holds:
+
+{[liftn f p1 ... pn = f <$> p1 <*> ... <*> pn]}
+
+    These functions are more efficient than using the applicative interface
+    directly, mostly in terms of memory allocation but also in terms of speed.
+    Prefer them over the applicative interface, even when the artiy of the
+    function to be lifted exceeds the maximum [n] for which there is an
+    implementation for [liftn]. In other words, if [f] has an arity of [5] but
+    only [lift4] is provided, do the following:
+
+{[lift4 f m1 m2 m3 m4 <*> m5]}
+
+    Even with the partial application, it will be more efficient the
+    applicative implementation. *)
 
 
 (** {2 Running} *)
