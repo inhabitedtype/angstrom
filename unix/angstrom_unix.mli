@@ -35,12 +35,14 @@ open Angstrom
 
 
 val parse :
-     'a t
+     ?buf_size:int
+  -> 'a t
   -> in_channel
   -> Buffered.unconsumed * ('a, string) Result.result
 
 val parse_many :
-     'a t
+     ?buf_size:int
+  -> 'a t
   -> ('a -> unit)
   -> in_channel
   -> Buffered.unconsumed * (unit, string) Result.result
