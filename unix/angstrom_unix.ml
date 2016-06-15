@@ -33,12 +33,11 @@
 
 open Angstrom.Buffered
 
-let parse p in_chan =
-  let size  = 0x1000 in
-  let bytes = Bytes.create size in
+let parse ?(buf_size=0x1000) p in_chan =
+  let bytes = Bytes.create buf_size in
   let rec loop = function
     | Partial k ->
-      begin match input in_chan bytes 0 size with
+      begin match input in_chan bytes 0 buf_size with
       | 0 -> loop (k `Eof)
       | n -> loop (k (`String (Bytes.(unsafe_to_string (sub bytes 0 n)))))
       end
@@ -49,5 +48,5 @@ let parse p in_chan =
   | None    -> assert false
   | Some us -> us, state_to_result state
 
-let parse_many p k in_chan =
-  parse Angstrom.(skip_many (p <* commit >>| k)) in_chan
+let parse_many ?buf_size p k in_chan =
+  parse ?buf_size Angstrom.(skip_many (p <* commit >>| k)) in_chan
