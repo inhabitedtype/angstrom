@@ -39,8 +39,8 @@ let parse p in_chan =
   let rec loop = function
     | Partial k ->
       begin match input in_chan bytes 0 size with
-      | 0 -> k `Eof
-      | n -> k (`String (Bytes.(unsafe_to_string (sub bytes 0 n))))
+      | 0 -> loop (k `Eof)
+      | n -> loop (k (`String (Bytes.(unsafe_to_string (sub bytes 0 n)))))
       end
     | state -> state
   in
