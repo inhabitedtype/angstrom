@@ -81,6 +81,13 @@ let create len =
   let buffer = Bigarray.(Array1.create char c_layout len) in
   { buffer ; len ; off = 0 }
 
+let to_string t =
+  let sz = len t in
+  let b = Bytes.create sz in
+  unsafe_blit_bigstring_to_bytes t.buffer t.off b 0 sz;
+  (* The following call is safe, since b is not visible elsewhere. *)
+  Bytes.unsafe_to_string b
+
 let of_string ?allocator buf =
   let buflen = String.length buf in
   match allocator with

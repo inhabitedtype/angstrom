@@ -1,18 +1,27 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2e89842bcfa1c2543fbfa9fd4558aab0)
-version = "0.1.0"
-description =
-"Parser combinator library built for speed and memory efficiency"
+# DO NOT EDIT (digest: b6e7cb77e0995ca5ed26c92566682afc)
+version = "dev"
+description = "Parser combinators built for speed and memory-efficiency"
 requires = "bytes bigarray ocplib-endian ocplib-endian.bigstring result"
 archive(byte) = "angstrom.cma"
 archive(byte, plugin) = "angstrom.cma"
 archive(native) = "angstrom.cmxa"
 archive(native, plugin) = "angstrom.cmxs"
 exists_if = "angstrom.cma"
+package "unix" (
+ version = "dev"
+ description = "Parser combinators built for speed and memory-efficiency"
+ requires = "angstrom result"
+ archive(byte) = "angstrom_unix.cma"
+ archive(byte, plugin) = "angstrom_unix.cma"
+ archive(native) = "angstrom_unix.cmxa"
+ archive(native, plugin) = "angstrom_unix.cmxs"
+ exists_if = "angstrom_unix.cma"
+)
+
 package "lwt" (
- version = "0.1.0"
- description =
- "Parser combinator library built for speed and memory efficiency"
+ version = "dev"
+ description = "Parser combinators built for speed and memory-efficiency"
  requires = "angstrom lwt result"
  archive(byte) = "angstrom_lwt.cma"
  archive(byte, plugin) = "angstrom_lwt.cma"
@@ -22,9 +31,8 @@ package "lwt" (
 )
 
 package "async" (
- version = "0.1.0"
- description =
- "Parser combinator library built for speed and memory efficiency"
+ version = "dev"
+ description = "Parser combinators built for speed and memory-efficiency"
  requires = "angstrom async result threads"
  archive(byte) = "angstrom_async.cma"
  archive(byte, plugin) = "angstrom_async.cma"

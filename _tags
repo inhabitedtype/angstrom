@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4da77eed24cd7c9d878103c650607bd9)
+# DO NOT EDIT (digest: 367b34c3a4d354ff540a557065bc0ec7)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -32,6 +32,14 @@ true: annot, bin_annot
 "lib/angstrom_stubs.c": pkg_ocplib-endian
 "lib/angstrom_stubs.c": pkg_ocplib-endian.bigstring
 "lib/angstrom_stubs.c": pkg_result
+# Library angstrom_unix
+"unix/angstrom_unix.cmxs": use_angstrom_unix
+<unix/*.ml{,i,y}>: pkg_bigarray
+<unix/*.ml{,i,y}>: pkg_bytes
+<unix/*.ml{,i,y}>: pkg_ocplib-endian
+<unix/*.ml{,i,y}>: pkg_ocplib-endian.bigstring
+<unix/*.ml{,i,y}>: pkg_result
+<unix/*.ml{,i,y}>: use_angstrom
 # Library angstrom_lwt
 "lwt/angstrom_lwt.cmxs": use_angstrom_lwt
 <lwt/*.ml{,i,y}>: pkg_bigarray
@@ -66,4 +74,47 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: pkg_ocplib-endian.bigstring
 <lib_test/*.ml{,i,y}>: pkg_result
 <lib_test/*.ml{,i,y}>: use_angstrom
+# Executable pure_benchmark
+<benchmarks/pure_benchmark.{native,byte}>: pkg_async
+<benchmarks/pure_benchmark.{native,byte}>: pkg_bigarray
+<benchmarks/pure_benchmark.{native,byte}>: pkg_bytes
+<benchmarks/pure_benchmark.{native,byte}>: pkg_core_bench
+<benchmarks/pure_benchmark.{native,byte}>: pkg_ocplib-endian
+<benchmarks/pure_benchmark.{native,byte}>: pkg_ocplib-endian.bigstring
+<benchmarks/pure_benchmark.{native,byte}>: pkg_result
+<benchmarks/pure_benchmark.{native,byte}>: pkg_threads
+<benchmarks/pure_benchmark.{native,byte}>: use_angstrom
+<benchmarks/*.ml{,i,y}>: pkg_core_bench
+# Executable async_benchmark
+<benchmarks/async_benchmark.{native,byte}>: pkg_async
+<benchmarks/async_benchmark.{native,byte}>: pkg_bigarray
+<benchmarks/async_benchmark.{native,byte}>: pkg_bytes
+<benchmarks/async_benchmark.{native,byte}>: pkg_ocplib-endian
+<benchmarks/async_benchmark.{native,byte}>: pkg_ocplib-endian.bigstring
+<benchmarks/async_benchmark.{native,byte}>: pkg_result
+<benchmarks/async_benchmark.{native,byte}>: pkg_threads
+<benchmarks/async_benchmark.{native,byte}>: use_angstrom
+<benchmarks/async_benchmark.{native,byte}>: use_angstrom_async
+<benchmarks/*.ml{,i,y}>: pkg_async
+<benchmarks/*.ml{,i,y}>: pkg_threads
+<benchmarks/*.ml{,i,y}>: use_angstrom_async
+# Executable lwt_benchmark
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_bigarray
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_bytes
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_lwt
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_lwt.unix
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_ocplib-endian
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_ocplib-endian.bigstring
+<benchmarks/lwt_benchmark.{native,byte}>: pkg_result
+<benchmarks/lwt_benchmark.{native,byte}>: use_angstrom
+<benchmarks/lwt_benchmark.{native,byte}>: use_angstrom_lwt
+<benchmarks/*.ml{,i,y}>: pkg_bigarray
+<benchmarks/*.ml{,i,y}>: pkg_bytes
+<benchmarks/*.ml{,i,y}>: pkg_lwt
+<benchmarks/*.ml{,i,y}>: pkg_lwt.unix
+<benchmarks/*.ml{,i,y}>: pkg_ocplib-endian
+<benchmarks/*.ml{,i,y}>: pkg_ocplib-endian.bigstring
+<benchmarks/*.ml{,i,y}>: pkg_result
+<benchmarks/*.ml{,i,y}>: use_angstrom
+<benchmarks/*.ml{,i,y}>: use_angstrom_lwt
 # OASIS_STOP

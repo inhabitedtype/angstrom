@@ -47,6 +47,8 @@ val len : t -> int
 
 val create : int -> t
 
+val to_string : t -> string
+
 val of_string : ?allocator:(int -> t) -> String.t -> t
 
 val of_bigarray : ?off:int -> ?len:int -> buffer -> t

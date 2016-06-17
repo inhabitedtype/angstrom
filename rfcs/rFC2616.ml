@@ -1,134 +1,76 @@
 open Angstrom
 
 module P = struct
-  let is_space c =
-    c = ' ' || c = '\t'
-  let is_eol c = c = '\r' || c = '\n'
-  let is_digit c =
-    let i = Char.code c in
-    0x30 <= i & i <= 0x39
-  let is_hex c =
-    let i = Char.code c in
-    (0x30 <= i && i <= 0x39)
-    || (0x41 <= i && i <= 0x46)
-    || (0x61 <= i && i <= 0x66)
-  let is_colon c =
-    c = ':'
-  let is_colon_or_space c =
-    is_space c || is_colon c
+  let is_space =
+    function | ' ' | '\t' -> true | _ -> false
 
-  let is_separator, is_token =
-    let separators = "()<>@,;:\\\"/[]?={} \t" in
-    let is_separator c = String.contains separators c in
-    let is_token c = c <> 127 && c > 31 && not (String.contains separators c)
-    (is_separator, is_token)
+  let is_eol =
+    function | '\r' | '\n' -> true | _ -> false
+
+  let is_hex =
+    function | '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true | _ -> false
+
+  let is_digit =
+    function '0' .. '9' -> true | _ -> false
+
+  let is_separator =
+    function
+      | ')' | '(' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"'
+      | '/' | '[' | ']' | '?' | '=' | '{' | '}' | ' ' | '\t' -> true
+      | _ -> false
+
+  let is_token =
+    (* The commented-out ' ' and '\t' are not necessary because of the range at
+     * the top of the match. *)
+    function
+      | '\000' .. '\031' | '\127'
+      | ')' | '(' | '<' | '>' | '@' | ',' | ';' | ':' | '\\' | '"'
+      | '/' | '[' | ']' | '?' | '=' | '{' | '}' (* | ' ' | '\t' *) -> false
+      | _ -> true
 end
 
-let token = satisfy P.is_token
+let token = take_while1 P.is_token
 let digits = take_while1 P.is_digit
-let separator = satisfy P.is_separator
 let spaces = skip_while P.is_space
-let hex str =
-  try return (Int64.of_string ("0x" ^ str)) with _ -> fail "hex"
 
 let lex p = p <* spaces
 
 let version =
-  string "HTTP/" *> begin
-  (fun major minor -> major, minor)
-    <$> (digits <* char '.')
-    <*> digits
-  end
+  string "HTTP/" *>
+  lift2 (fun major minor -> major, minor)
+    (digits <* char '.')
+    digits
 
 let uri =
-  (fun uri -> try Uri.of_string uri with _ -> fail "uri")
-    <$> take_till P.is_space
+  take_till P.is_space
 
-let meth = lex token
-let eol = end_of_line <* commit
+let meth = token
+let eol = string "\r\n"
 
 let request_first_line =
-  (fun meth uri version -> (meth, uri, version)
-    <$> lex meth
-    <*> lex uri
-    <*> lex version
+  lift3 (fun meth uri version -> (meth, uri, version))
+    (lex meth)
+    (lex uri)
+    version
 
 let response_first_line =
-  (fun version status msg -> (version, status, msg))
-    <$> lex version
-    <*> take_till P.is_space
-    <*> take_till P.is_eol
+  lift3 (fun version status msg -> (version, status, msg))
+    (lex version)
+    (lex (take_till P.is_space))
+    (take_till P.is_eol)
 
 let header =
-  let colon = spaces *> char ':' <* spaces in
-  (fun key value -> (key, value))
-    <$> token
-    <*> colon *> take_till P.is_eol
+  let colon = char ':' <* spaces in
+  lift2 (fun key value -> (key, value))
+    token
+    (colon *> take_till P.is_eol)
 
 let request =
-  (fun (meth, uri, version) headers -> (meth, uri, version, headers))
-    <$> (request_first_line   <* eol)
-    <*> (many (header <* eol) <* eol)
+  lift2 (fun (meth, uri, version) headers -> (meth, uri, version, headers))
+    (request_first_line   <* eol)
+    (many (header <* eol) <* eol)
 
 let response =
-  (fun (version, status, msg) headers -> (vesion, status, msg, headers))
-   <$> (response_first_line   <* eol)
-   <*> (many (header <* eol)  <* eol)
-
-module K = struct
-  let fixed_body ?size len k =
-    let rec loop len =
-      if len = 0 then
-        return ()
-      else
-        begin match size with
-        | None      -> available >>| fun size -> min len size
-        | Some size -> return (min len size)
-        end
-        >>= fun size -> take size
-        >>= fun buf  ->
-          k buf;
-          commit *> loop (len - size)
-    in
-    loop len
-
-  let chunked_body ?size k =
-    let chunk =
-      take_while1 P.is_hex <* semi
-      >>= fun s -> hex s   <* commit
-      >>= fun size ->
-        if size = 0L
-          then many skip_line *> return ()
-          else fixed_body size k <* end_of_line
-    in
-    many1 (chunk *> commit)
-
-  let unknown_body k : unit t =
-    let chunk =
-      want_input
-      >>= function
-        | true  -> available >>= fun n -> take n >>| k
-        | false -> fail "chunk"
-    in
-    (* XXX(seliopou): better make sure this isn't used with a keep-alive
-     * connection. *)
-    many (chunk <* commit) *> end_of_input *> commit
-
-  let body ?size encoding k : unit t =
-    match encoding with
-    | `Unknown   -> unknown_body k
-    | `Fixed len -> fixed_body ?size len k
-    | `Chunked   -> chunked_body ?size k
-
-  let accum_body p =
-    let chunks = ref [] in
-    let k c = chunks := c :: !chunks in
-    p k >>| fun () ->
-      match !chunks with
-      | []  -> `Empty
-      | [c] -> `String c
-      | cs  -> `Strings (List.rev cs)
-end
-
-let body ?size encoding =
-  K.accum_body (K.body ?size encoding)
+  lift2 (fun (version, status, msg) headers -> (version, status, msg, headers))
+    (response_first_line  <* eol)
+    (many (header <* eol) <* eol)

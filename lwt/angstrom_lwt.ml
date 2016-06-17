@@ -1,5 +1,5 @@
 (*----------------------------------------------------------------------------
-    Copyright (c) 2015 Inhabited Type LLC.
+    Copyright (c) 2016 Inhabited Type LLC.
 
     All rights reserved.
 
@@ -31,33 +31,38 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-open Angstrom
+open Angstrom.Buffered
 open Lwt.Infix
 
-let parse ?initial_input p in_chan =
+let default_pushback () = Lwt.return_unit
+
+let parse ?(pushback=default_pushback) p in_chan =
   let size  = Lwt_io.buffer_size in_chan in
   let bytes = Bytes.create size in
   let rec loop = function
     | Partial k ->
       Lwt_io.read_into in_chan (Bytes.unsafe_to_string bytes) 0 size
-      >>= begin function
-        | 0   -> loop (k None)
+      >|= begin function
+        | 0   -> k `Eof
         | len ->
           assert (len > 0);
-          loop (k (Some (`String (Bytes.(unsafe_to_string (sub bytes 0 len))))))
+          k (`String (Bytes.(unsafe_to_string (sub bytes 0 len))))
       end
+      >>= fun state' -> pushback ()
+      >>= fun ()     -> loop state'
     | state -> Lwt.return state
   in
-  loop (parse ?input:initial_input ~initial_buffer_size:size p)
-  >|= function
-    | (Done(buf, _ ) | Fail(buf, _, _)) as state -> buf, state_to_result state
-    | Partial _ -> assert false
+  loop (parse ~initial_buffer_size:size p)
+  >|= fun state ->
+    match state_to_unconsumed state with
+    | None    -> assert false
+    | Some us -> us, state_to_result state
 
-let rec parse_many ?initial_input p in_chan k =
-  parse ?initial_input p in_chan
-  >>= function
-    | (buf, Result.Ok a)    ->
-      k a >>= fun () ->
-      parse_many ~initial_input:(`Cstruct buf) p in_chan k
-    | (buf, Result.Error a) ->
-      Lwt.return (buf, Result.Error a)
+let async_many e k =
+  Angstrom.(skip_many (e <* commit >>| k) <?> "async_many")
+
+let parse_many p write in_chan =
+  let wait = ref (default_pushback ()) in
+  let k x = wait := write x in
+  let pushback () = !wait in
+  parse ~pushback (async_many p k) in_chan

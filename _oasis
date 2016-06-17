@@ -1,15 +1,22 @@
 OASISFormat: 0.4
 Name:        angstrom
-Version:     0.1.0
-Synopsis:    Parser combinator library built for speed and memory efficiency
+Version:     dev
 Authors:     Spiros Eliopoulos <spiros@inhabitedtype.com>
 Maintainers: Spiros Eliopoulos <spiros@inhabitedtype.com>
 Homepage:    https://github.com/inhabitedtype/angstrom
-Copyrights:  (C) 2015 Inhabited Type LLC
+Copyrights:  (C) 2016 Inhabited Type LLC
 License:     BSD-3-clause
 Plugins:     META (0.4), DevFiles (0.4)
 BuildTools: ocamlbuild
-
+Synopsis:    Parser combinators built for speed and memory-efficiency
+Description:
+   Angstrom is a parser-combinator library that makes it easy to write
+   efficient, expressive, and reusable parsers suitable for high-performance
+   applications. It exposes monadic and applicative interfaces for composition,
+   and supports incremental input through buffered and unbuffered interfaces.
+   Both interfaces give the user total control over the blocking behavior of
+   their application, with the unbuffered interface enabling zero-copy IO.
+   Parsers are backtracking by default and support unbounded lookahead.
 
 Flag async
   Description: build the async libraries
@@ -18,6 +25,15 @@ Flag async
 Flag lwt
   Description: build the lwt libraries
   Default: false
+
+Flag benchmarks
+  Description: build benchmark executables
+  Default: false
+
+Flag unix
+  Description: build the unix library
+  Default: true
+
 
 Library angstrom
   Path:         lib
@@ -36,6 +52,15 @@ Document api
   Install:              true
   XOCamlBuildPath:      lib
   XOCamlBuildLibraries: angstrom
+
+Library angstrom_unix
+  Path:           unix
+  Findlibname:    unix
+  Findlibparent:  angstrom
+  Build$:         flag(unix)
+  Install$:       flag(unix)
+  BuildDepends:   angstrom, result
+  Modules:        Angstrom_unix
 
 Library angstrom_lwt
   Path:           lwt
@@ -62,6 +87,30 @@ Executable test_angstrom
   CompiledObject:   best
   Install:          false
   BuildDepends:     angstrom, alcotest
+
+Executable pure_benchmark
+  Path:             benchmarks
+  MainIs:           pure_benchmark.ml
+  Build$:           flag(benchmarks)
+  CompiledObject:   best
+  Install:          false
+  BuildDepends:     angstrom, async, core_bench, threads
+
+Executable async_benchmark
+  Path:             benchmarks
+  MainIs:           async_benchmark.ml
+  Build$:           flag(benchmarks)
+  CompiledObject:   best
+  Install:          false
+  BuildDepends:     angstrom, angstrom.async, async, threads
+
+Executable lwt_benchmark
+  Path:             benchmarks
+  MainIs:           lwt_benchmark.ml
+  Build$:           flag(benchmarks)
+  CompiledObject:   best
+  Install:          false
+  BuildDepends:     angstrom, angstrom.lwt, lwt.unix
 
 Test test_angstrom
   Run$:             flag(tests)

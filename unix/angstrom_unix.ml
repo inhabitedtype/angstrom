@@ -31,17 +31,22 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-open Angstrom
+open Angstrom.Buffered
 
+let parse ?(buf_size=0x1000) p in_chan =
+  let bytes = Bytes.create buf_size in
+  let rec loop = function
+    | Partial k ->
+      begin match input in_chan bytes 0 buf_size with
+      | 0 -> loop (k `Eof)
+      | n -> loop (k (`String (Bytes.(unsafe_to_string (sub bytes 0 n)))))
+      end
+    | state -> state
+  in
+  let state = loop (parse p) in
+  match state_to_unconsumed state with
+  | None    -> assert false
+  | Some us -> us, state_to_result state
 
-val parse :
-     ?pushback:(unit -> unit Lwt.t)
-  -> 'a t
-  -> Lwt_io.input_channel
-  -> (Buffered.unconsumed * ('a, string) Result.result) Lwt.t
-
-val parse_many :
-     'a t
-  -> ('a -> unit Lwt.t)
-  -> Lwt_io.input_channel
-  -> (Buffered.unconsumed * (unit, string) Result.result) Lwt.t
+let parse_many ?buf_size p k in_chan =
+  parse ?buf_size Angstrom.(skip_many (p <* commit >>| k)) in_chan

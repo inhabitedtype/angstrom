@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: aa5b2125fc5bc9c11d947eddd77f987f) *)
+(* DO NOT EDIT (digest: 2d1ff7499439a01785fe36245c5875bf) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -610,6 +610,7 @@ let package_default =
      MyOCamlbuildBase.lib_ocaml =
        [
           ("angstrom", ["lib"], []);
+          ("angstrom_unix", ["unix"], []);
           ("angstrom_lwt", ["lwt"], []);
           ("angstrom_async", ["async"], [])
        ];
@@ -628,7 +629,14 @@ let package_default =
           (["oasis_library_angstrom_native"; "ocaml"; "compile"; "native"],
             [(OASISExpr.EBool true, S [A "-inline"; A "20"])])
        ];
-     includes = [("lwt", ["lib"]); ("lib_test", ["lib"]); ("async", ["lib"])]
+     includes =
+       [
+          ("unix", ["lib"]);
+          ("lwt", ["lib"]);
+          ("lib_test", ["lib"]);
+          ("benchmarks", ["async"; "lib"; "lwt"]);
+          ("async", ["lib"])
+       ]
   }
   ;;
 
@@ -636,6 +644,6 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 640 "myocamlbuild.ml"
+# 648 "myocamlbuild.ml"
 (* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;

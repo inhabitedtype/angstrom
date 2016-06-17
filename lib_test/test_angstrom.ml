@@ -36,17 +36,13 @@ module Alcotest = struct
 end
 
 let check ?size f p is =
+  let open Buffered in
   let state =
     List.fold_left (fun state chunk ->
       feed state (`String chunk))
     (parse ?initial_buffer_size:size p) is
   in
-  let result =
-    match state with
-    | Partial k -> state_to_result (k None)
-    | _         -> state_to_result state
-  in
-  f result
+  f (state_to_result (feed state `Eof))
 
 let check_ok ?size ~msg test p is r =
   let r = Result.Ok r in
@@ -109,6 +105,12 @@ let basic_constructors =
       check_fail ~msg:"input is prefix of string"     (string_ci "asdf") ["Asd"];
       check_fail ~msg:"non-empty string, empty input" (string_ci "test") [""]
   end
+  ; "take_while", `Quick, begin fun () ->
+      check_s ~msg:"true, non-empty input"  (take_while (fun _ -> true)) ["asdf"] "asdf";
+      check_s ~msg:"true, empty input"      (take_while (fun _ -> true)) [""] "";
+      check_s ~msg:"false, non-empty input" (take_while (fun _ -> false)) ["asdf"] "";
+      check_s ~msg:"false, empty input"     (take_while (fun _ -> false)) [""] "";
+  end
   ]
 
 let monadic =
@@ -145,6 +147,18 @@ let combinators =
       check_lc ~msg:"empty input"   (many (char 'a')) [""]  [];
       check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
       check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
+  end
+  ; "sep_by1", `Quick, begin fun () ->
+      let parser = sep_by1 (char ',') (char 'a') in
+      check_lc ~msg:"single char"     parser ["a"]    ['a'];
+      check_lc ~msg:"many chars"      parser ["a,a"]  ['a'; 'a'];
+      check_lc ~msg:"no trailing sep"  parser ["a,"]   ['a'];
+  end
+  ; "count", `Quick, begin fun () ->
+    check_lc ~msg:"empty input" (count 0 (char 'a')) [""] [];
+    check_lc ~msg:"exact input" (count 1 (char 'a')) ["a"] ['a'];
+    check_lc ~msg:"additonal input" (count 2 (char 'a')) ["aaa"] ['a'; 'a'];
+    check_fail ~msg:"bad input" (count 2 (char 'a')) ["abb"];
   end ]
 
 let incremental =

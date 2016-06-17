@@ -1,85 +1,90 @@
-type t =
+open Angstrom
+
+type json =
   [ `Null
   | `False
   | `True
   | `String of string
   | `Number of float
-  | `Object of (string * t) list
-  | `Array of t list ]
+  | `Object of (string * json) list
+  | `Array of json list ]
 
-let ws = take_while (fun c ->
-  c = '\x20' || c = '\x0a' || c = '\x0d' || c = '\x09')
+let ws = skip_while (function
+  | '\x20' | '\x0a' | '\x0d' | '\x09' -> true
+  | _ -> false)
 
 let lchar c =
-  ws *> char c <* ws
+  ws *> char c
 
-let lsb, rsb = lchar '\x5b', lchar '\x5d'
-let lcb, rcb = lchar '\x7b', lchar '\x7d'
-let ns , vs  = lchar '\x3a', lchar '\x2c'
-let quo = lchar '\x22'
-let esc = lchar '\x5c'
+let lsb, rsb = char '[', lchar ']'
+let lcb, rcb = char '{', lchar '}'
+let ns , vs  = lchar ':', lchar ','
+let quo = lchar '"'
 
-let _false = string "false" *> return `False
-let _true  = string "true"  *> return `True
-let _null  = string "null"  *> return `Null
+let _false : json t = string "false" *> return `False
+let _true  : json t = string "true"  *> return `True
+let _null  : json t = string "null"  *> return `Null
 
 let num =
-  let str = take_while (fun c ->
-    c <> '\x20' && c <> '\x0a' && c <> '\x0d' && c <> '\x09'
-    && c <> '\x5d' && c <> '\x7d' && c <> '\x3a' && c <> '\x2c')
+  let chars = take_while1 (function
+    | '\x20' | '\x0a' | '\x0d' | '\x09'
+    | '[' | ']' | '{' | '}' | ':' | ',' -> false
+    | _               -> true)
   in
-  str
-  >>= function
-    | "" -> fail "no input for number"
-    | s  -> return (`Number (float_of_string s))
+  chars
+  >>= fun s ->
+    try return (`Number (float_of_string s))
+    with _ -> fail "number"
 
 let hex =
-  satisfy (fun c ->
-    let b = Char.code c in
-    (0x30 <= b && b <= 0x39) || (0x41 <= b && b <= 0x46) || (0x61 <= b && b <= 66))
+  satisfy (function
+    | '0' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> true
+    | _ -> false)
 
 let _str =
+  let esc = char '\x5c' in
   let unescaped =
-    (* not '"' or '\' *)
-    take_while (fun c -> c <> '\x22' && c <> '\x5c') <?> "unescaped char"
+    (* not '"' nor '\' *)
+    take_while1 (function | '"' | '\x5c' -> false | _ -> true) <?> "unescaped char"
   in
   let escaped =
-    esc *>  choice [
-      char '\x22' *> return "\x22"
-    ; char '\x5c' *> return "\x5c"
-    ; char '\x2f' *> return "\x2f"
-    ; char '\x62' *> return "\x08"
-    ; char '\x66' *> return "\x0c"
-    ; char '\x6e' *> return "\x0a"
-    ; char '\x72' *> return "\x0d"
-    ; char '\x74' *> return "\x09"
-    ; char '\x75' *> begin
-      (fun a b c d ->
-        Printf.sprintf "%c%c"
-          Char.(chr (0x10 * (code a) + (code b)))
-          Char.(chr (0x10 * (code c) + (code d))))
-        <$> hex <*> hex <*> hex <*> hex
-      end
-    ] <?> "escaped char"
+    begin esc *> any_char
+    >>= function
+      | '\x22' -> return "\x22"
+      | '\x5c' -> return "\x5c"
+      | '\x2f' -> return "\x2f"
+      | '\x62' -> return "\x08"
+      | '\x66' -> return "\x0c"
+      | '\x6e' -> return "\x0a"
+      | '\x72' -> return "\x0d"
+      | '\x74' -> return "\x09"
+      | '\x75' ->
+        lift4 (fun a b c d ->
+          Printf.sprintf "%c%c"
+            Char.(chr (0x10 * (code a) + (code b)))
+            Char.(chr (0x10 * (code c) + (code d))))
+          hex hex hex hex
+      | _     -> fail "invalid escape sequence"
+    end <?> "escaped char"
   in
-  let chars =
-    many (choice [unescaped; escaped] <* commit) >>| String.concat ""
-  in
+  let chars = many (unescaped <|> escaped) >>| String.concat "" in
   quo *> chars <* quo
 
 let str =
   (_str >>| fun s -> `String s) <?> "str"
 
-let value =
-  fix (fun v ->
-    let obj =
-      let member = return (fun x y -> (x, y)) <*> _str <* ns <*> v in
-      lcb *> sep_by vs member <* rcb >>| fun ms -> `Object ms
-    in
-    let arr =
-      lsb *> sep_by vs v <* rsb >>| fun vs -> `Array vs
-    in
-    choice [_false; _null; _true; obj; arr; str; num])
-
-let parser =
-  ws *> value <* ws
+let json =
+  let pair x y = (x, y) in
+  fix (fun json ->
+    let member = lift2 pair (_str <* ns) json in
+    let obj = lcb *> sep_by vs member <* rcb >>| fun ms -> `Object ms in
+    let arr = lsb *> sep_by vs json   <* rsb >>| fun vs -> `Array  vs in
+    ws *> peek_char_fail
+    >>= function
+      | 'f' -> _false
+      | 'n' -> _null
+      | 't' -> _true
+      | '{' ->  obj
+      | '[' -> arr
+      | '"' -> str
+      | _   -> num) <?> "json"
