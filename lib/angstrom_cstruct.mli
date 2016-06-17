@@ -31,10 +31,11 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
 type t = {
-  buffer : buffer;
+  buffer : bigstring;
   off : int;
   len : int;
 }
@@ -51,7 +52,7 @@ val to_string : t -> string
 
 val of_string : ?allocator:(int -> t) -> String.t -> t
 
-val of_bigarray : ?off:int -> ?len:int -> buffer -> t
+val of_bigarray : ?off:int -> ?len:int -> bigstring -> t
 
 val debug : t -> String.t
 

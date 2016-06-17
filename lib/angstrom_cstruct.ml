@@ -52,19 +52,20 @@
 
   *)
 
-type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
 type t = {
-  buffer : buffer;
+  buffer : bigstring;
   off : int;
   len : int;
 }
 
-external unsafe_blit_string_to_bigstring : string -> int -> buffer -> int -> int -> unit = "caml_blit_string_to_bigstring" "noalloc"
+external unsafe_blit_string_to_bigstring : string -> int -> bigstring -> int -> int -> unit = "caml_blit_string_to_bigstring" "noalloc"
 
-external unsafe_blit_bigstring_to_bigstring : buffer -> int -> buffer -> int -> int -> unit = "caml_blit_bigstring_to_bigstring" "noalloc"
+external unsafe_blit_bigstring_to_bigstring : bigstring -> int -> bigstring -> int -> int -> unit = "caml_blit_bigstring_to_bigstring" "noalloc"
 
-external unsafe_blit_bigstring_to_bytes : buffer -> int -> Bytes.t -> int -> int -> unit = "caml_blit_bigstring_to_string" "noalloc"
+external unsafe_blit_bigstring_to_bytes : bigstring -> int -> Bytes.t -> int -> int -> unit = "caml_blit_bigstring_to_string" "noalloc"
 
 let blit_from_string src srcoff dst dstoff len =
   unsafe_blit_string_to_bigstring src srcoff dst.buffer (dst.off+dstoff) len
