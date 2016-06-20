@@ -63,21 +63,21 @@ let check_int ?size ~msg p is r = check_ok ?size ~msg Alcotest.int            p 
 let check_int32 ?size ~msg p is r =
   let module Alco_int32 = struct
     type t = int32
-    let pp = Fmt.int32
+    let pp fmt i = Format.pp_print_string fmt (Int32.to_string i)
     let equal (a : int32) (b : int32) = compare a b = 0
   end in
   check_ok ?size ~msg (module Alco_int32) p is r
 let check_int64 ?size ~msg p is r =
   let module Alco_int64 = struct
     type t = int64
-    let pp = Fmt.int64
+    let pp fmt i = Format.pp_print_string fmt (Int64.to_string i)
     let equal (a : int64) (b : int64) = compare a b = 0
   end in
   check_ok ?size ~msg (module Alco_int64) p is r
 let check_float ?size ~msg p is r =
   let module Alco_float = struct
     type t = float
-    let pp = Fmt.float
+    let pp fmt f = Format.pp_print_string fmt (string_of_float f)
     let equal (a : float) (b : float) = compare a b = 0
   end in
   check_ok ?size ~msg (module Alco_float) p is r
