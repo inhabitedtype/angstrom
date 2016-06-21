@@ -13,6 +13,16 @@ let read file =
   with_file ~mode:[O_RDONLY] file ~f:(fun fd ->
     loop 0 size fd)
 
+let zero =
+  String.make (65_536) '\x00'
+
+let make_endian name p =
+  Bench.Test.create ~name (fun () ->
+    match Angstrom.(parse_only (skip_many p) (`String zero)) with
+    | R.Ok _ -> ()
+    | R.Error err -> failwith err)
+
+
 (* For input files involving trailing numbers, .e.g, [http-requests.txt.100],
  * go into the [benchmarks/data] directory and use the [replicate] script to
  * generate the file, i.e.,
@@ -31,7 +41,13 @@ let main () =
     Bench.Test.create ~name:"http" (fun () ->
       match Angstrom.(parse_only (skip_many RFC2616.request) (`String http_get)) with
       | R.Ok _ -> ()
-      | R.Error err -> failwith err)
+      | R.Error err -> failwith err);
+    make_endian "int8 le" Angstrom.Le.int8;
+    make_endian "int64 le" Angstrom.Le.int64;
+    make_endian "int8 be" Angstrom.Be.int8;
+    make_endian "int64 be" Angstrom.Be.int64;
+    make_endian "int8 ne" Angstrom.Ne.int8;
+    make_endian "int64 ne" Angstrom.Ne.int64;
   ])
 
 let () = main ()

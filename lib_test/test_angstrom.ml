@@ -59,6 +59,28 @@ let check_lc ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list char)     p 
 let check_co ?size ~msg p is r = check_ok ?size ~msg Alcotest.(option char)   p is r
 let check_s  ?size ~msg p is r = check_ok ?size ~msg Alcotest.string          p is r
 let check_ls ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list string)   p is r
+let check_int ?size ~msg p is r = check_ok ?size ~msg Alcotest.int            p is r
+let check_int32 ?size ~msg p is r =
+  let module Alco_int32 = struct
+    type t = int32
+    let pp fmt i = Format.pp_print_string fmt (Int32.to_string i)
+    let equal (a : int32) (b : int32) = compare a b = 0
+  end in
+  check_ok ?size ~msg (module Alco_int32) p is r
+let check_int64 ?size ~msg p is r =
+  let module Alco_int64 = struct
+    type t = int64
+    let pp fmt i = Format.pp_print_string fmt (Int64.to_string i)
+    let equal (a : int64) (b : int64) = compare a b = 0
+  end in
+  check_ok ?size ~msg (module Alco_int64) p is r
+let check_float ?size ~msg p is r =
+  let module Alco_float = struct
+    type t = float
+    let pp fmt f = Format.pp_print_string fmt (string_of_float f)
+    let equal (a : float) (b : float) = compare a b = 0
+  end in
+  check_ok ?size ~msg (module Alco_float) p is r
 
 let basic_constructors =
   [ "peek_char", `Quick, begin fun () ->
@@ -112,6 +134,123 @@ let basic_constructors =
       check_s ~msg:"false, empty input"     (take_while (fun _ -> false)) [""] "";
   end
   ]
+
+module Endian(Es : EndianString.EndianStringSig) = struct
+  type 'a endian = {
+    name : string;
+    size : int;
+    zero : 'a;
+    min : 'a;
+    max : 'a;
+    set : Bytes.t -> int -> 'a -> unit;
+    get : string -> int -> 'a;
+    check : ?size:int -> msg:string -> 'a Angstrom.t -> string list -> 'a -> unit;
+  }
+
+  let int8 = {
+    name = "int8";
+    size = 1;
+    zero = 0;
+    min = ~-128;
+    max = 127;
+    set = Es.set_int8;
+    get = Es.get_int8;
+    check = check_int;
+  }
+  let int16 = {
+    name = "int16";
+    size = 2;
+    zero = 0;
+    min = ~-32768;
+    max = 32767;
+    set = Es.set_int16;
+    get = Es.get_int16;
+    check = check_int;
+  }
+  let int32 = {
+    name = "int32";
+    size = 4;
+    zero = Int32.zero;
+    min = Int32.min_int;
+    max = Int32.max_int;
+    set = Es.set_int32;
+    get = Es.get_int32;
+    check = check_int32;
+  }
+  let int64 = {
+    name = "int64";
+    size = 8;
+    zero = Int64.zero;
+    min = Int64.min_int;
+    max = Int64.max_int;
+    set = Es.set_int64;
+    get = Es.get_int64;
+    check = check_int64;
+  }
+  let float = {
+    name = "float";
+    size = 4;
+    zero = 0.0;
+    (* XXX: Not really min/max *)
+    min = ~-.2e10;
+    max = 2e10;
+    set = Es.set_float;
+    get = Es.get_float;
+    check = check_float;
+  }
+  let double = {
+    name = "double";
+    size = 8;
+    zero = 0.0;
+    (* XXX: Not really min/max *)
+    min = ~-.2e30;
+    max = 2e30;
+    set = Es.set_double;
+    get = Es.get_double;
+    check = check_float;
+  }
+
+  let uint8 = { int8 with name = "uint8"; min = 0; max = 255 }
+  let uint16 = { int16 with name = "uint16"; min = 0; max = 65535 }
+  let uint32 = { int32 with name = "uint32" }
+  let uint64 = { int64 with name = "uint64" }
+
+  let to_string e x =
+    let buf = Bytes.create e.size in
+    e.set buf 0 x;
+    buf
+
+  let make_tests e parse = e.name, `Quick, begin fun () ->
+    e.check ~msg:"zero"     parse [to_string e e.zero]          e.zero;
+    e.check ~msg:"min"      parse [to_string e e.min]           e.min;
+    e.check ~msg:"max"      parse [to_string e e.max]           e.max;
+    e.check ~msg:"trailing" parse [to_string e e.zero ^ "\xff"] e.zero;
+  end
+
+  module type EndianSig = module type of Le
+
+  let tests (module E : EndianSig) = [
+    make_tests int8   E.int8;
+    make_tests int16  E.int16;
+    make_tests int32  E.int32;
+    make_tests int64  E.int64;
+    make_tests uint8  E.uint8;
+    make_tests uint16 E.uint16;
+    make_tests uint32 E.uint32;
+    make_tests uint64 E.uint64;
+    make_tests float  E.float;
+    make_tests double E.double;
+  ]
+end
+let little_endian =
+  let module E = Endian(EndianString.LittleEndian) in
+  E.tests (module Le)
+let big_endian =
+  let module E = Endian(EndianString.BigEndian) in
+  E.tests (module Be)
+let native_endian =
+  let module E = Endian(EndianString.NativeEndian) in
+  E.tests (module Ne)
 
 let monadic =
   [ "fail", `Quick, begin fun () ->
@@ -192,6 +331,9 @@ let incremental =
 let () =
   Alcotest.run "test suite"
     [ "basic constructors"    , basic_constructors
+    ; "little endian"         , little_endian
+    ; "big endian"            , big_endian
+    ; "native endian"         , native_endian
     ; "monadic interface"     , monadic
     ; "applicative interface" , applicative
     ; "alternative"           , alternative
