@@ -508,16 +508,6 @@ let end_of_buffer =
     succ input pos more (pos = Input.length input)
   }
 
-let spans_chunks n =
-  { run = fun input pos more fail succ ->
-    if pos + n < Input.length input || more = Complete then
-      succ input pos more false
-    else
-      let succ' input' pos' more' = succ input' pos' more' true
-      and fail' input' pos' more' = succ input' pos' more' false in
-      prompt input pos fail' succ'
-  }
-
 let advance n =
   { run = fun input pos more _fail succ -> succ input (pos + n) more () }
 
@@ -577,12 +567,18 @@ let skip f =
 let count_while ?(init=0) f =
   (* NB: does not advance position. *)
   let rec go acc =
-    get_buffer_and_pos >>= fun (input, pos) ->
+    { run = fun input pos more fail succ ->
       let n = Input.count_while input (pos + acc) f in
-      spans_chunks (n + acc)
-      >>= function
-        | true  -> go (n + acc)
-        | false -> return (n + acc)
+      let acc' = n + acc in
+      (* Check if the loop terminated because it reached the end of the input
+       * buffer. If so, then prompt for additional input and continue. *)
+      if pos + acc' < Input.length input || more = Complete then
+        succ input pos more acc'
+      else
+        let succ' input' pos' more' = (go acc').run input' pos' more' fail succ
+        and fail' input' pos' more' = succ input' pos' more' acc' in
+        prompt input pos fail' succ'
+    }
   in
   go init
 
