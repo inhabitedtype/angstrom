@@ -44,9 +44,10 @@
     reusable parsers suitable for high-performance applications. *)
 
 
+open Angstrom_cstruct
+
 type 'a t
 (** A parser for values of type ['a]. *)
-
 
 (** {2 Basic parsers} *)
 
@@ -350,12 +351,36 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 
 {[liftn f p1 ... pn = f <$> p1 <*> ... <*> pn]}
 
+<<<<<<< HEAD
+
+type input =
+  [ `String  of string
+  | `Cstruct of Angstrom_cstruct.t ]
+
+type 'a state =
+  | Fail    of Angstrom_cstruct.t * string list * string
+  | Partial of (input option -> 'a state)
+  | Done    of Angstrom_cstruct.t * 'a
+
+val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
+(** [parse ?initial_buffer_size ?input t] runs [t] on [input], if present, and
+    and await input if needed. [parse] will allocate a buffer of size
+    [initial_buffer_size] (defaulting to 4k bytes) to do input buffering and
+    automatically grow the buffer as needed. *)
+
+val parse_with_buffer : 'a t -> Angstrom_cstruct.t -> 'a state
+(** [parse_with_buffer t buffer] runs [t] with a user-allocated buffer [buffer]
+    that the parser can take total ownership of. The view into [buffers] should
+    be set to the bytes that can be used as input. The remainder of the space
+    will be used as the user suppliese additional input to the parser. *)
+=======
     These functions are more efficient than using the applicative interface
     directly, mostly in terms of memory allocation but also in terms of speed.
     Prefer them over the applicative interface, even when the artiy of the
     function to be lifted exceeds the maximum [n] for which there is an
     implementation for [liftn]. In other words, if [f] has an arity of [5] but
     only [lift4] is provided, do the following:
+>>>>>>> master
 
 {[lift4 f m1 m2 m3 m4 <*> m5]}
 

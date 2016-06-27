@@ -31,6 +31,8 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
+open Angstrom_cstruct
+
 type bigstring =
   (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
@@ -72,7 +74,7 @@ module Input = struct
     let off = pos - initial_committed in
     match input with
     | `String    s -> String.sub s off len
-    | `Bigstring b -> Cstruct.to_string (Cstruct.of_bigarray ~off ~len b)
+    | `Bigstring b -> Angstrom_cstruct.to_string (Angstrom_cstruct.of_bigarray ~off ~len b)
 
   let get { initial_committed; input } pos =
     let pos = pos - initial_committed in
@@ -107,28 +109,28 @@ type _unconsumed =
 class buffer cstruct =
   let internal = ref cstruct in
   let _writable_space t =
-    let { Cstruct.buffer; len } = !internal in
+    let { Angstrom_cstruct.buffer; len } = !internal in
     Bigarray.Array1.dim buffer - len
   in
   let _trailing_space t =
-    let { Cstruct.buffer; off; len } = !internal in
+    let { Angstrom_cstruct.buffer; off; len } = !internal in
     Bigarray.Array1.dim buffer - (off + len)
   in
   let compress () =
-    let off, len = 0, Cstruct.len !internal in
-    let buffer = Cstruct.of_bigarray ~off ~len (!internal).Cstruct.buffer in
-    Cstruct.blit !internal 0 buffer 0 len;
+    let off, len = 0, Angstrom_cstruct.len !internal in
+    let buffer = Angstrom_cstruct.of_bigarray ~off ~len (!internal).Angstrom_cstruct.buffer in
+    Angstrom_cstruct.blit !internal 0 buffer 0 len;
     internal := buffer
   in
   let grow to_copy =
-    let init_size = Bigarray.Array1.dim (!internal).Cstruct.buffer in
+    let init_size = Bigarray.Array1.dim (!internal).Angstrom_cstruct.buffer in
     let size  = ref init_size in
     let space = _writable_space () in
     while space + !size - init_size < to_copy do
       size := (3 * !size) / 2
     done;
-    let buffer = Cstruct.(set_len (create !size)) (!internal).Cstruct.len in
-    Cstruct.blit !internal 0 buffer 0 (!internal).Cstruct.len;
+    let buffer = Angstrom_cstruct.(set_len (create !size)) (!internal).Angstrom_cstruct.len in
+    Angstrom_cstruct.blit !internal 0 buffer 0 (!internal).Angstrom_cstruct.len;
     internal := buffer
   in
   let ensure_space len =
@@ -144,29 +146,29 @@ class buffer cstruct =
     (* The above will grow the internal buffer but not change the length of the
      * view into the buffer. So it's necesasry to add the desired length at
      * this point. *)
-    internal := Cstruct.add_len !internal len
+    internal := Angstrom_cstruct.add_len !internal len
   in
 object
   method feed (input:input) =
     let len = input_length input in
     ensure_space len;
-    let off = Cstruct.len !internal - len in
+    let off = Angstrom_cstruct.len !internal - len in
     match input with
     | `String s ->
-      let allocator _ = Cstruct.sub !internal off len in
-      ignore (Cstruct.of_string ~allocator s)
+      let allocator _ = Angstrom_cstruct.sub !internal off len in
+      ignore (Angstrom_cstruct.of_string ~allocator s)
     | `Bigstring b ->
-      Cstruct.blit (Cstruct.of_bigarray b) 0 !internal off len
+      Angstrom_cstruct.blit (Angstrom_cstruct.of_bigarray b) 0 !internal off len
 
   method consume len =
-    internal := Cstruct.shift !internal len
+    internal := Angstrom_cstruct.shift !internal len
 
   method internal =
-    let { Cstruct.buffer; off; len } = !internal in
+    let { Angstrom_cstruct.buffer; off; len } = !internal in
     Bigarray.Array1.sub buffer off len
 
   method unconsumed =
-    let { Cstruct.buffer; off; len } = !internal in
+    let { Angstrom_cstruct.buffer; off; len } = !internal in
     { buffer; off; len }
 end
 
@@ -174,10 +176,10 @@ let buffer_of_cstruct cstruct =
   new buffer cstruct
 
 let buffer_of_size size =
-  new buffer Cstruct.(set_len (create size) 0)
+  new buffer Angstrom_cstruct.(set_len (create size) 0)
 
 let buffer_of_bigstring ?(off=0) ?len bigstring =
-  buffer_of_cstruct (Cstruct.of_bigarray ~off ?len bigstring)
+  buffer_of_cstruct (Angstrom_cstruct.of_bigarray ~off ?len bigstring)
 
 let buffer_of_unconsumed { buffer; off; len} =
   buffer_of_bigstring ~off ~len buffer

@@ -3,6 +3,6 @@ S lwt/**
 S async/**
 B _build/**
 
-PKG cstruct result
+PKG result
 PKG alcotest cohttp uri
 PKG lwt async core

@@ -38,8 +38,12 @@ Flag unix
 Library angstrom
   Path:         lib
   Findlibname:  angstrom
-  BuildDepends: cstruct (>= 0.6.0), result
+  NativeOpt:    -inline 20
+  BuildDepends: bytes, bigarray, ocplib-endian, ocplib-endian.bigstring, result
+  CSources:     angstrom_stubs.c
+  CCOpt:        -O3 -Wall
   Modules:      Angstrom
+  InternalModules: Angstrom_cstruct
 
 Document api
   Title:                Documentation and API reference
