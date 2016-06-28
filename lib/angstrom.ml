@@ -469,14 +469,14 @@ let ensure_suspended n input pos more fail succ =
       if pos' + n <= Input.length input' then
         succ' input' pos' more' ()
       else
-        (demand_input >>= fun () -> go).run input' pos' more' fail' succ'
+        (demand_input *> go).run input' pos' more' fail' succ'
     }
   in
-  (demand_input >>= fun () -> go).run input pos more fail succ
+  (demand_input *> go).run input pos more fail succ
 
 let unsafe_substring n =
   { run = fun input pos more fail succ ->
-    succ input pos more (Input.substring input pos n)
+    succ input (pos + n) more (Input.substring input pos n)
   }
 
 let ensure n =
@@ -486,7 +486,7 @@ let ensure n =
     else
       ensure_suspended n input pos more fail succ
   }
-  >>= fun () -> unsafe_substring n
+  *> unsafe_substring n
 
 
 (** END: getting input *)
@@ -588,7 +588,7 @@ let string_ f s =
   let len = String.length s in
   ensure len >>= fun s'->
     if f s = f s'
-      then advance len *> return s'
+      then return s'
       else fail "string"
 
 let string s    = string_ (fun x -> x) s
@@ -598,16 +598,10 @@ let skip_while f =
   count_while f >>= advance
 
 let take n =
-  let n = max n 0 in
-  ensure  n >>= fun str ->
-  advance n >>| fun () ->
-    str
+  ensure (max n 0)
 
 let take_while f =
-  count_while f >>= fun n ->
-  unsafe_substring n >>= fun str ->
-  advance n >>| fun () ->
-    str
+  count_while f >>= unsafe_substring
 
 let take_while1 f =
   end_of_buffer
@@ -621,10 +615,7 @@ let take_while1 f =
     if init = 0 then
       fail "take_while1"
     else
-      count_while ~init f >>= fun n ->
-      unsafe_substring n >>= fun str ->
-      advance n >>| fun () ->
-        str
+      count_while ~init f >>= unsafe_substring
 
 let take_till f =
   take_while (fun c -> not (f c))
@@ -635,8 +626,7 @@ let take_rest =
       | true  ->
         available >>= fun n ->
         unsafe_substring n >>= fun str ->
-        advance n >>= fun () ->
-          go (str::acc)
+        go (str::acc)
       | false ->
         return (List.rev acc)
   in
