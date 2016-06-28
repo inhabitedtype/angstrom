@@ -503,11 +503,6 @@ let end_of_input =
       prompt input pos fail' succ'
   }
 
-let end_of_buffer =
-  { run = fun input pos more fail succ ->
-    succ input pos more (pos = Input.length input)
-  }
-
 let advance n =
   { run = fun input pos more _fail succ -> succ input (pos + n) more () }
 
@@ -604,18 +599,10 @@ let take_while f =
   count_while f >>= unsafe_substring
 
 let take_while1 f =
-  end_of_buffer
-  >>= begin function
-    | true  -> demand_input
-    | false -> return ()
-  end >>= fun () ->
-  get_buffer_and_pos
-  >>= fun (input, pos) ->
-    let init = Input.count_while input pos f in
-    if init = 0 then
-      fail "take_while1"
-    else
-      count_while ~init f >>= unsafe_substring
+  count_while f
+  >>= function
+    | 0 -> fail "take_while1"
+    | n -> unsafe_substring n
 
 let take_till f =
   take_while (fun c -> not (f c))
