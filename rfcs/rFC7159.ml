@@ -16,9 +16,9 @@ let ws = skip_while (function
 let lchar c =
   ws *> char c
 
-let lsb, rsb = char '[', lchar ']'
-let lcb, rcb = char '{', lchar '}'
-let ns , vs  = lchar ':', lchar ','
+let rsb = lchar ']'
+let rcb = lchar '}'
+let ns, vs  = lchar ':', lchar ','
 let quo = lchar '"'
 
 let _false : json t = string "false" *> return `False
@@ -68,7 +68,7 @@ let _str =
     end <?> "escaped char"
   in
   let chars = many (unescaped <|> escaped) >>| String.concat "" in
-  quo *> chars <* quo
+  chars <* char '"'
 
 let str =
   (_str >>| fun s -> `String s) <?> "str"
@@ -76,15 +76,15 @@ let str =
 let json =
   let pair x y = (x, y) in
   fix (fun json ->
-    let member = lift2 pair (_str <* ns) json in
-    let obj = lcb *> sep_by vs member <* rcb >>| fun ms -> `Object ms in
-    let arr = lsb *> sep_by vs json   <* rsb >>| fun vs -> `Array  vs in
+    let member = lift2 pair (quo *> _str <* ns) json in
+    let obj = sep_by vs member <* rcb >>| fun ms -> `Object ms in
+    let arr = sep_by vs json   <* rsb >>| fun vs -> `Array  vs in
     ws *> peek_char_fail
     >>= function
       | 'f' -> _false
       | 'n' -> _null
       | 't' -> _true
-      | '{' ->  obj
-      | '[' -> arr
-      | '"' -> str
+      | '{' -> any_char *> obj
+      | '[' -> any_char *> arr
+      | '"' -> any_char *> str
       | _   -> num) <?> "json"
