@@ -469,10 +469,10 @@ let ensure_suspended n input pos more fail succ =
       if pos' + n <= Input.length input' then
         succ' input' pos' more' ()
       else
-        (demand_input >>= fun () -> go).run input' pos' more' fail' succ'
+        (demand_input *> go).run input' pos' more' fail' succ'
     }
   in
-  (demand_input >>= fun () -> go).run input pos more fail succ
+  (demand_input *> go).run input pos more fail succ
 
 let unsafe_substring n =
   { run = fun input pos more fail succ ->
@@ -486,7 +486,7 @@ let ensure n =
     else
       ensure_suspended n input pos more fail succ
   }
-  >>= fun () -> unsafe_substring n
+  *> unsafe_substring n
 
 
 (** END: getting input *)
