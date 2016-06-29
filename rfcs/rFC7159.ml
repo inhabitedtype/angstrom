@@ -38,14 +38,16 @@ module S = struct
   type t =
     | Unescaped
     | Escaped
-    | Unicode of char list
-    | Error   of string
+    | UTF8  of char list
+    | UTF16 of int * [`S | `U | `C of char list]
+    | Error of string
     | Done
 
   let to_string = function
     | Unescaped -> "unescaped"
     | Escaped   -> "escaped"
-    | Unicode _ -> "unicode _"
+    | UTF8 _    -> "utf-8 _"
+    | UTF16 _   -> "utf-16 _ _"
     | Error e   -> Printf.sprintf "error %S" e
     | Done      -> "done"
 
@@ -63,7 +65,7 @@ module S = struct
     | '\x6e' -> Buffer.add_char buf '\x0a'; Some Unescaped
     | '\x72' -> Buffer.add_char buf '\x0d'; Some Unescaped
     | '\x74' -> Buffer.add_char buf '\x09'; Some Unescaped
-    | '\x75' -> Some (Unicode [])
+    | '\x75' -> Some (UTF8 [])
     | _      -> Some (Error "invalid escape sequence")
 
   let hex c =
@@ -73,26 +75,57 @@ module S = struct
     | 'A' .. 'F' -> Char.code c - 55
     | _          -> 255
 
-  let unicode buf d = function
+  let utf_8 buf d = function
     | [c;b;a] ->
       let a = hex a and b = hex b and c = hex c and d = hex d in
       if a lor b lor c lor d = 255 then
         Some (Error "invalid hex escape")
-      else begin
-        Buffer.add_char buf Char.(unsafe_chr @@ (a lsl 4) + b);
-        Buffer.add_char buf Char.(unsafe_chr @@ (c lsl 4) + d);
-        Some Unescaped
-      end
-    | cs -> Some (Unicode (d::cs))
+      else
+        let c1 = (a  lsl 4) lor b in
+        let c2 = (c  lsl 4) lor d in
+        let x  = (c1 lsl 8) lor c2 in
+        if x >= 0xd800 && x <= 0xdbff then
+          Some (UTF16(x, `S))
+        else begin
+          Buffer.add_char buf Char.(unsafe_chr c1);
+          Buffer.add_char buf Char.(unsafe_chr c2);
+          Some Unescaped
+        end
+    | cs -> Some (UTF8 (d::cs))
+
+  let utf_16 buf d x s =
+    match s, d with
+    | `S        , '\\' -> Some (UTF16(x, `U))
+    | `U        , 'u'  -> Some (UTF16(x, `C []))
+    | `C [c;b;a], _    ->
+      let a = hex a and b = hex b and c = hex c and d = hex d in
+      if a lor b lor c lor d = 255 then
+        Some (Error "invalid hex escape")
+      else
+        let y = (a  lsl 12) lor (b lsl 8) lor (c lsl 4) lor d in
+        if y >= 0xdc00 && y <= 0xdfff then begin
+          let hi = x - 0xd800 in
+          let lo = y - 0xdc00 in
+          let cp = 0x10000 + ((hi lsl 10) lor lo) in
+          Buffer.add_char buf (Char.unsafe_chr (0b11110000 lor ((cp lsr 18) land 0b00000111)));
+          Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor ((cp lsr 12) land 0b00111111)));
+          Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor ((cp lsr  6) land 0b00111111)));
+          Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor (cp          land 0b00111111)));
+          Some Unescaped
+        end else
+          Some (Error "invalid escape sequence for utf-16 low surrogate")
+    | `C cs,      _    -> Some (UTF16(x, `C (d::cs)))
+    | _, _             -> Some (Error "invalid escape sequence for utf-16 low surrogate")
 
   let str buf =
     let state = ref Unescaped in
     skip_while (fun c ->
       match
         begin match !state with
-        | Unescaped  -> unescaped buf c
-        | Escaped    -> escaped   buf c
-        | Unicode cs -> unicode   buf c cs
+        | Unescaped    -> unescaped buf c
+        | Escaped      -> escaped   buf c
+        | UTF8 cs      -> utf_8     buf c cs
+        | UTF16(x, cs) -> utf_16    buf c x cs
         | (Error _ | Done) -> None
         end
       with
