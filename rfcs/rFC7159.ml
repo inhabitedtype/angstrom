@@ -107,24 +107,25 @@ module S = struct
         return result
       | Error msg ->
         Buffer.clear buf; state := Unescaped; fail msg
-      | Unescaped | Escaped | Unicode _ ->
+      | Unescaped | Escaped | UTF8 _ | UTF16 _ ->
         Buffer.clear buf; state := Unescaped; fail "unterminated string"
 end
 
 let json =
   let pair x y = (x, y) in
   let buf = Buffer.create 0x1000 in
+  let str = S.str buf in
   fix (fun json ->
-    let mem = lift2 pair (quo *> S.str buf <* ns) json in
-    let obj = sep_by vs mem  <* rcb >>| fun ms -> `Object ms in
-    let arr = sep_by vs json <* rsb >>| fun vs -> `Array  vs in
-    let str = S.str buf >>| fun s -> `String s in
+    let mem = lift2 pair (quo *> str <* ns) json in
+    let obj = any_char *> sep_by vs mem  <* rcb >>| fun ms -> `Object ms in
+    let arr = any_char *> sep_by vs json <* rsb >>| fun vs -> `Array  vs in
+    let str = any_char *> str >>| fun s -> `String s in
     ws *> peek_char_fail
     >>= function
       | 'f' -> _false
       | 'n' -> _null
       | 't' -> _true
-      | '{' -> any_char *> obj
-      | '[' -> any_char *> arr
-      | '"' -> any_char *> str
+      | '{' -> obj
+      | '[' -> arr
+      | '"' -> str
       | _   -> num) <?> "json"
