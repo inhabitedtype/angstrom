@@ -36,37 +36,38 @@ let num =
 
 module S = struct
   type t =
-    | Unescaped
-    | Escaped
-    | UTF8  of char list
-    | UTF16 of int * [`S | `U | `C of char list]
-    | Error of string
-    | Done
+    [ `Unescaped
+    | `Escaped
+    | `UTF8  of char list
+    | `UTF16 of int * [`S | `U | `C of char list]
+    | `Error of string
+    | `Done ]
 
-  let to_string = function
-    | Unescaped -> "unescaped"
-    | Escaped   -> "escaped"
-    | UTF8 _    -> "utf-8 _"
-    | UTF16 _   -> "utf-16 _ _"
-    | Error e   -> Printf.sprintf "error %S" e
-    | Done      -> "done"
+  let to_string : [`Terminate | t] -> string = function
+    | `Unescaped -> "unescaped"
+    | `Escaped   -> "escaped"
+    | `UTF8 _    -> "utf-8 _"
+    | `UTF16 _   -> "utf-16 _ _"
+    | `Error e   -> Printf.sprintf "error %S" e
+    | `Terminate -> "terminate"
+    | `Done      -> "done"
 
   let unescaped buf = function
-    | '"'  -> Some Done
-    | '\\' -> Some Escaped
-    | c    -> Buffer.add_char buf c; Some Unescaped
+    | '"'  -> `Terminate
+    | '\\' -> `Escaped
+    | c    -> Buffer.add_char buf c; `Unescaped
 
   let escaped buf = function
-    | '\x22' -> Buffer.add_char buf '\x22'; Some Unescaped
-    | '\x5c' -> Buffer.add_char buf '\x5c'; Some Unescaped
-    | '\x2f' -> Buffer.add_char buf '\x2f'; Some Unescaped
-    | '\x62' -> Buffer.add_char buf '\x08'; Some Unescaped
-    | '\x66' -> Buffer.add_char buf '\x0c'; Some Unescaped
-    | '\x6e' -> Buffer.add_char buf '\x0a'; Some Unescaped
-    | '\x72' -> Buffer.add_char buf '\x0d'; Some Unescaped
-    | '\x74' -> Buffer.add_char buf '\x09'; Some Unescaped
-    | '\x75' -> Some (UTF8 [])
-    | _      -> Some (Error "invalid escape sequence")
+    | '\x22' -> Buffer.add_char buf '\x22'; `Unescaped
+    | '\x5c' -> Buffer.add_char buf '\x5c'; `Unescaped
+    | '\x2f' -> Buffer.add_char buf '\x2f'; `Unescaped
+    | '\x62' -> Buffer.add_char buf '\x08'; `Unescaped
+    | '\x66' -> Buffer.add_char buf '\x0c'; `Unescaped
+    | '\x6e' -> Buffer.add_char buf '\x0a'; `Unescaped
+    | '\x72' -> Buffer.add_char buf '\x0d'; `Unescaped
+    | '\x74' -> Buffer.add_char buf '\x09'; `Unescaped
+    | '\x75' -> `UTF8 []
+    | _      -> `Error "invalid escape sequence"
 
   let hex c =
     match c with
@@ -79,28 +80,28 @@ module S = struct
     | [c;b;a] ->
       let a = hex a and b = hex b and c = hex c and d = hex d in
       if a lor b lor c lor d = 255 then
-        Some (Error "invalid hex escape")
+        `Error "invalid hex escape"
       else
         let c1 = (a  lsl 4) lor b in
         let c2 = (c  lsl 4) lor d in
         let x  = (c1 lsl 8) lor c2 in
         if x >= 0xd800 && x <= 0xdbff then
-          Some (UTF16(x, `S))
+          `UTF16(x, `S)
         else begin
           Buffer.add_char buf Char.(unsafe_chr c1);
           Buffer.add_char buf Char.(unsafe_chr c2);
-          Some Unescaped
+          `Unescaped
         end
-    | cs -> Some (UTF8 (d::cs))
+    | cs -> `UTF8 (d::cs)
 
   let utf_16 buf d x s =
     match s, d with
-    | `S        , '\\' -> Some (UTF16(x, `U))
-    | `U        , 'u'  -> Some (UTF16(x, `C []))
+    | `S        , '\\' -> `UTF16(x, `U)
+    | `U        , 'u'  -> `UTF16(x, `C [])
     | `C [c;b;a], _    ->
       let a = hex a and b = hex b and c = hex c and d = hex d in
       if a lor b lor c lor d = 255 then
-        Some (Error "invalid hex escape")
+        `Error "invalid hex escape"
       else
         let y = (a  lsl 12) lor (b lsl 8) lor (c lsl 4) lor d in
         if y >= 0xdc00 && y <= 0xdfff then begin
@@ -111,37 +112,38 @@ module S = struct
           Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor ((cp lsr 12) land 0b00111111)));
           Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor ((cp lsr  6) land 0b00111111)));
           Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor (cp          land 0b00111111)));
-          Some Unescaped
+          `Unescaped
         end else
-          Some (Error "invalid escape sequence for utf-16 low surrogate")
-    | `C cs,      _    -> Some (UTF16(x, `C (d::cs)))
-    | _, _             -> Some (Error "invalid escape sequence for utf-16 low surrogate")
+          `Error "invalid escape sequence for utf-16 low surrogate"
+    | `C cs,      _    -> `UTF16(x, `C (d::cs))
+    | _, _             -> `Error "invalid escape sequence for utf-16 low surrogate"
 
   let str buf =
-    let state = ref Unescaped in
+    let state : t ref = ref `Unescaped in
     skip_while (fun c ->
       match
         begin match !state with
-        | Unescaped    -> unescaped buf c
-        | Escaped      -> escaped   buf c
-        | UTF8 cs      -> utf_8     buf c cs
-        | UTF16(x, cs) -> utf_16    buf c x cs
-        | (Error _ | Done) -> None
+        | `Unescaped    -> unescaped buf c
+        | `Escaped      -> escaped   buf c
+        | `UTF8 cs      -> utf_8     buf c cs
+        | `UTF16(x, cs) -> utf_16    buf c x cs
+        | (`Error _ | `Done) as state -> state
         end
       with
-        | Some (Error _) | None -> false
-        | Some state' -> state := state'; true)
+        | (`Error _) | `Done -> false
+        | `Terminate         -> state := `Done; true
+        | #t as state'       -> state := state'; true)
     >>= fun () ->
       match !state with
-      | Done        ->
+      | `Done ->
         let result = Buffer.contents buf in
         Buffer.clear buf;
-        state := Unescaped;
+        state := `Unescaped;
         return result
-      | Error msg ->
-        Buffer.clear buf; state := Unescaped; fail msg
-      | Unescaped | Escaped | UTF8 _ | UTF16 _ ->
-        Buffer.clear buf; state := Unescaped; fail "unterminated string"
+      | `Error msg ->
+        Buffer.clear buf; state := `Unescaped; fail msg
+      | `Unescaped | `Escaped | `UTF8 _ | `UTF16 _ ->
+        Buffer.clear buf; state := `Unescaped; fail "unterminated string"
 end
 
 let json =
