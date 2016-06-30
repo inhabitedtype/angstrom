@@ -471,3 +471,75 @@ end
 
 val pos : int t
 val available : int t
+
+module Z : sig
+  type 'a t
+
+  val return : 'a -> 'a t
+  val fail : string -> 'a t
+  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+  val (>>|) : 'a t -> ('a -> 'b) -> 'b t
+
+  val ( *>) : 'a t -> 'b t -> 'b t
+  val (<* ) : 'a t -> 'b t -> 'a t
+
+  (** {2 Basic parsers} *)
+
+  val peek_char : char option t
+  val peek_char_fail : char t
+  val peek_string : int -> string t
+
+  val char : char -> char t
+  val not_char : char -> char t
+  val any_char : char t
+  val satisfy : (char -> bool) -> char t
+
+  val string : string -> string t
+  val string_ci : string -> string t
+
+  val skip : (char -> bool) -> unit t
+  val skip_while : (char -> bool) -> unit t
+  val take : int -> string t
+  val take_while : (char -> bool) -> string t
+  val take_while1 : (char -> bool) -> string t
+  val take_till : (char -> bool) -> string t
+  val take_rest : string list t
+
+  val end_of_input : unit t
+
+  (** {2 Combinators} *)
+
+  val count : int -> 'a t -> 'a list t
+  val many : 'a t -> 'a list t
+  val many1 : 'a t -> 'a list t
+  val many_till : 'a t -> 'b t -> 'a list t
+  val sep_by : 'a t -> 'b t -> 'b list t
+  val sep_by1 : 'a t -> 'b t -> 'b list t
+  val skip_many : 'a t -> unit t
+  val skip_many1 : 'a t -> unit t
+
+  val fix : ('a t -> 'a t) -> 'a t
+
+  (** {2 Alternatives} *)
+  val (<|>) : 'a t -> 'a t -> 'a t
+  val choice : 'a t list -> 'a t
+  val (<?>) : 'a t -> string -> 'a t
+  val commit : unit t
+
+  (** {2 Monadic/Applicative interface} *)
+
+  val return : 'a -> 'a t
+  val fail : string -> 'a t
+  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+  val (>>|) : 'a t -> ('a -> 'b) -> 'b t
+
+  val ( *>) : 'a t -> 'b t -> 'b t
+  val (<* ) : 'a t -> 'b t -> 'a t
+  val (<$>) : ('a -> 'b) -> 'a t -> 'b t
+
+  val lift : ('a -> 'b) -> 'a t -> 'b t
+  val lift2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
+
+  val parse_only : 'a t -> input -> ('a, string) Result.result
+end
