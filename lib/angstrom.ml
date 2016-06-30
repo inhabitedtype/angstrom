@@ -520,8 +520,13 @@ let get_buffer_and_pos =
 let commit =
   { run = fun input pos more _fail succ ->
     Input.commit input pos;
-    succ input pos more ()
-  }
+    succ input pos more () }
+
+(* Do not use this if [p] contains a [commit]. *)
+let unsafe_lookahead p =
+  { run = fun input pos more fail succ ->
+    let succ' input' _ more' v = succ input' pos more' v in
+    p.run input pos more fail succ' }
 
 let peek_char =
   { run = fun input pos more fail succ ->
@@ -537,27 +542,38 @@ let peek_char =
       prompt input pos fail' succ'
   }
 
-let peek_char_fail =
+let _char ~msg f =
   { run = fun input pos more fail succ ->
     if pos < Input.length input then
-      succ input pos more (Input.get input pos)
+      match f (Input.get input pos) with
+      | None   -> fail input pos more [] msg
+      | Some v -> succ input (pos + 1) more v
     else
       let succ' input' pos' more' () =
-        succ input' pos' more' (Input.get input' pos') in
+        match f (Input.get input' pos') with
+        | None   -> fail input' pos' more' [] msg
+        | Some v -> succ input' (pos' + 1) more' v
+      in
       ensure_suspended 1 input pos more fail succ'
   }
 
+let peek_char_fail =
+  unsafe_lookahead (_char ~msg:"peek_char_fail" (fun c -> Some c))
+
 let satisfy f =
-  peek_char_fail >>= fun c ->
-    if f c
-      then advance 1 >>| fun () -> c
-      else fail "satisfy"
+  _char ~msg:"satisfy" (fun c -> if f c then Some c else None)
 
 let skip f =
-  peek_char_fail >>= fun c ->
-    if f c
-      then advance 1
-      else fail "skip"
+  _char ~msg:"skip" (fun c -> if f c then Some () else None)
+
+let char c =
+  satisfy (fun c' -> c = c') <?> (String.make 1 c)
+
+let not_char c =
+  satisfy (fun c' -> c <> c') <?> ("not " ^ String.make 1 c)
+
+let any_char =
+  _char ~msg:"any_char" (fun c -> Some c)
 
 let count_while ?(init=0) f =
   (* NB: does not advance position. *)
@@ -618,15 +634,6 @@ let take_rest =
         return (List.rev acc)
   in
   go []
-
-let char c =
-  satisfy (fun c' -> c = c') <?> (String.make 1 c)
-
-let not_char c =
-  satisfy (fun c' -> c <> c') <?> ("not " ^ String.make 1 c)
-
-let any_char =
-  satisfy (fun _ -> true)
 
 let choice ps =
   List.fold_right (<|>) ps (fail "empty")
