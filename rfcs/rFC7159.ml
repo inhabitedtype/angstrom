@@ -82,14 +82,13 @@ module S = struct
       if a lor b lor c lor d = 255 then
         `Error "invalid hex escape"
       else
-        let c1 = (a  lsl 4) lor b in
-        let c2 = (c  lsl 4) lor d in
-        let x  = (c1 lsl 8) lor c2 in
-        if x >= 0xd800 && x <= 0xdbff then
-          `UTF16(x, `S)
+        let cp = (a lsl 12) lor (b lsl 8) lor (c lsl 4) lor d in
+        if cp >= 0xd800 && cp <= 0xdbff then
+          `UTF16(cp, `S)
         else begin
-          Buffer.add_char buf Char.(unsafe_chr c1);
-          Buffer.add_char buf Char.(unsafe_chr c2);
+          Buffer.add_char buf (Char.unsafe_chr (0b11100000 lor ((cp lsr 12) land 0b00001111)));
+          Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor ((cp lsr  6) land 0b00111111)));
+          Buffer.add_char buf (Char.unsafe_chr (0b10000000 lor (cp          land 0b00111111)));
           `Unescaped
         end
     | cs -> `UTF8 (d::cs)
