@@ -310,6 +310,170 @@ module Buffered = struct
 
 end
 
+module Z = struct
+  type 'a internal =
+    | D of 'a * int
+    | F of string list * string
+    | P of 'a t * int * int
+  and 'a t = 
+    Input.t -> int -> more -> 'a internal
+
+  type 'a state =
+    | Partial of 'a partial
+    | Done    of 'a
+    | Fail    of string list * string
+  and 'a partial =
+    { consumed : int
+    ; continue : input -> more -> 'a state }
+
+  let fail_to_string marks err =
+    String.concat " > " marks ^ ": " ^ err
+
+  let rec _parse ?(committed=0) p input pos more =
+    match p input pos more with
+    | D(v, _)    -> Done v
+    | F(ms, msg) -> Fail(ms, msg)
+    | P(p', consumed, pos) ->
+      Partial { consumed; continue = fun input more ->
+        let committed = committed + consumed in
+        _parse ~committed p' (Input.create committed input) pos more }
+
+  let rec parse ?(input=`String "") p =
+    _parse p Input.(create 0 input) 0 Incomplete
+
+  let parse_only p str =
+    match parse ~input:str p with
+    | Done v        -> Result.Ok v
+    | Fail(ms, msg) -> Result.Error (fail_to_string ms msg)
+    | _             -> Result.Error "not enough input"
+
+  let return v =
+    fun input pos more -> D(v, pos)
+
+  let fail (msg:string) =
+    fun input pos more -> F([], msg)
+
+  let rec (>>=) p f =
+    fun input pos more ->
+      match p input pos more with
+      | D(a, pos')     -> f a input pos' more
+      | F(ms, msg)     -> F(ms, msg)
+      | P(k, cmt, pos) -> P(k >>= f, cmt, pos)
+
+  let rec (>>|) p f =
+    fun input pos more ->
+      match p input pos more with
+      | D(a, pos')     -> D(f a, pos')
+      | F(ms, msg)     -> F(ms, msg)
+      | P(k, cmt, pos) -> P(k >>| f, cmt, pos)
+
+  let ( *>) p1 p2 =
+    p1 >>= fun _ -> p2
+
+  let (<* ) p1 p2 =
+    p1 >>= fun x -> 
+    p2 >>| fun _ -> x
+
+  let (<$>) f p =
+    p >>| f
+
+  let lift2 f p1 p2 =
+    p1 >>= fun x ->
+    p2 >>| fun y -> f x y
+
+  let lift3 f p1 p2 p3 =
+    p1 >>= fun x ->
+    p2 >>= fun y ->
+    p3 >>| fun z -> f x y z
+
+  let rec peek_char_fail =
+    fun input pos more ->
+      if pos < Input.length input then
+        D(Input.get input pos, pos)
+      else if more = Incomplete then
+        P(peek_char_fail, Input.committed input, pos)
+      else
+        F([], "peek_char_fail")
+
+  let rec char c =
+    fun input pos more ->
+      if pos < Input.length input then
+        D(Input.get input pos, pos + 1)
+      else if more = Incomplete then
+        P(char c, Input.committed input, pos)
+      else
+        F([], "char " ^ String.make 1 c)
+
+  let string s =
+    let len = String.length s in
+    let rec go input pos more =
+      if pos + len <= Input.length input then
+        D(Input.substring input pos len, pos + len)
+      else if more = Incomplete then
+        P(go, Input.consumed input, pos)
+      else
+        F([], Printf.sprintf "%S" s)
+    in
+    go
+
+  let count_while f =
+    let rec go acc input pos more =
+      let n = Input.count_while input pos f in
+      let acc' = n + acc in
+      if pos + acc' < Input.length input || more = Complete then
+        D(acc', pos)
+      else
+        P(go acc', Input.consumed input, pos)
+    in
+    go 0
+
+  let take n =
+    let rec go input pos more =
+      if pos + n <= Input.length input then
+        D(Input.substring input n, pos + n)
+      else if more = Complete then
+        F([], Printf.sprintf "take %d" n)
+      else
+        P(go, Input.consumed input, pos)
+    in
+    go
+
+  let unsafe_substring n =
+    fun input pos _ -> D(Input.substring input pos n, pos + n)
+
+  let advance n =
+    fun _ pos _ -> D((), pos + n)
+
+  let take_while f =
+    count_while f >>= unsafe_substring
+
+  let take_while1 f =
+    count_while f >>= fun n ->
+      if n = 0 then fail "take_while1" else unsafe_substring n
+
+  let take_till f =
+    take_while (fun c -> not (f c))
+
+  let skip_while f =
+    count_while f >>= advance
+
+  let fix f =
+    let rec p = lazy (f r)
+    and r = fun input pos more ->
+      Lazy.force p input pos more
+    in
+    r
+
+  let skip_many p =
+    fix (fun m ->
+      fun input pos more ->
+        print_endline "TYRING TO SKIP";
+        match p input pos more with
+        | D(_, pos) -> m input pos more
+        | F _       -> D((), pos)
+        | P(k, consumed, pos) -> P(k *> m, consumed, pos))
+end
+
 let parse_only p input =
   Unbuffered.parse_only p input
 

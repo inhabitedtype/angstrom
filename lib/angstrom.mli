@@ -503,3 +503,40 @@ end
 val pos : int t
 val want_input : bool t
 val available : int t
+
+module Z : sig
+  type 'a t
+
+  type 'a state =
+    | Partial of 'a partial
+    | Done    of 'a
+    | Fail    of string list * string
+  and 'a partial =
+    { consumed : int
+    ; continue : input -> Unbuffered.more -> 'a state }
+
+  val return : 'a -> 'a t
+  val fail : string -> 'a t
+  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+  val (>>|) : 'a t -> ('a -> 'b) -> 'b t
+
+  val ( *>) : 'a t -> 'b t -> 'b t
+  val (<* ) : 'a t -> 'b t -> 'a t
+
+  val peek_char_fail : char t
+  val char : char -> char t
+  val string : string -> string t
+
+  val lift2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
+
+  val take_while : (char -> bool) -> string t
+  val take_while1 : (char -> bool) -> string t
+  val take_till : (char -> bool) -> string t
+  val skip_while : (char -> bool) -> unit t
+
+  val skip_many : 'a t -> unit t
+
+  val fix : ('a t -> 'a t) -> 'a t
+  val parse_only : 'a t -> input -> ('a, string) Result.result
+end

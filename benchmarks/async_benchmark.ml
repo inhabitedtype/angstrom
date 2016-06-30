@@ -1,6 +1,7 @@
 open Async.Std
 
 let main parser () =
+  (*
   let toss _ = Deferred.unit in
   let reader = Lazy.force Reader.stdin in
   let parser =
@@ -12,6 +13,8 @@ let main parser () =
   >>| function
     | Result.Ok () -> ()
     | Result.Error err -> failwith err
+    *)
+  assert false
 ;;
 
 let () =

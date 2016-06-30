@@ -1,4 +1,4 @@
-open Angstrom
+open Angstrom.Z
 
 module P = struct
   let is_space =
@@ -65,12 +65,21 @@ let header =
     token
     (colon *> take_till P.is_eol)
 
+let headers =
+  let cons x xs = x :: xs in
+  fix (fun headers ->
+    let _rec = lift2 cons (header <* eol) headers in
+    peek_char_fail
+    >>= function
+      | '\r' | '\n' -> return []
+      | _           -> _rec)
+
 let request =
   lift2 (fun (meth, uri, version) headers -> (meth, uri, version, headers))
     (request_first_line   <* eol)
-    (many (header <* eol) <* eol)
+    (headers <* eol)
 
 let response =
   lift2 (fun (version, status, msg) headers -> (version, status, msg, headers))
     (response_first_line  <* eol)
-    (many (header <* eol) <* eol)
+    (headers <* eol)

@@ -1,6 +1,7 @@
 open Lwt
 
 let main () =
+  (*
   let toss _ = Lwt.return_unit in
   let parser =
     match Sys.argv.(1) with
@@ -13,6 +14,8 @@ let main () =
   >|= function
     | _, Result.Ok ()     -> ()
     | _, Result.Error err -> failwith err
+    *)
+  assert false
 ;;
 
 Lwt_main.run (main ())
