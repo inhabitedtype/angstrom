@@ -38,6 +38,7 @@ let main () =
       match Angstrom.parse_only RFC7159.json (`String big_twitter) with
       | R.Ok _ -> ()
       | R.Error err -> failwith err);
+      (*
     Bench.Test.create ~name:"http" (fun () ->
       match Angstrom.(parse_only (skip_many RFC2616.request) (`String http_get)) with
       | R.Ok _ -> ()
@@ -47,7 +48,7 @@ let main () =
     make_endian "int8 be" Angstrom.Be.int8;
     make_endian "int64 be" Angstrom.Be.int64;
     make_endian "int8 ne" Angstrom.Ne.int8;
-    make_endian "int64 ne" Angstrom.Ne.int64;
+    make_endian "int64 ne" Angstrom.Ne.int64; *)
   ])
 
 let () = main ()

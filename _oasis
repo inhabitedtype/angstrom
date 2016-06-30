@@ -82,7 +82,7 @@ Executable test_angstrom
   Build$:           flag(tests)
   CompiledObject:   best
   Install:          false
-  BuildDepends:     angstrom, alcotest
+  BuildDepends:     angstrom, alcotest (>= 0.4.1)
 
 Executable pure_benchmark
   Path:             benchmarks
