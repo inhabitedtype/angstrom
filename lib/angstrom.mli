@@ -72,16 +72,16 @@ val not_char : char -> char t
 val any_char : char t
 (** [any_char] accepts any character and returns it. *)
 
+val satisfy : (char -> bool) -> char t
+(** [satisfy f] accepts any character for which [f] returns [true] and returns
+    the accepted character. *)
+
 val string : string -> string t
 (** [string s] accepts [s] exactly and returns it. *)
 
 val string_ci : string -> string t
 (** [string_ci s] accepts [s], ignoring case, and returns the matched string,
     preserving the case of the original input. *)
-
-val satisfy : (char -> bool) -> char t
-(** [satisfy f] accepts any character for which [f] returns [true] and returns
-    the accepted character. *)
 
 val skip : (char -> bool) -> unit t
 (** [skip f] accepts any character for which [f] returns [true] and discards
