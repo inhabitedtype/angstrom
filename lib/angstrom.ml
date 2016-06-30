@@ -611,6 +611,9 @@ let skip_while f =
 let take n =
   ensure (max n 0)
 
+let peek_string n =
+  unsafe_lookahead (take n)
+
 let take_while f =
   count_while f >>= unsafe_substring
 

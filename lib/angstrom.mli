@@ -51,14 +51,20 @@ type 'a t
 (** {2 Basic parsers} *)
 
 val peek_char : char option t
-(** [peek_char] matches any char and returns it, or returns [None] if the end
+(** [peek_char] accepts any char and returns it, or returns [None] if the end
     of input has been reached.
 
     This parser does not advance the input. Use it for lookahead. *)
 
 val peek_char_fail : char t
-(** [peek_char_fail] matches any char and returns it. If end of input has been
+(** [peek_char_fail] accepts any char and returns it. If end of input has been
     reached, it will fail.
+
+    This parser does not advance the input. Use it for lookahead. *)
+
+val peek_string : int -> string t
+(** [peek_string n] accepts exactly [n] characters and returns them as a
+    string. If there is not enough input, it will fail.
 
     This parser does not advance the input. Use it for lookahead. *)
 
