@@ -94,7 +94,7 @@ Feature \ Library                   | Angstrom | [mparser] | [planck] | [opal] |
 ------------------------------------|:--------:|:---------:|:--------:|:------:|
 Monadic interface                   | ✅        | ✅         | ✅        | ✅      |
 Backtracking by default             | ✅        | ❌         | ❌        | ❌      |
-Unbounded lookahead                 | ❌        | ✅         | ✅        | ❌      |
+Unbounded lookahead                 | ✅        | ✅         | ✅        | ❌      |
 Reports line numbers in errors      | ❌        | ✅         | ❌        | ❌      |
 Efficient `take_while`/`skip_while` | ✅        | ❌         | ❌        | ❌      |
 Unbuffered (zero-copy) interface    | ✅        | ❌         | ❌        | ❌      |
