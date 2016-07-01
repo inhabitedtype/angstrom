@@ -515,20 +515,13 @@ module Z : sig
     { consumed : int
     ; continue : input -> Unbuffered.more -> 'a state }
 
-  val return : 'a -> 'a t
-  val fail : string -> 'a t
-  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
-  val (>>|) : 'a t -> ('a -> 'b) -> 'b t
-
-  val ( *>) : 'a t -> 'b t -> 'b t
-  val (<* ) : 'a t -> 'b t -> 'a t
+  (** {2 Basic parsers} *)
 
   val peek_char_fail : char t
   val char : char -> char t
-  val string : string -> string t
 
-  val lift2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
-  val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
+  val string : string -> string t
+  val string_ci : string -> string t
 
   val take_while : (char -> bool) -> string t
   val take_while1 : (char -> bool) -> string t
@@ -538,5 +531,23 @@ module Z : sig
   val skip_many : 'a t -> unit t
 
   val fix : ('a t -> 'a t) -> 'a t
+
+  (** {2 Alternatives} *)
+
+  (** {2 Monadic/Applicative interface} *)
+
+  val return : 'a -> 'a t
+  val fail : string -> 'a t
+  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
+  val (>>|) : 'a t -> ('a -> 'b) -> 'b t
+
+  val ( *>) : 'a t -> 'b t -> 'b t
+  val (<* ) : 'a t -> 'b t -> 'a t
+  val (<$>) : ('a -> 'b) -> 'a t -> 'b t
+
+  val lift : ('a -> 'b) -> 'a t -> 'b t
+  val lift2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
+
   val parse_only : 'a t -> input -> ('a, string) Result.result
 end

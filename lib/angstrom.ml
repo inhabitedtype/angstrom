@@ -386,8 +386,8 @@ module Z = struct
       | F(ms, msg)     -> F(ms, msg)
       | P(k, cmt, pos) -> P(k <* p2, cmt, pos)
 
-  let (<$>) f p =
-    p >>| f
+  let (<$>) f p = p >>| f
+  let lift  f p = p >>| f
 
   let rec lift2 f p1 p2 =
     fun input pos more ->
@@ -410,7 +410,7 @@ module Z = struct
           begin match p3 input pos more with
           | D(z, pos)      -> D(f x y z, pos)
           | F(ms, msg)     -> F(ms, msg)
-          | P(k, cmt, pos) -> P(k >>| (fun z -> f x y z), cmt, pos)
+          | P(k, cmt, pos) -> P(lift (fun z -> f x y z) k, cmt, pos)
           end
         | F(ms, msg)     -> F(ms, msg)
         | P(k, cmt, pos) -> P(lift2 (fun y z -> f x y z) k p3, cmt, pos)
@@ -436,17 +436,24 @@ module Z = struct
       else
         F([], "char " ^ String.make 1 c)
 
-  let string s =
+  let string_ f s =
     let len = String.length s in
     let rec go input pos more =
       if pos + len <= Input.length input then
-        D(Input.substring input pos len, pos + len)
+        let s' = Input.substring input pos len in
+        if f s = f s' then
+          D(s', pos + len)
+        else
+          F([], "string")
       else if more = Incomplete then
         P(go, Input.consumed input, pos)
       else
         F([], Printf.sprintf "%S" s)
     in
     go
+
+  let string    s = string_ (fun x -> x) s
+  let string_ci s = string_ String.lowercase s
 
   let count_while msg f k =
     let rec go acc input pos more =
@@ -464,9 +471,9 @@ module Z = struct
   let take n =
     let rec go input pos more =
       if pos + n <= Input.length input then
-        D(Input.substring input n, pos + n)
+        D(Input.substring input pos n, pos + n)
       else if more = Complete then
-        F([], Printf.sprintf "take %d" n)
+        F([], "take")
       else
         P(go, Input.consumed input, pos)
     in
@@ -480,11 +487,11 @@ module Z = struct
     count_while "take_while1" f (fun input pos len ->
       if len = 0 then None else Some(Input.substring input pos len))
 
-  let take_till f =
-    take_while (fun c -> not (f c))
-
   let skip_while f =
     count_while "skip_while" f (fun _ _ _ -> Some ())
+
+  let take_till f =
+    take_while (fun c -> not (f c))
 
   let fix f =
     let rec p = lazy (f r)
