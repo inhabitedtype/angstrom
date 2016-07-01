@@ -1,4 +1,4 @@
-open Angstrom
+open Angstrom.Z
 
 type json =
   [ `Null

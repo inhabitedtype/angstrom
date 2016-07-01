@@ -310,6 +310,8 @@ module Buffered = struct
 
 end
 
+let cons x xs = x :: xs
+
 module Z = struct
   type 'a internal =
     | D of 'a * int
@@ -386,6 +388,27 @@ module Z = struct
       | F(ms, msg)     -> F(ms, msg)
       | P(k, cmt, pos) -> P(k <* p2, cmt, pos)
 
+  let rec (<?>) p mark =
+    fun input pos more ->
+      match p input pos more with
+      | D(v, pos)  -> D(v, pos)
+      | F(ms, msg) -> F(mark::ms, msg)
+      | P(k, c, p) -> P(k <?> mark, c, p)
+
+  let rec (<|>) p q =
+    fun input pos more ->
+      match p input pos more with
+      | D(v, pos)  -> D(v, pos)
+      | F _        -> q input pos more
+      | P(k, c, p) -> P(k <|> q, c, p)
+
+  let choice ps =
+    List.fold_right (<|>) ps (fail "empty")
+
+  let commit =
+    fun input pos more ->
+      D((), pos)
+
   let (<$>) f p = p >>| f
   let lift  f p = p >>| f
 
@@ -418,6 +441,40 @@ module Z = struct
       | F(ms, msg)     -> F(ms, msg)
       | P(k, cmt, pos) -> P(lift3 f k p2 p3, cmt, pos)
 
+  let rec lookahead ?back_to p =
+    fun input pos more ->
+      let back_to =
+        match back_to with
+        | None -> pos
+        | Some pos -> pos
+      in
+      match p input pos more with
+      | D(v, _)        -> D(v, back_to)
+      | F(ms, msg)     -> F(ms, msg)
+      | P(k, cmt, pos) -> P(lookahead ~back_to k, cmt, pos)
+
+  let _char ~msg f =
+    let rec go input pos more =
+      if pos < Input.length input then
+        match f (Input.get input pos) with
+        | None -> F([], msg)
+        | Some v -> D(v, pos + 1)
+      else if more = Incomplete then
+        F([], msg)
+      else
+        P(go, Input.consumed input, pos)
+    in
+    go
+
+  let rec peek_char =
+    fun input pos more ->
+      if pos < Input.length input then
+        D(Some (Input.get input pos), pos)
+      else if more = Incomplete then
+        P(peek_char, Input.consumed input, pos)
+      else
+        D(None, pos)
+
   let rec peek_char_fail =
     fun input pos more ->
       if pos < Input.length input then
@@ -427,14 +484,62 @@ module Z = struct
       else
         F([], "peek_char_fail")
 
-  let rec char c =
-    fun input pos more ->
+  let rec peek_string n =
+    let rec go input pos more =
+      if pos + n <= Input.length input then
+        D(Input.substring input pos n, pos)
+      else if more = Incomplete then
+        P(go, Input.consumed input, pos)
+      else
+        F([], "peek_string")
+    in
+    go
+
+  let char c =
+    let msg = String.make 1 c in
+    let rec go input pos more =
+      if pos < Input.length input then
+        if c = Input.get input pos then
+          D(c, pos + 1)
+        else
+          F([], msg)
+      else if more = Incomplete then
+        P(go, Input.consumed input, pos)
+      else
+        F([], msg)
+    in
+    go
+
+  let not_char c =
+    let msg = String.make 1 c in
+    let rec go input pos more =
+      if pos < Input.length input then
+        let c' = Input.get input pos in
+        if c <> c' then
+          D(c', pos + 1)
+        else
+          F([], msg)
+      else if more = Incomplete then
+        P(go, Input.consumed input, pos)
+      else
+        F([], msg)
+    in
+    go
+
+  let any_char =
+    let rec go input pos more =
       if pos < Input.length input then
         D(Input.get input pos, pos + 1)
       else if more = Incomplete then
-        P(char c, Input.consumed input, pos)
+        P(go, Input.consumed input, pos)
       else
-        F([], "char " ^ String.make 1 c)
+        F([], "any_char")
+    in
+    go
+
+  (* XXX(seliopou): manually inline if necessary. *)
+  let satisfy f = _char ~msg:"satisfy" (fun c -> if f c then Some c  else None)
+  let skip    f = _char ~msg:"skip"    (fun c -> if f c then Some () else None)
 
   let string_ f s =
     let len = String.length s in
@@ -493,6 +598,26 @@ module Z = struct
   let take_till f =
     take_while (fun c -> not (f c))
 
+  let rec take_rest = 
+    fun input pos more ->
+      let len = Input.length input in
+      if pos < len then
+        let chunk = Input.substring input pos (len - pos) in
+        lift (fun cs -> chunk :: cs) take_rest input len more
+      else if more = Complete then
+        D([], pos)
+      else
+        P(take_rest, Input.consumed input, pos)
+
+  let rec end_of_input =
+    fun input pos more ->
+      if pos < Input.length input then
+        F([], "end_of_input")
+      else if more = Complete then
+        D((), pos)
+      else
+        P(end_of_input, Input.consumed input, pos)
+
   let fix f =
     let rec p = lazy (f r)
     and r = fun input pos more ->
@@ -500,6 +625,54 @@ module Z = struct
     in
     r
 
+  let count n p =
+    if n < 0 then
+      failwith "count: invalid argument, n < 0";
+    let rec loop = function
+      | 0 -> return []
+      | n -> lift2 cons p (loop (n - 1))
+    in
+    loop n
+
+  let many p =
+    fix (fun m ->
+      (lift2 cons p m) <|> return [])
+
+  let many1 p =
+    lift2 cons p (many p)
+
+  let many_till p t =
+    fix (fun m ->
+      (lift2 cons p m) <|> (t *> return []))
+
+  let sep_by1 s p =
+    fix (fun m ->
+      lift2 cons p ((s *> m) <|> return []))
+
+  let sep_by s p =
+    (lift2 cons p ((s *> sep_by1 s p) <|> return [])) <|> return []
+
+  let skip_many p =
+    fix (fun m ->
+      (p *> m) <|> return ())
+
+  let skip_many1 p =
+    p *> skip_many p
+
+    (*
+  (* XXX(seliopou): not backtracking *)
+  let many p =
+    fix (fun m ->
+      fun input pos more ->
+        match p input pos more with
+        | D(x, pos) -> lift (fun xs -> cons x xs) m input pos more
+        | F _       -> D([], pos)
+        | P(k, consumed, pos) -> P(lift2 cons k m, consumed, pos))
+
+  let many1 p =
+    lift2 cons p (many p)
+
+  (* XXX(seliopou): not backtracking *)
   let skip_many p =
     fix (fun m ->
       fun input pos more ->
@@ -507,6 +680,10 @@ module Z = struct
         | D(_, pos) -> m input pos more
         | F _       -> D((), pos)
         | P(k, consumed, pos) -> P(k *> m, consumed, pos))
+
+  let skip_many1 p =
+    p *> skip_many p
+    *)
 end
 
 let parse_only p input =
@@ -849,8 +1026,6 @@ let fix f =
 
 let option x p =
   p <|> return x
-
-let cons x xs = x :: xs
 
 let rec list ps =
   match ps with
