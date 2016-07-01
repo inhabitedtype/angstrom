@@ -341,8 +341,8 @@ module Z = struct
   let rec parse ?(input=`String "") p =
     _parse p Input.(create 0 input) 0 Incomplete
 
-  let parse_only p str =
-    match parse ~input:str p with
+  let parse_only p input =
+    match _parse p Input.(create 0 input) 0 Complete with
     | Done v        -> Result.Ok v
     | Fail(ms, msg) -> Result.Error (fail_to_string ms msg)
     | _             -> Result.Error "not enough input"
@@ -367,31 +367,63 @@ module Z = struct
       | F(ms, msg)     -> F(ms, msg)
       | P(k, cmt, pos) -> P(k >>| f, cmt, pos)
 
-  let ( *>) p1 p2 =
-    p1 >>= fun _ -> p2
+  let rec ( *>) p1 p2 =
+    fun input pos more ->
+      match p1 input pos more with
+      | D(_, pos)      -> p2 input pos more
+      | F(ms, msg)     -> F(ms, msg)
+      | P(k, cmt, pos) -> P(k *> p2, cmt, pos)
 
-  let (<* ) p1 p2 =
-    p1 >>= fun x -> 
-    p2 >>| fun _ -> x
+  let rec (<* ) p1 p2 =
+    fun input pos more ->
+      match p1 input pos more with
+      | D(x, pos)      ->
+        begin match p2 input pos more with
+        | D(_, pos)      -> D(x, pos)
+        | F(ms, msg)     -> F(ms, msg)
+        | P(k, cmt, pos) -> P(k >>| (fun _ -> x), cmt, pos)
+        end
+      | F(ms, msg)     -> F(ms, msg)
+      | P(k, cmt, pos) -> P(k <* p2, cmt, pos)
 
   let (<$>) f p =
     p >>| f
 
-  let lift2 f p1 p2 =
-    p1 >>= fun x ->
-    p2 >>| fun y -> f x y
+  let rec lift2 f p1 p2 =
+    fun input pos more ->
+      match p1 input pos more with
+      | D(x, pos)      ->
+        begin match p2 input pos more with
+        | D(y, pos)      -> D(f x y, pos)
+        | F(ms, msg)     -> F(ms, msg)
+        | P(k, cmt, pos) -> P(k >>| (fun y -> f x y), cmt, pos)
+        end
+      | F(ms, msg)     -> F(ms, msg)
+      | P(k, cmt, pos) -> P(lift2 f k p2, cmt, pos)
 
-  let lift3 f p1 p2 p3 =
-    p1 >>= fun x ->
-    p2 >>= fun y ->
-    p3 >>| fun z -> f x y z
+  let rec lift3 f p1 p2 p3 =
+    fun input pos more ->
+      match p1 input pos more with
+      | D(x, pos)      ->
+        begin match p2 input pos more with
+        | D(y, pos)      ->
+          begin match p3 input pos more with
+          | D(z, pos)      -> D(f x y z, pos)
+          | F(ms, msg)     -> F(ms, msg)
+          | P(k, cmt, pos) -> P(k >>| (fun z -> f x y z), cmt, pos)
+          end
+        | F(ms, msg)     -> F(ms, msg)
+        | P(k, cmt, pos) -> P(lift2 (fun y z -> f x y z) k p3, cmt, pos)
+        end
+      | F(ms, msg)     -> F(ms, msg)
+      | P(k, cmt, pos) -> P(lift3 f k p2 p3, cmt, pos)
 
   let rec peek_char_fail =
     fun input pos more ->
       if pos < Input.length input then
         D(Input.get input pos, pos)
       else if more = Incomplete then
-        P(peek_char_fail, Input.committed input, pos)
+        P(peek_char_fail, Input.consumed input, pos)
       else
         F([], "peek_char_fail")
 
@@ -400,7 +432,7 @@ module Z = struct
       if pos < Input.length input then
         D(Input.get input pos, pos + 1)
       else if more = Incomplete then
-        P(char c, Input.committed input, pos)
+        P(char c, Input.consumed input, pos)
       else
         F([], "char " ^ String.make 1 c)
 
@@ -416,12 +448,14 @@ module Z = struct
     in
     go
 
-  let count_while f =
+  let count_while msg f k =
     let rec go acc input pos more =
       let n = Input.count_while input pos f in
       let acc' = n + acc in
       if pos + acc' < Input.length input || more = Complete then
-        D(acc', pos)
+        match k input pos acc' with
+        | None   -> F([], msg)
+        | Some v -> D(v, pos + acc')
       else
         P(go acc', Input.consumed input, pos)
     in
@@ -438,24 +472,19 @@ module Z = struct
     in
     go
 
-  let unsafe_substring n =
-    fun input pos _ -> D(Input.substring input pos n, pos + n)
-
-  let advance n =
-    fun _ pos _ -> D((), pos + n)
-
   let take_while f =
-    count_while f >>= unsafe_substring
+    count_while "take_while" f (fun input pos len ->
+      Some(Input.substring input pos len))
 
   let take_while1 f =
-    count_while f >>= fun n ->
-      if n = 0 then fail "take_while1" else unsafe_substring n
+    count_while "take_while1" f (fun input pos len ->
+      if len = 0 then None else Some(Input.substring input pos len))
 
   let take_till f =
     take_while (fun c -> not (f c))
 
   let skip_while f =
-    count_while f >>= advance
+    count_while "skip_while" f (fun _ _ _ -> Some ())
 
   let fix f =
     let rec p = lazy (f r)
@@ -467,7 +496,6 @@ module Z = struct
   let skip_many p =
     fix (fun m ->
       fun input pos more ->
-        print_endline "TYRING TO SKIP";
         match p input pos more with
         | D(_, pos) -> m input pos more
         | F _       -> D((), pos)
