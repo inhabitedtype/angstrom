@@ -321,7 +321,7 @@ module Z = struct
   type 'a internal =
     | D of 'a * int
     | F of string list * string
-    | P of 'a t * int * int
+    | P of 'a t * int
   and 'a t =
     Input.t -> int -> more -> 'a internal
 
@@ -330,20 +330,19 @@ module Z = struct
     | Done    of 'a
     | Fail    of string list * string
   and 'a partial =
-    { consumed : int
-    ; continue : input -> more -> 'a state }
+    input -> more -> 'a state
 
   let fail_to_string marks err =
     String.concat " > " marks ^ ": " ^ err
 
-  let rec _parse ?(committed=0) p input pos more =
+  let rec _parse p input pos more =
     match p input pos more with
     | D(v, _)    -> Done v
     | F(ms, msg) -> Fail(ms, msg)
-    | P(p', consumed, pos) ->
-      Partial { consumed; continue = fun input more ->
-        let committed = committed + consumed in
-        _parse ~committed p' (Input.create committed input) pos more }
+    | P(p', pos) ->
+      let committed = Input.committed_bytes input in
+      Partial (fun input more ->
+        _parse p' (Input.create committed input) pos more)
 
   let rec parse ?(input=`String "") p =
     _parse p Input.(create 0 input) 0 Incomplete
@@ -363,49 +362,49 @@ module Z = struct
   let rec (>>=) p f =
     fun input pos more ->
       match p input pos more with
-      | D(a, pos')     -> f a input pos' more
-      | F(ms, msg)     -> F(ms, msg)
-      | P(k, cmt, pos) -> P(k >>= f, cmt, pos)
+      | D(a, pos') -> f a input pos' more
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(k >>= f, pos)
 
   let rec (>>|) p f =
     fun input pos more ->
       match p input pos more with
-      | D(a, pos')     -> D(f a, pos')
-      | F(ms, msg)     -> F(ms, msg)
-      | P(k, cmt, pos) -> P(k >>| f, cmt, pos)
+      | D(a, pos') -> D(f a, pos')
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(k >>| f, pos)
 
   let rec ( *>) p1 p2 =
     fun input pos more ->
       match p1 input pos more with
-      | D(_, pos)      -> p2 input pos more
-      | F(ms, msg)     -> F(ms, msg)
-      | P(k, cmt, pos) -> P(k *> p2, cmt, pos)
+      | D(_, pos)  -> p2 input pos more
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(k *> p2, pos)
 
   let rec (<* ) p1 p2 =
     fun input pos more ->
       match p1 input pos more with
-      | D(x, pos)      ->
+      | D(x, pos)  ->
         begin match p2 input pos more with
-        | D(_, pos)      -> D(x, pos)
-        | F(ms, msg)     -> F(ms, msg)
-        | P(k, cmt, pos) -> P(k >>| (fun _ -> x), cmt, pos)
+        | D(_, pos)  -> D(x, pos)
+        | F(ms, msg) -> F(ms, msg)
+        | P(k, pos)  -> P(k >>| (fun _ -> x), pos)
         end
-      | F(ms, msg)     -> F(ms, msg)
-      | P(k, cmt, pos) -> P(k <* p2, cmt, pos)
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(k <* p2, pos)
 
   let rec (<?>) p mark =
     fun input pos more ->
       match p input pos more with
       | D(v, pos)  -> D(v, pos)
       | F(ms, msg) -> F(mark::ms, msg)
-      | P(k, c, p) -> P(k <?> mark, c, p)
+      | P(k, pos)  -> P(k <?> mark, pos)
 
   let rec (<|>) p q =
     fun input pos more ->
       match p input pos more with
       | D(v, pos)  -> D(v, pos)
       | F _        -> q input pos more
-      | P(k, c, p) -> P(k <|> q, c, p)
+      | P(k, pos) -> P(k <|> q, pos)
 
   let choice ps =
     List.fold_right (<|>) ps (fail "empty")
@@ -420,31 +419,31 @@ module Z = struct
   let rec lift2 f p1 p2 =
     fun input pos more ->
       match p1 input pos more with
-      | D(x, pos)      ->
+      | D(x, pos)  ->
         begin match p2 input pos more with
-        | D(y, pos)      -> D(f x y, pos)
-        | F(ms, msg)     -> F(ms, msg)
-        | P(k, cmt, pos) -> P(k >>| (fun y -> f x y), cmt, pos)
+        | D(y, pos)  -> D(f x y, pos)
+        | F(ms, msg) -> F(ms, msg)
+        | P(k, pos)  -> P(k >>| (fun y -> f x y), pos)
         end
-      | F(ms, msg)     -> F(ms, msg)
-      | P(k, cmt, pos) -> P(lift2 f k p2, cmt, pos)
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(lift2 f k p2, pos)
 
   let rec lift3 f p1 p2 p3 =
     fun input pos more ->
       match p1 input pos more with
       | D(x, pos)      ->
         begin match p2 input pos more with
-        | D(y, pos)      ->
+        | D(y, pos)  ->
           begin match p3 input pos more with
-          | D(z, pos)      -> D(f x y z, pos)
-          | F(ms, msg)     -> F(ms, msg)
-          | P(k, cmt, pos) -> P(lift (fun z -> f x y z) k, cmt, pos)
+          | D(z, pos)  -> D(f x y z, pos)
+          | F(ms, msg) -> F(ms, msg)
+          | P(k, pos)  -> P(lift (fun z -> f x y z) k, pos)
           end
-        | F(ms, msg)     -> F(ms, msg)
-        | P(k, cmt, pos) -> P(lift2 (fun y z -> f x y z) k p3, cmt, pos)
+        | F(ms, msg) -> F(ms, msg)
+        | P(k, pos)  -> P(lift2 (fun y z -> f x y z) k p3, pos)
         end
-      | F(ms, msg)     -> F(ms, msg)
-      | P(k, cmt, pos) -> P(lift3 f k p2 p3, cmt, pos)
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(lift3 f k p2 p3, pos)
 
   let rec lookahead ?back_to p =
     fun input pos more ->
@@ -454,9 +453,9 @@ module Z = struct
         | Some pos -> pos
       in
       match p input pos more with
-      | D(v, _)        -> D(v, back_to)
-      | F(ms, msg)     -> F(ms, msg)
-      | P(k, cmt, pos) -> P(lookahead ~back_to k, cmt, pos)
+      | D(v, _)    -> D(v, back_to)
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(lookahead ~back_to k, pos)
 
   let _char ~msg f =
     let rec go input pos more =
@@ -467,7 +466,7 @@ module Z = struct
       else if more = Incomplete then
         F([], msg)
       else
-        P(go, Input.committed_bytes input, pos)
+        P(go, pos)
     in
     go
 
@@ -476,7 +475,7 @@ module Z = struct
       if pos < Input.length input then
         D(Some (Input.get_char input pos), pos)
       else if more = Incomplete then
-        P(peek_char, Input.committed_bytes input, pos)
+        P(peek_char, pos)
       else
         D(None, pos)
 
@@ -485,7 +484,7 @@ module Z = struct
       if pos < Input.length input then
         D(Input.get_char input pos, pos)
       else if more = Incomplete then
-        P(peek_char_fail, Input.committed_bytes input, pos)
+        P(peek_char_fail, pos)
       else
         F([], "peek_char_fail")
 
@@ -494,7 +493,7 @@ module Z = struct
       if pos + n <= Input.length input then
         D(Input.substring input pos n, pos)
       else if more = Incomplete then
-        P(go, Input.committed_bytes input, pos)
+        P(go, pos)
       else
         F([], "peek_string")
     in
@@ -509,7 +508,7 @@ module Z = struct
         else
           F([], msg)
       else if more = Incomplete then
-        P(go, Input.committed_bytes input, pos)
+        P(go, pos)
       else
         F([], msg)
     in
@@ -525,7 +524,7 @@ module Z = struct
         else
           F([], msg)
       else if more = Incomplete then
-        P(go, Input.committed_bytes input, pos)
+        P(go, pos)
       else
         F([], msg)
     in
@@ -536,7 +535,7 @@ module Z = struct
       if pos < Input.length input then
         D(Input.get_char input pos, pos + 1)
       else if more = Incomplete then
-        P(go, Input.committed_bytes input, pos)
+        P(go, pos)
       else
         F([], "any_char")
     in
@@ -556,7 +555,7 @@ module Z = struct
         else
           F([], "string")
       else if more = Incomplete then
-        P(go, Input.committed_bytes input, pos)
+        P(go, pos)
       else
         F([], Printf.sprintf "%S" s)
     in
@@ -574,7 +573,7 @@ module Z = struct
         | None   -> F([], msg)
         | Some v -> D(v, pos + acc')
       else
-        P(go acc', Input.committed_bytes input, pos)
+        P(go acc', pos)
     in
     go 0
 
@@ -585,7 +584,7 @@ module Z = struct
       else if more = Complete then
         F([], "take")
       else
-        P(go, Input.committed_bytes input, pos)
+        P(go, pos)
     in
     go
 
@@ -612,7 +611,7 @@ module Z = struct
       else if more = Complete then
         D([], pos)
       else
-        P(take_rest, Input.committed_bytes input, pos)
+        P(take_rest, pos)
 
   let rec end_of_input =
     fun input pos more ->
@@ -621,7 +620,7 @@ module Z = struct
       else if more = Complete then
         D((), pos)
       else
-        P(end_of_input, Input.committed_bytes input, pos)
+        P(end_of_input, pos)
 
   let fix f =
     let rec p = lazy (f r)
@@ -663,7 +662,7 @@ module Z = struct
       match p input pos more with
       | D(_    , pos) -> skip_many p input pos more
       | F(marks, msg) -> D((), pos)
-      | P(k    , consumed, pos) -> P(k *> skip_many p, consumed, pos)
+      | P(k    , pos) -> P(k *> skip_many p, pos)
 
   let skip_many1 p =
     p *> skip_many p

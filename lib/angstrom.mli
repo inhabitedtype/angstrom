@@ -475,14 +475,6 @@ val available : int t
 module Z : sig
   type 'a t
 
-  val return : 'a -> 'a t
-  val fail : string -> 'a t
-  val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
-  val (>>|) : 'a t -> ('a -> 'b) -> 'b t
-
-  val ( *>) : 'a t -> 'b t -> 'b t
-  val (<* ) : 'a t -> 'b t -> 'a t
-
   (** {2 Basic parsers} *)
 
   val peek_char : char option t
@@ -521,6 +513,7 @@ module Z : sig
   val fix : ('a t -> 'a t) -> 'a t
 
   (** {2 Alternatives} *)
+
   val (<|>) : 'a t -> 'a t -> 'a t
   val choice : 'a t list -> 'a t
   val (<?>) : 'a t -> string -> 'a t
