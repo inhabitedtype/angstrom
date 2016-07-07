@@ -512,8 +512,7 @@ module Z : sig
     | Done    of 'a
     | Fail    of string list * string
   and 'a partial =
-    { consumed : int
-    ; continue : input -> Unbuffered.more -> 'a state }
+    input -> Unbuffered.more -> 'a state
 
   (** {2 Basic parsers} *)
 
