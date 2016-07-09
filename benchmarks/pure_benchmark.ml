@@ -35,11 +35,11 @@ let main () =
   let http_get    = read "benchmarks/data/http-requests.txt.100" in
   Command.run (Bench.make_command [
     Bench.Test.create ~name:"json" (fun () ->
-      match Angstrom.parse_only RFC7159.json (`String big_twitter) with
+      match Angstrom.Z.parse_only RFC7159.json (`String big_twitter) with
       | R.Ok _ -> ()
       | R.Error err -> failwith err);
     Bench.Test.create ~name:"http" (fun () ->
-      match Angstrom.(parse_only (skip_many RFC2616.request) (`String http_get)) with
+      match Angstrom.Z.(parse_only (skip_many RFC2616.request) (`String http_get)) with
       | R.Ok _ -> ()
       | R.Error err -> failwith err);
     make_endian "int64 le" Angstrom.Le.int64;

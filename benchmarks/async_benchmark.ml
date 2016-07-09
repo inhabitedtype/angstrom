@@ -5,8 +5,8 @@ let main parser () =
   let reader = Lazy.force Reader.stdin in
   let parser =
     match parser with
-    | `Http -> Angstrom.(RFC2616.request >>| fun x -> `Http x)
-    | `Json -> Angstrom.(RFC7159.json    >>| fun x -> `Json x)
+    | `Http -> Angstrom.(z RFC2616.request >>| fun x -> `Http x)
+    | `Json -> Angstrom.(z RFC7159.json    >>| fun x -> `Json x)
   in
   Angstrom_async.parse_many parser toss reader
   >>| function

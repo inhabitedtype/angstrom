@@ -1,4 +1,4 @@
-open Angstrom
+open Angstrom.Z
 
 module P = struct
   let is_space =

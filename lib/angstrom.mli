@@ -536,3 +536,5 @@ module Z : sig
 
   val parse_only : 'a t -> input -> ('a, string) Result.result
 end
+
+val z : 'a Z.t -> 'a t

@@ -1083,3 +1083,14 @@ end
 
 module Le = Make_endian(EndianString.LittleEndian_unsafe)
 module Be = Make_endian(EndianString.BigEndian_unsafe)
+
+let rec z t =
+  { run = fun input pos more fail succ ->
+    match t input pos more with
+    | Z.D(v, pos)  -> succ input pos more v
+    | Z.F(ms, msg) -> fail input pos more ms msg
+    | Z.P(t', pos) ->
+      let succ input pos more = (z t').run input pos more fail succ
+      and fail input pos more = fail input pos more [] "z" in
+      prompt input pos fail succ
+  }
