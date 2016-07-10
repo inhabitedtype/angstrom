@@ -90,7 +90,7 @@ Executable pure_benchmark
   Build$:           flag(benchmarks)
   CompiledObject:   best
   Install:          false
-  BuildDepends:     angstrom, async, core_bench, threads
+  BuildDepends:     angstrom, core_bench, threads
 
 Executable async_benchmark
   Path:             benchmarks

@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 8492d4fae0e2aa9890759cb45ff0a461)
+# DO NOT EDIT (digest: 4692efdfb3231feface921336be62fbc)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -46,7 +46,6 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: pkg_result
 <lib_test/*.ml{,i,y}>: use_angstrom
 # Executable pure_benchmark
-<benchmarks/pure_benchmark.{native,byte}>: pkg_async
 <benchmarks/pure_benchmark.{native,byte}>: pkg_core_bench
 <benchmarks/pure_benchmark.{native,byte}>: pkg_cstruct
 <benchmarks/pure_benchmark.{native,byte}>: pkg_result
