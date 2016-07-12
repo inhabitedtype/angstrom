@@ -313,28 +313,33 @@ end
 let cons x xs = x :: xs
 
 module Z = struct
-  type 'a internal =
-    | D of 'a * int
-    | F of string list * string
-    | P of 'a t * int
-  and 'a t =
-    Input.t -> int -> more -> 'a internal
+
+  type st =
+    { input : Input.t
+    ; more : more
+    ; mutable pos : int }
+
+  type 'a t =
+    st -> 'a
+
+  exception F of string list * string
+  exception P : 'a t -> exn
 
   type 'a state =
     | Partial of 'a partial
     | Done    of 'a
     | Fail    of string list * string
   and 'a partial =
-    input -> more -> 'a state
+    Input.t -> more -> 'a state
 
   let fail_to_string marks err =
     String.concat " > " marks ^ ": " ^ err
 
-  let rec _parse p input pos more =
-    match p input pos more with
-    | D(v, _)    -> Done v
-    | F(ms, msg) -> Fail(ms, msg)
-    | P(p', pos) ->
+  let rec _parse (type a) (p:a t) input pos more : a =
+    try Done(p { input; pos; more })
+    with
+    | F(marks, msg) -> Fail(marks, msg)
+    | P p' ->
       let committed = Input.committed input in
       Partial (fun input more ->
         _parse p' (Input.create committed input) pos more)
@@ -349,190 +354,150 @@ module Z = struct
     | _             -> Result.Error "not enough input"
 
   let return v =
-    fun input pos more -> D(v, pos)
+    fun st -> v
 
   let fail (msg:string) =
-    fun input pos more -> F([], msg)
+    fun st -> raise (F([], msg))
 
   let rec (>>=) p f =
-    fun input pos more ->
-      match p input pos more with
-      | D(a, pos') -> f a input pos' more
-      | F(ms, msg) -> F(ms, msg)
-      | P(k, pos)  -> P(k >>= f, pos)
+    fun st ->
+      f (try p st with P k -> raise (P(k >>= f))) st
 
   let rec (>>|) p f =
-    fun input pos more ->
-      match p input pos more with
-      | D(a, pos') -> D(f a, pos')
-      | F(ms, msg) -> F(ms, msg)
-      | P(k, pos)  -> P(k >>| f, pos)
+    fun st ->
+      f (try p st with P k -> raise (P(k >>| f)))
 
   let rec ( *>) p1 p2 =
-    fun input pos more ->
-      match p1 input pos more with
-      | D(_, pos)  -> p2 input pos more
-      | F(ms, msg) -> F(ms, msg)
-      | P(k, pos)  -> P(k *> p2, pos)
+    ignore (try p1 st with P k -> raise (P(k *> p2)));
+    p2 st
 
   let rec (<* ) p1 p2 =
-    fun input pos more ->
-      match p1 input pos more with
-      | D(x, pos)  ->
-        begin match p2 input pos more with
-        | D(_, pos)  -> D(x, pos)
-        | F(ms, msg) -> F(ms, msg)
-        | P(k, pos)  -> P(k >>| (fun _ -> x), pos)
-        end
-      | F(ms, msg) -> F(ms, msg)
-      | P(k, pos)  -> P(k <* p2, pos)
+    fun st ->
+      let x = try p1 st with P k -> raise (P(k <* p2)) in
+      ignore (try p2 st with P k -> raise (P(k >>| fun _ -> x)));
+      x
 
   let rec (<?>) p mark =
-    fun input pos more ->
-      match p input pos more with
-      | D(v, pos)  -> D(v, pos)
-      | F(ms, msg) -> F(mark::ms, msg)
-      | P(k, pos)  -> P(k <?> mark, pos)
+    fun st ->
+      try p st with
+      | F(marks, msg) -> raise (F(mark::marks, msg))
+      | P k           -> raise (P(k <?> mark))
 
   let rec (<|>) p q =
-    fun input pos more ->
-      match p input pos more with
-      | D(v, pos)  -> D(v, pos)
-      | F _        -> q input pos more
-      | P(k, pos) -> P(k <|> q, pos)
+    fun st ->
+      try p st with
+      | F _ -> q st
+      | P k -> raise (P(k <|> q))
 
   let choice ps =
     List.fold_right (<|>) ps (fail "empty")
 
+    (*
   let commit =
     fun input pos more ->
       D((), pos)
+      *)
 
   let (<$>) f p = p >>| f
   let lift  f p = p >>| f
 
   let rec lift2 f p1 p2 =
-    fun input pos more ->
-      match p1 input pos more with
-      | D(x, pos)  ->
-        begin match p2 input pos more with
-        | D(y, pos)  -> D(f x y, pos)
-        | F(ms, msg) -> F(ms, msg)
-        | P(k, pos)  -> P(k >>| (fun y -> f x y), pos)
-        end
-      | F(ms, msg) -> F(ms, msg)
-      | P(k, pos)  -> P(lift2 f k p2, pos)
+    fun st ->
+      let x = try p1 st with P k -> raise (P(lift2 f k p2)) in
+      let y = try p2 st with P k -> raise (P(k >>| fun y -> f x y)) in
+      f x y
 
   let rec lift3 f p1 p2 p3 =
-    fun input pos more ->
-      match p1 input pos more with
-      | D(x, pos)      ->
-        begin match p2 input pos more with
-        | D(y, pos)  ->
-          begin match p3 input pos more with
-          | D(z, pos)  -> D(f x y z, pos)
-          | F(ms, msg) -> F(ms, msg)
-          | P(k, pos)  -> P(lift (fun z -> f x y z) k, pos)
-          end
-        | F(ms, msg) -> F(ms, msg)
-        | P(k, pos)  -> P(lift2 (fun y z -> f x y z) k p3, pos)
-        end
-      | F(ms, msg) -> F(ms, msg)
-      | P(k, pos)  -> P(lift3 f k p2 p3, pos)
-
-  let rec lookahead ?back_to p =
-    fun input pos more ->
-      let back_to =
-        match back_to with
-        | None -> pos
-        | Some pos -> pos
-      in
-      match p input pos more with
-      | D(v, _)    -> D(v, back_to)
-      | F(ms, msg) -> F(ms, msg)
-      | P(k, pos)  -> P(lookahead ~back_to k, pos)
+    fun st ->
+      let x = try p1 st with P k -> raise (P(lift3 f k p2 p3)) in
+      let y = try p2 st with P k -> raise (P(lift2 f p2 p3 (fun y z -> f x y z))) in
+      let z = try p2 st with P k -> raise (P(k >>| fun z -> f x y z)) in
+      f x y z
 
   let _char ~msg f =
-    let rec go input pos more =
+    let rec go ({ input; pos; more } as st) =
       if pos < Input.length input then
         match f (Input.get input pos) with
-        | None -> F([], msg)
-        | Some v -> D(v, pos + 1)
+        | None -> raise F([], msg)
+        | Some v -> st.pos <- pos + 1; v
       else if more = Incomplete then
-        F([], msg)
+        raise (F([], msg))
       else
-        P(go, pos)
+        raise (P go)
     in
     go
 
   let rec peek_char =
-    fun input pos more ->
+    fun ({ input; pos; more } as st) ->
       if pos < Input.length input then
-        D(Some (Input.get input pos), pos)
+        Some (Input.get input pos)
       else if more = Incomplete then
-        P(peek_char, pos)
+        raise peek_char
       else
-        D(None, pos)
+        None
 
   let rec peek_char_fail =
-    fun input pos more ->
+    fun ({ input; pos; more } as st) ->
       if pos < Input.length input then
-        D(Input.get input pos, pos)
+        In.put get input pos
       else if more = Incomplete then
-        P(peek_char_fail, pos)
+        raise (P peek_char_fail)
       else
-        F([], "peek_char_fail")
+        raise (F([], "peek_char_fail"))
 
   let rec peek_string n =
-    let rec go input pos more =
+    let rec go ({ input; pos; more } as st) =
       if pos + n <= Input.length input then
-        D(Input.substring input pos n, pos)
+        Input.substring input pos n
       else if more = Incomplete then
-        P(go, pos)
+        raise (P go)
       else
-        F([], "peek_string")
+        raise (F([], "peek_string"))
     in
     go
 
   let char c =
     let msg = String.make 1 c in
-    let rec go input pos more =
+    let rec go ({ input; pos; more } as st) =
       if pos < Input.length input then
-        if c = Input.get input pos then
-          D(c, pos + 1)
-        else
-          F([], msg)
+        if c = Input.get input pos then begin
+          st.pos <- pos + 1;
+          c
+        end else
+         raise (F([], msg))
       else if more = Incomplete then
-        P(go, pos)
+        raise (P go)
       else
-        F([], msg)
+        raise (F([], msg))
     in
     go
 
   let not_char c =
     let msg = String.make 1 c in
-    let rec go input pos more =
+    let rec go ({ input; pos; more } as st) =
       if pos < Input.length input then
         let c' = Input.get input pos in
-        if c <> c' then
-          D(c', pos + 1)
-        else
-          F([], msg)
+        if c <> c' then begin
+          st.pos <- pos + 1;
+          c'
+        end else
+          raise (F([], msg))
       else if more = Incomplete then
-        P(go, pos)
+        raise (P go)
       else
-        F([], msg)
+        raise (F([], msg))
     in
     go
 
   let any_char =
-    let rec go input pos more =
-      if pos < Input.length input then
-        D(Input.get input pos, pos + 1)
-      else if more = Incomplete then
-        P(go, pos)
+    let rec go ({ input; pos; more } as st) =
+      if pos < Input.length input then begin
+        st.pos <- pos + 1;
+        Input.get input pos
+      end else if more = Incomplete then
+        raise (P go)
       else
-        F([], "any_char")
+        raise (F([], "any_char"))
     in
     go
 
@@ -542,17 +507,18 @@ module Z = struct
 
   let string_ f s =
     let len = String.length s in
-    let rec go input pos more =
+    let go ({ input; pos; more } as st) =
       if pos + len <= Input.length input then
         let s' = Input.substring input pos len in
-        if f s = f s' then
-          D(s', pos + len)
-        else
-          F([], "string")
+        if f s = f s' then begin
+          st.pos <- pos + len;
+          s'
+        end else
+          raise (F([], "string"))
       else if more = Incomplete then
-        P(go, pos)
+        raise (P go)
       else
-        F([], Printf.sprintf "%S" s)
+        raise (F([], Printf.sprintf "%S" s))
     in
     go
 
@@ -560,26 +526,27 @@ module Z = struct
   let string_ci s = string_ String.lowercase s
 
   let count_while msg f k =
-    let rec go acc input pos more =
+    let go ({ input; pos; more } as st) =
       let n = Input.count_while input pos f in
       let acc' = n + acc in
       if pos + acc' < Input.length input || more = Complete then
         match k input pos acc' with
-        | None   -> F([], msg)
-        | Some v -> D(v, pos + acc')
+        | None   -> raise (F([], msg))
+        | Some v -> st.pos <- pos + acc'; v
       else
-        P(go acc', pos)
+        raise (P go)
     in
     go 0
 
   let take n =
-    let rec go input pos more =
-      if pos + n <= Input.length input then
-        D(Input.substring input pos n, pos + n)
-      else if more = Complete then
-        F([], "take")
+    let go ({ input; pos; more } as st) =
+      if pos + n <= Input.length input then begin
+        st.pos <- pos + n;
+        Input.substring input pos n
+      end else if more = Complete then
+        raise (F([], "take"))
       else
-        P(go, pos)
+        raise (P go)
     in
     go
 
@@ -598,24 +565,24 @@ module Z = struct
     take_while (fun c -> not (f c))
 
   let rec take_rest = 
-    fun input pos more ->
+    fun ({ input; pos; more } as st) ->
       let len = Input.length input in
       if pos < len then
         let chunk = Input.substring input pos (len - pos) in
         lift (fun cs -> chunk :: cs) take_rest input len more
       else if more = Complete then
-        D([], pos)
+        []
       else
-        P(take_rest, pos)
+        raise (P go)
 
   let rec end_of_input =
-    fun input pos more ->
+    fun ({ input; pos; more } as st) ->
       if pos < Input.length input then
-        F([], "end_of_input")
+        raise (F([], "end_of_input"))
       else if more = Complete then
-        D((), pos)
+        ()
       else
-        P(end_of_input, pos)
+        raise (P go)
 
   let fix f =
     let rec p = lazy (f r)
