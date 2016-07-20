@@ -58,14 +58,14 @@ Library angstrom_unix
   BuildDepends:   angstrom, result
   Modules:        Angstrom_unix
 
-Library angstrom_lwt
+Library angstrom_lwt_unix
   Path:           lwt
-  Findlibname:    lwt
+  Findlibname:    lwt-unix
   Findlibparent:  angstrom
-  Build$:         flag(lwt)
-  Install$:       flag(lwt)
-  BuildDepends:   angstrom, lwt, result
-  Modules:        Angstrom_lwt
+  Build$:         flag(lwt) && flag(unix)
+  Install$:       flag(lwt) && flag(unix)
+  BuildDepends:   angstrom, lwt.unix, result
+  Modules:        Angstrom_lwt_unix
 
 Library angstrom_async
   Path:           async
@@ -106,7 +106,7 @@ Executable lwt_benchmark
   Build$:           flag(benchmarks)
   CompiledObject:   best
   Install:          false
-  BuildDepends:     angstrom, angstrom.lwt, lwt.unix
+  BuildDepends:     angstrom, angstrom.lwt-unix, lwt.unix
 
 Test test_angstrom
   Run$:             flag(tests)
