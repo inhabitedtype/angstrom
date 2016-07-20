@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4692efdfb3231feface921336be62fbc)
+# DO NOT EDIT (digest: 69a7f71c2c216fe5966337f283f41f41)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -23,10 +23,10 @@ true: annot, bin_annot
 <unix/*.ml{,i,y}>: pkg_cstruct
 <unix/*.ml{,i,y}>: pkg_result
 <unix/*.ml{,i,y}>: use_angstrom
-# Library angstrom_lwt
-"lwt/angstrom_lwt.cmxs": use_angstrom_lwt
+# Library angstrom_lwt_unix
+"lwt/angstrom_lwt_unix.cmxs": use_angstrom_lwt_unix
 <lwt/*.ml{,i,y}>: pkg_cstruct
-<lwt/*.ml{,i,y}>: pkg_lwt
+<lwt/*.ml{,i,y}>: pkg_lwt.unix
 <lwt/*.ml{,i,y}>: pkg_result
 <lwt/*.ml{,i,y}>: use_angstrom
 # Library angstrom_async
@@ -64,15 +64,13 @@ true: annot, bin_annot
 <benchmarks/*.ml{,i,y}>: use_angstrom_async
 # Executable lwt_benchmark
 <benchmarks/lwt_benchmark.{native,byte}>: pkg_cstruct
-<benchmarks/lwt_benchmark.{native,byte}>: pkg_lwt
 <benchmarks/lwt_benchmark.{native,byte}>: pkg_lwt.unix
 <benchmarks/lwt_benchmark.{native,byte}>: pkg_result
 <benchmarks/lwt_benchmark.{native,byte}>: use_angstrom
-<benchmarks/lwt_benchmark.{native,byte}>: use_angstrom_lwt
+<benchmarks/lwt_benchmark.{native,byte}>: use_angstrom_lwt_unix
 <benchmarks/*.ml{,i,y}>: pkg_cstruct
-<benchmarks/*.ml{,i,y}>: pkg_lwt
 <benchmarks/*.ml{,i,y}>: pkg_lwt.unix
 <benchmarks/*.ml{,i,y}>: pkg_result
 <benchmarks/*.ml{,i,y}>: use_angstrom
-<benchmarks/*.ml{,i,y}>: use_angstrom_lwt
+<benchmarks/*.ml{,i,y}>: use_angstrom_lwt_unix
 # OASIS_STOP
