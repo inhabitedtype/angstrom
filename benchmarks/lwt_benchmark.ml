@@ -9,7 +9,7 @@ let main () =
     | _      -> print_endline "usage: lwt_json_benchmark.native PARSER"; exit 1
   in
   Lwt_io.resize_buffer Lwt_io.stdin 0x10000 >>= fun () ->
-  Angstrom_lwt.parse_many parser toss Lwt_io.stdin
+  Angstrom_lwt_unix.parse_many parser toss Lwt_io.stdin
   >|= function
     | _, Result.Ok ()     -> ()
     | _, Result.Error err -> failwith err
