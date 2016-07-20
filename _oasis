@@ -1,6 +1,6 @@
 OASISFormat: 0.4
 Name:        angstrom
-Version:     dev
+Version:     0.1.0
 Authors:     Spiros Eliopoulos <spiros@inhabitedtype.com>
 Maintainers: Spiros Eliopoulos <spiros@inhabitedtype.com>
 Homepage:    https://github.com/inhabitedtype/angstrom
