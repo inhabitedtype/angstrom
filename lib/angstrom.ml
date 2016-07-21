@@ -313,7 +313,7 @@ end
 let parse_only p input =
   Unbuffered.parse_only p input
 
-let return : type a. a -> a t =
+let return =
   fun v ->
     { run = fun input pos more _fail succ ->
       succ input pos more v }
