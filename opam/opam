@@ -29,6 +29,8 @@ depends: [
   "result"
 ]
 depopts: [
+  "async"
   "base-unix"
+  "lwt"
 ]
 available: [ ocaml-version >= "4.00.0" ]
