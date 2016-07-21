@@ -95,7 +95,7 @@ Executable pure_benchmark
 Executable async_benchmark
   Path:             benchmarks
   MainIs:           async_benchmark.ml
-  Build$:           flag(benchmarks)
+  Build$:           flag(benchmarks) && flag(async)
   CompiledObject:   best
   Install:          false
   BuildDepends:     angstrom, angstrom.async, async, threads
@@ -103,7 +103,7 @@ Executable async_benchmark
 Executable lwt_benchmark
   Path:             benchmarks
   MainIs:           lwt_benchmark.ml
-  Build$:           flag(benchmarks)
+  Build$:           flag(benchmarks) && flag(lwt)
   CompiledObject:   best
   Install:          false
   BuildDepends:     angstrom, angstrom.lwt-unix, lwt.unix
