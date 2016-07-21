@@ -31,3 +31,4 @@ depends: [
 depopts: [
   "base-unix"
 ]
+available: [ ocaml-version >= "4.00.0" ]
