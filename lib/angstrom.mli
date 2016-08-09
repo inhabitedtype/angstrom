@@ -441,7 +441,7 @@ module Buffered : sig
       This function has no effect on the current state of the parser. *)
 
   val state_to_unconsumed : 'a state -> unconsumed option
-  (** [state_to_bigstring state] returns [Some bs] if [state = Done(bs, _)] or
+  (** [state_to_unconsumed state] returns [Some bs] if [state = Done(bs, _)] or
       [state = Fail(bs, _, _)] and [None] otherwise. *)
 
 end
