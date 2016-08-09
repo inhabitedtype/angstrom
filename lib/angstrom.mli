@@ -33,8 +33,8 @@
 
 (** Parser combinators built for speed and memory-efficiency.
 
-    Angstrom is a parser-combinator library that provides a monadic and
-    applicative interface for constructing parsers with unbounded lookahead.
+    Angstrom is a parser-combinator library that provides monadic and
+    applicative interfaces for constructing parsers with unbounded lookahead.
     Its parsers can consume input incrementally, whether in a blocking or
     non-blocking environment. To achieve efficient incremental parsing,
     Angstrom offers both a buffered and unbuffered interface to input streams,
@@ -313,9 +313,16 @@ val (<?>) : 'a t -> string -> 'a t
     in the case of failure. *)
 
 val commit : unit t
-(** [commit] prevents backtracking beyond the current position of the input.
-    Any consumed input that is still buffered will potentially be overridden to
-    make room for new incremental input. *)
+(** [commit] prevents backtracking beyond the current position of the input,
+    allowing the manager of the input buffer to reuse the preceding bytes for
+    other purposes.
+
+    The {!module:Unbuffered} parsing interface will report directly to the
+    caller the number of bytes committed to the when returning a {Partial}
+    state, allowing the caller to reuse those bytes for any purpose. The
+    {!module:Buffered} will keep track of the region of committed bytes in its
+    internal buffer and reuse that region to store additional input when
+    necessary. *)
 
 
 (** {2 Monadic/Applicative interface} *)
