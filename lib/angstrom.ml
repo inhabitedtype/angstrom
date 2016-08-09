@@ -45,44 +45,44 @@ let input_length input =
 
 module Input = struct
   type t =
-    { mutable committed : int
-    ; initial_committed : int
+    { mutable commit_pos : int
+    ; initial_commit_pos : int
     ; input : input
     }
 
-  let create initial_committed input =
-    { committed = initial_committed
-    ; initial_committed
+  let create initial_commit_pos input =
+    { commit_pos = initial_commit_pos
+    ; initial_commit_pos
     ; input
     }
 
-  let length { initial_committed; input}  =
-    input_length input + initial_committed
+  let length { initial_commit_pos; input}  =
+    input_length input + initial_commit_pos
 
-  let consumed { committed; initial_committed } =
-    committed - initial_committed
+  let committed_bytes { commit_pos; initial_commit_pos } =
+    commit_pos - initial_commit_pos
 
-  let committed t =
-    t.committed
+  let commit_pos t =
+    t.commit_pos
 
-  let uncommitted t =
-    input_length t.input - committed t
+  let uncommitted_bytes t =
+    input_length t.input - commit_pos t
 
-  let substring { initial_committed; input } pos len =
-    let off = pos - initial_committed in
+  let substring { initial_commit_pos; input } pos len =
+    let off = pos - initial_commit_pos in
     match input with
     | `String    s -> String.sub s off len
     | `Bigstring b -> Cstruct.to_string (Cstruct.of_bigarray ~off ~len b)
 
-  let get { initial_committed; input } pos =
-    let pos = pos - initial_committed in
+  let get { initial_commit_pos; input } pos =
+    let pos = pos - initial_commit_pos in
     match input with
     | `String s    -> String.unsafe_get s pos
     | `Bigstring b -> Bigarray.Array1.unsafe_get b pos
 
 
-  let count_while { initial_committed; input } pos f =
-    let i = ref (pos - initial_committed) in
+  let count_while { initial_commit_pos; input } pos f =
+    let i = ref (pos - initial_commit_pos) in
     let len = input_length input in
     begin match input with
     | `String s    ->
@@ -90,10 +90,10 @@ module Input = struct
     | `Bigstring b ->
       while !i < len && f (Bigarray.Array1.unsafe_get b !i) do incr i; done
     end;
-    !i - (pos - initial_committed)
+    !i - (pos - initial_commit_pos)
 
-  let commit t committed =
-    t.committed <- committed
+  let commit t pos =
+    t.commit_pos <- pos
 
 end
 
@@ -158,14 +158,14 @@ object
     | `Bigstring b ->
       Cstruct.blit (Cstruct.of_bigarray b) 0 !internal off len
 
-  method consume len =
+  method commit len =
     internal := Cstruct.shift !internal len
 
   method internal =
     let { Cstruct.buffer; off; len } = !internal in
     Bigarray.Array1.sub buffer off len
 
-  method unconsumed =
+  method uncommitted =
     let { Cstruct.buffer; off; len } = !internal in
     { buffer; off; len }
 end
@@ -192,8 +192,8 @@ module Unbuffered = struct
     | Done    of 'a
     | Fail    of string list * string
   and 'a partial =
-    { consumed : int
-    ; continue : input -> more -> 'a state }
+    { committed : int
+    ; continue  : input -> more -> 'a state }
 
   type 'a with_input =
     Input.t ->  int -> more -> 'a
@@ -235,8 +235,8 @@ type 'a state = 'a Unbuffered.state =
   | Done    of 'a
   | Fail    of string list * string
 and 'a partial = 'a Unbuffered.partial =
-  { consumed : int
-  ; continue : input -> more -> 'a state }
+  { committed : int
+  ; continue  : input -> more -> 'a state }
 
 type 'a t = 'a Unbuffered.t =
   { run : 'r. ('r Unbuffered.failure -> ('a, 'r) Unbuffered.success -> 'r state) Unbuffered.with_input }
@@ -255,8 +255,8 @@ module Buffered = struct
 
   let from_unbuffered_state ~f buffer = function
     | Unbuffered.Partial p      -> Partial (f p)
-    | Unbuffered.Done v         -> Done(buffer#unconsumed, v)
-    | Unbuffered.Fail (ms, err) -> Fail(buffer#unconsumed, ms, err)
+    | Unbuffered.Done v         -> Done(buffer#uncommitted, v)
+    | Unbuffered.Fail (ms, err) -> Fail(buffer#uncommitted, ms, err)
 
   let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
     if initial_buffer_size < 1 then
@@ -269,7 +269,7 @@ module Buffered = struct
       function
       | `Eof  -> from_unbuffered_state buffer ~f (p.continue (`Bigstring buffer#internal) Complete)
       | #input as input ->
-        buffer#consume p.consumed;
+        buffer#commit p.committed;
         buffer#feed input;
         from_unbuffered_state buffer ~f (p.continue (`Bigstring buffer#internal) Incomplete)
     in
@@ -284,7 +284,7 @@ module Buffered = struct
       | #input as input ->
         let buffer = buffer_of_unconsumed us in
         buffer#feed input;
-        Fail(buffer#unconsumed, marks, msg)
+        Fail(buffer#uncommitted, marks, msg)
       end
     | Done(us, v) ->
       begin match input with
@@ -292,7 +292,7 @@ module Buffered = struct
       | #input as input ->
         let buffer = buffer_of_unconsumed us in
         buffer#feed input;
-        Done(buffer#unconsumed, v)
+        Done(buffer#uncommitted, v)
       end
 
   let state_to_option = function
@@ -413,7 +413,7 @@ let (<|>) p q =
        * of the committed input, then calling the failure continuation will
        * have the effect of unwinding all choices and collecting marks along
        * the way. *)
-      if pos < Input.committed input' then
+      if pos < Input.commit_pos input' then
         fail input' pos' more marks msg
       else
         q.run input' pos more' fail succ in
@@ -423,15 +423,15 @@ let (<|>) p q =
 (** BEGIN: getting input *)
 
 let rec prompt input pos fail succ =
-  let uncommitted = Input.uncommitted input in
-  let committed   = Input.committed input in
+  let uncommitted_bytes = Input.uncommitted_bytes input in
+  let commit_pos        = Input.commit_pos input in
   (* The continuation should not hold any references to input above. *)
   let continue input more =
     let length = input_length input in
-    if length < uncommitted then
+    if length < uncommitted_bytes then
       failwith "prompt: input shrunk!";
-    let input = Input.create committed input in
-    if length = uncommitted then
+    let input = Input.create commit_pos input in
+    if length = uncommitted_bytes then
       if more = Complete then
         fail input pos Complete
       else
@@ -439,7 +439,7 @@ let rec prompt input pos fail succ =
     else
       succ input pos more
   in
-  Partial { consumed = Input.consumed input; continue }
+  Partial { committed = Input.committed_bytes input; continue }
 
 let demand_input =
   { run = fun input pos more fail succ ->

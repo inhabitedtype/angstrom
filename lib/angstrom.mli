@@ -475,13 +475,13 @@ module Unbuffered : sig
     | Done    of 'a (** The parser succeeded. *)
     | Fail    of string list * string (** The parser failed. *)
   and 'a partial =
-    { consumed : int
-      (** The number of bytes consumed during the last input feeding.
+    { committed : int
+      (** The number of bytes committed during the last input feeding.
           Callers must drop this number of bytes from the beginning of the
-          input on subsequent calls. *)
+          input on subsequent calls. See {!commit} for additional details. *)
     ; continue : input -> more -> 'a state
       (** A continuation of a parse that requires additional input. The input
-          should include all unconsumed input (as reported by previous partial
+          should include all uncommitted input (as reported by previous partial
           states) in addition to any new input that has become available, as
           well as an indication of whether there is {!more} input to come.  *)
     }
