@@ -250,13 +250,13 @@ module Buffered = struct
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state)
-    | Done    of unconsumed * 'a
-    | Fail    of unconsumed * string list * string
+    | Done    of 'a * unconsumed
+    | Fail    of string list * string * unconsumed
 
   let from_unbuffered_state ~f buffer = function
     | Unbuffered.Partial p      -> Partial (f p)
-    | Unbuffered.Done v         -> Done(buffer#uncommitted, v)
-    | Unbuffered.Fail (ms, err) -> Fail(buffer#uncommitted, ms, err)
+    | Unbuffered.Done v         -> Done(v, buffer#uncommitted)
+    | Unbuffered.Fail (ms, err) -> Fail(ms, err, buffer#uncommitted)
 
   let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
     if initial_buffer_size < 1 then
@@ -278,34 +278,34 @@ module Buffered = struct
   let feed state input =
     match state with
     | Partial k            -> k input
-    | Fail(us, marks, msg) ->
+    | Fail(marks, msg, us) ->
       begin match input with
       | `Eof   -> state
       | #input as input ->
         let buffer = buffer_of_unconsumed us in
         buffer#feed input;
-        Fail(buffer#uncommitted, marks, msg)
+        Fail(marks, msg, buffer#uncommitted)
       end
-    | Done(us, v) ->
+    | Done(v, us) ->
       begin match input with
       | `Eof   -> state
       | #input as input ->
         let buffer = buffer_of_unconsumed us in
         buffer#feed input;
-        Done(buffer#uncommitted, v)
+        Done(v, buffer#uncommitted)
       end
 
   let state_to_option = function
-    | Done(_, v) -> Some v
+    | Done(v, _) -> Some v
     | _          -> None
 
   let state_to_result = function
     | Partial _           -> Result.Error "incomplete input"
-    | Done(_, v)          -> Result.Ok v
-    | Fail(_, marks, err) -> Result.Error (Unbuffered.fail_to_string marks err)
+    | Done(v, _)          -> Result.Ok v
+    | Fail(marks, err, _) -> Result.Error (Unbuffered.fail_to_string marks err)
 
   let state_to_unconsumed = function
-    | (Done(us, _) | Fail(us, _, _)) -> Some us
+    | (Done(_, us) | Fail(_, _, us)) -> Some us
     | _                              -> None
 
 end

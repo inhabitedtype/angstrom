@@ -412,8 +412,8 @@ module Buffered : sig
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state) (** The parser requires more input. *)
-    | Done    of unconsumed * 'a (** The parser succeeded. *)
-    | Fail    of unconsumed * string list * string (** The parser failed. *)
+    | Done    of 'a * unconsumed (** The parser succeeded. *)
+    | Fail    of string list * string * unconsumed (** The parser failed. *)
 
   val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
   (** [parse ?initial_buffer_size ?input t] runs [t] on [input], if present,
