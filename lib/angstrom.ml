@@ -62,6 +62,9 @@ module Input = struct
   let committed_bytes { commit_pos; initial_commit_pos } =
     commit_pos - initial_commit_pos
 
+  let initial_commit_pos t =
+    t.initial_commit_pos
+
   let commit_pos t =
     t.commit_pos
 
@@ -146,7 +149,7 @@ class buffer cstruct =
      * this point. *)
     internal := Cstruct.add_len !internal len
   in
-object
+object(self)
   method feed (input:input) =
     let len = input_length input in
     ensure_space len;
@@ -165,9 +168,12 @@ object
     let { Cstruct.buffer; off; len } = !internal in
     Bigarray.Array1.sub buffer off len
 
-  method uncommitted =
-    let { Cstruct.buffer; off; len } = !internal in
+  method uncommitted_with_shift n =
+    let { Cstruct.buffer; off; len } = Cstruct.shift !internal n in
     { buffer; off; len }
+
+  method uncommitted =
+    self#uncommitted_with_shift 0
 end
 
 let buffer_of_cstruct cstruct =
@@ -189,7 +195,7 @@ module Unbuffered = struct
 
   type 'a state =
     | Partial of 'a partial
-    | Done    of 'a
+    | Done    of 'a * int
     | Fail    of string list * string
   and 'a partial =
     { committed : int
@@ -202,7 +208,7 @@ module Unbuffered = struct
   type ('a, 'r) success = ('a -> 'r state) with_input
 
   let fail_k    buf pos _ marks msg = Fail(marks, msg)
-  let succeed_k buf pos _       v   = Done(v)
+  let succeed_k buf pos _       v   = Done(v, pos - Input.initial_commit_pos buf)
 
   type 'a t =
     { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_input }
@@ -211,11 +217,11 @@ module Unbuffered = struct
     String.concat " > " marks ^ ": " ^ err
 
   let state_to_option = function
-    | Done v -> Some v
-    | _      -> None
+    | Done(v, _) -> Some v
+    | _          -> None
 
   let state_to_result = function
-    | Done v            -> Result.Ok v
+    | Done(v, _)        -> Result.Ok v
     | Partial _         -> Result.Error "incomplete input"
     | Fail (marks, err) -> Result.Error (fail_to_string marks err)
 
@@ -232,7 +238,7 @@ type more = Unbuffered.more =
 
 type 'a state = 'a Unbuffered.state =
   | Partial of 'a partial
-  | Done    of 'a
+  | Done    of 'a * int
   | Fail    of string list * string
 and 'a partial = 'a Unbuffered.partial =
   { committed : int
@@ -255,7 +261,7 @@ module Buffered = struct
 
   let from_unbuffered_state ~f buffer = function
     | Unbuffered.Partial p      -> Partial (f p)
-    | Unbuffered.Done v         -> Done(v, buffer#uncommitted)
+    | Unbuffered.Done (v , con) -> Done(v, buffer#uncommitted_with_shift con)
     | Unbuffered.Fail (ms, err) -> Fail(ms, err, buffer#uncommitted)
 
   let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =

@@ -472,7 +472,7 @@ module Unbuffered : sig
 
   type 'a state =
     | Partial of 'a partial (** The parser requires more input. *)
-    | Done    of 'a (** The parser succeeded. *)
+    | Done    of 'a * int (** The parser succeeded, consuming specified bytes. *)
     | Fail    of string list * string (** The parser failed. *)
   and 'a partial =
     { committed : int
