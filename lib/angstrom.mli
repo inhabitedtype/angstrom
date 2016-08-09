@@ -33,8 +33,8 @@
 
 (** Parser combinators built for speed and memory-efficiency.
 
-    Angstrom is a parser-combinator library that provides a monadic and
-    applicative interface for constructing parsers with unbounded lookahead.
+    Angstrom is a parser-combinator library that provides monadic and
+    applicative interfaces for constructing parsers with unbounded lookahead.
     Its parsers can consume input incrementally, whether in a blocking or
     non-blocking environment. To achieve efficient incremental parsing,
     Angstrom offers both a buffered and unbuffered interface to input streams,
