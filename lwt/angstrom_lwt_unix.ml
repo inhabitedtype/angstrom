@@ -32,9 +32,9 @@
   ----------------------------------------------------------------------------*)
 
 open Angstrom.Buffered
-open Lwt.Infix
+open Lwt
 
-let default_pushback () = Lwt.return_unit
+let default_pushback () = return_unit
 
 let parse ?(pushback=default_pushback) p in_chan =
   let size  = Lwt_io.buffer_size in_chan in
@@ -50,7 +50,7 @@ let parse ?(pushback=default_pushback) p in_chan =
       end
       >>= fun state' -> pushback ()
       >>= fun ()     -> loop state'
-    | state -> Lwt.return state
+    | state -> return state
   in
   loop (parse ~initial_buffer_size:size p)
   >|= fun state ->
