@@ -1,4 +1,5 @@
-.*.sw[po]
+.*.sw[a-z]
+*~
 _build/
 _tests/
 lib_test/tests_
