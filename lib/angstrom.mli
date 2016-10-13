@@ -138,83 +138,40 @@ val end_of_line : unit t
 
 (** {2 Little/Big/Native endian parsers} *)
 
-module Le : sig
-  (** {2 Little endian parsers} *)
+module type I = sig
 
   val int8 : int t
   val int16 : int t
   val int32 : int32 t
   val int64 : int64 t
-  (** [intN] reads [N] bits and interprets them as a signed, little endian
-      integer. *)
+  (** [intN] reads [N] bits and interprets them as a signed integers. The
+      assumed endianness of the bits is determined by the implementation. *)
 
   val uint8 : int t
   val uint16 : int t
   val uint32 : int32 t
   val uint64 : int64 t
-  (** [uintN] reads [N] bits and interprets them as an unsigned, little endian
-      integer. *)
+  (** [uintN] reads [N] bits and interprets them as an unsigned integers. The
+      assumed endianness of the bits is determined by the implementation. *)
 
   val float : float t
-  (** [float] reads four bytes and interprets them as a little endian floating
-      point value. *)
+  (** [float] reads four bytes and interprets them as a floating point value.
+      The assumed endianness of the bits is determined by the implementation. *)
 
   val double : float t
-  (** [double] reads eight bytes and interprets them as a little endian floating
-      point value. *)
+  (** [double] reads eight bytes and interprets them as a floating point value.
+      The assumed endianness of the bits is determined by the implementation. *)
+
 end
 
-module Be : sig
-  (** {2 Big endian parsers} *)
+module Le : I
+(** Little endian parsers *)
 
-  val int8 : int t
-  val int16 : int t
-  val int32 : int32 t
-  val int64 : int64 t
-  (** [intN] reads [N] bits and interprets them as a signed, big endian
-      integer. *)
+module Be : I
+(** Big endian parsers *)
 
-  val uint8 : int t
-  val uint16 : int t
-  val uint32 : int32 t
-  val uint64 : int64 t
-  (** [uintN] reads [N] bits and interprets them as an unsigned, big endian
-      integer. *)
-
-  val float : float t
-  (** [float] reads four bytes and interprets them as a big endian floating
-      point value. *)
-
-  val double : float t
-  (** [double] reads eight bytes and interprets them as a big endian floating
-      point value. *)
-end
-
-module Ne : sig
-  (** {2 Native endian parsers} *)
-
-  val int8 : int t
-  val int16 : int t
-  val int32 : int32 t
-  val int64 : int64 t
-  (** [intN] reads [N] bits and interprets them as a signed, native endian
-      integer. *)
-
-  val uint8 : int t
-  val uint16 : int t
-  val uint32 : int32 t
-  val uint64 : int64 t
-  (** [uintN] reads [N] bits and interprets them as an unsigned, native endian
-      integer. *)
-
-  val float : float t
-  (** [float] reads four bytes and interprets them as a native endian floating
-      point value. *)
-
-  val double : float t
-  (** [double] reads eight bytes and interprets them as a native endian floating
-      point value. *)
-end
+module Ne : I
+(** Native endian parsers *)
 
 
 (** {2 Combinators} *)

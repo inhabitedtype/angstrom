@@ -701,7 +701,22 @@ let skip_many1 p =
 let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
 
-module Make_endian(Es : EndianString.EndianStringSig) = struct
+module type I = sig
+  val int8 : int t
+  val int16 : int t
+  val int32 : int32 t
+  val int64 : int64 t
+
+  val uint8 : int t
+  val uint16 : int t
+  val uint32 : int32 t
+  val uint64 : int64 t
+
+  val float : float t
+  val double : float t
+end
+
+module Make_endian(Es : EndianString.EndianStringSig) : I = struct
   let get_float s = Es.get_float s 0
   let get_double s = Es.get_double s 0
 
