@@ -7,7 +7,8 @@ Homepage:    https://github.com/inhabitedtype/angstrom
 Copyrights:  (C) 2016 Inhabited Type LLC
 License:     BSD-3-clause
 Plugins:     META (0.4), DevFiles (0.4)
-BuildTools: ocamlbuild
+BuildTools:  ocamlbuild
+OCamlVersion: >= 4.01
 Synopsis:    Parser combinators built for speed and memory-efficiency
 Description:
    Angstrom is a parser-combinator library that makes it easy to write
@@ -38,7 +39,7 @@ Flag unix
 Library angstrom
   Path:         lib
   Findlibname:  angstrom
-  BuildDepends: cstruct (>= 0.6.0), result
+  BuildDepends: cstruct (>= 0.6.0), ocplib-endian (>= 0.6), result
   Modules:      Angstrom
 
 Document api

@@ -25,6 +25,7 @@ build-test: [
 depends: [
   "alcotest" {test & >= "0.4.1"}
   "cstruct" {>= "0.6.0"}
+  "ocplib-endian" {>= "0.6"}
   "ocamlfind" {build}
   "result"
 ]
@@ -33,4 +34,4 @@ depopts: [
   "base-unix"
   "lwt"
 ]
-available: [ ocaml-version >= "4.00.0" ]
+available: [ ocaml-version >= "4.01.0" ]
