@@ -25,6 +25,7 @@ build-test: [
 depends: [
   "alcotest" {test & >= "0.4.1"}
   "cstruct" {>= "0.6.0"}
+  "ocplib-endian" {>= "0.6"}
   "ocamlfind" {build}
   "result"
 ]

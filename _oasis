@@ -38,7 +38,7 @@ Flag unix
 Library angstrom
   Path:         lib
   Findlibname:  angstrom
-  BuildDepends: cstruct (>= 0.6.0), result
+  BuildDepends: cstruct (>= 0.6.0), ocplib-endian (>= 0.6), result
   Modules:      Angstrom
 
 Document api
