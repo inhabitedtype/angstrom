@@ -147,16 +147,6 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     check : ?size:int -> msg:string -> 'a Angstrom.t -> string list -> 'a -> unit;
   }
 
-  let int8 = {
-    name = "int8";
-    size = 1;
-    zero = 0;
-    min = ~-128;
-    max = 127;
-    set = Es.set_int8;
-    get = Es.get_int8;
-    check = check_int;
-  }
   let int16 = {
     name = "int16";
     size = 2;
@@ -210,7 +200,6 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     check = check_float;
   }
 
-  let uint8 = { int8 with name = "uint8"; min = 0; max = 255 }
   let uint16 = { int16 with name = "uint16"; min = 0; max = 65535 }
   let uint32 = { int32 with name = "uint32" }
   let uint64 = { int64 with name = "uint64" }
@@ -230,11 +219,9 @@ module Endian(Es : EndianString.EndianStringSig) = struct
   module type EndianSig = module type of Le
 
   let tests (module E : EndianSig) = [
-    make_tests int8   E.int8;
     make_tests int16  E.int16;
     make_tests int32  E.int32;
     make_tests int64  E.int64;
-    make_tests uint8  E.uint8;
     make_tests uint16 E.uint16;
     make_tests uint32 E.uint32;
     make_tests uint64 E.uint64;

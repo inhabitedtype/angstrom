@@ -702,12 +702,10 @@ let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
 
 module type I = sig
-  val int8 : int t
   val int16 : int t
   val int32 : int32 t
   val int64 : int64 t
 
-  val uint8 : int t
   val uint16 : int t
   val uint32 : int32 t
   val uint64 : int64 t
@@ -720,27 +718,21 @@ module Make_endian(Es : EndianString.EndianStringSig) : I = struct
   let get_float s = Es.get_float s 0
   let get_double s = Es.get_double s 0
 
-  let get_int8 s = Es.get_int8 s 0
   let get_int16 s = Es.get_int16 s 0
   let get_int32 s = Es.get_int32 s 0
   let get_int64 s = Es.get_int64 s 0
 
-  let get_uint8 s = Es.get_uint8 s 0
   let get_uint16 s = Es.get_uint16 s 0
   let get_uint32 s = Es.get_int32 s 0
   let get_uint64 s = Es.get_int64 s 0
 
   (* int *)
-  let uint8 =
-    take 1 >>| get_uint8
   let uint16 =
     take 2 >>| get_uint16
   let uint32 =
     take 4 >>| get_uint32
   let uint64 =
     take 8 >>| get_uint64
-  let int8 =
-    take 1 >>| get_int8
   let int16 =
     take 2 >>| get_int16
   let int32 =
