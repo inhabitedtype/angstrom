@@ -749,4 +749,3 @@ end
 
 module Le = Make_endian(EndianString.LittleEndian_unsafe)
 module Be = Make_endian(EndianString.BigEndian_unsafe)
-module Ne = Make_endian(EndianString.NativeEndian_unsafe)

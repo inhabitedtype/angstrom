@@ -235,9 +235,6 @@ let little_endian =
 let big_endian =
   let module E = Endian(EndianString.BigEndian) in
   E.tests (module Be)
-let native_endian =
-  let module E = Endian(EndianString.NativeEndian) in
-  E.tests (module Ne)
 
 let monadic =
   [ "fail", `Quick, begin fun () ->
@@ -320,7 +317,6 @@ let () =
     [ "basic constructors"    , basic_constructors
     ; "little endian"         , little_endian
     ; "big endian"            , big_endian
-    ; "native endian"         , native_endian
     ; "monadic interface"     , monadic
     ; "applicative interface" , applicative
     ; "alternative"           , alternative

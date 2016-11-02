@@ -44,7 +44,6 @@ let main () =
       | R.Error err -> failwith err);
     make_endian "int64 le" Angstrom.Le.int64;
     make_endian "int64 be" Angstrom.Be.int64;
-    make_endian "int64 ne" Angstrom.Ne.int64;
   ])
 
 let () = main ()

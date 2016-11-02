@@ -168,9 +168,6 @@ module Le : I
 module Be : I
 (** Big endian parsers *)
 
-module Ne : I
-(** Native endian parsers *)
-
 
 (** {2 Combinators} *)
 
