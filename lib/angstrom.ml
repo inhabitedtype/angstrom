@@ -77,12 +77,11 @@ module Input = struct
     | `String    s -> String.sub s off len
     | `Bigstring b -> Cstruct.to_string (Cstruct.of_bigarray ~off ~len b)
 
-  let get { initial_commit_pos; input } pos =
+  let get_char { initial_commit_pos; input } pos =
     let pos = pos - initial_commit_pos in
     match input with
     | `String s    -> String.unsafe_get s pos
     | `Bigstring b -> Bigarray.Array1.unsafe_get b pos
-
 
   let count_while { initial_commit_pos; input } pos f =
     let i = ref (pos - initial_commit_pos) in
@@ -537,12 +536,12 @@ let unsafe_lookahead p =
 let peek_char =
   { run = fun input pos more fail succ ->
     if pos < Input.length input then
-      succ input pos more (Some (Input.get input pos))
+      succ input pos more (Some (Input.get_char input pos))
     else if more = Complete then
       succ input pos more None
     else
       let succ' input' pos' more' =
-        succ input' pos' more' (Some (Input.get input' pos'))
+        succ input' pos' more' (Some (Input.get_char input' pos'))
       and fail' input' pos' more' =
         succ input' pos' more' None in
       prompt input pos fail' succ'
@@ -551,12 +550,12 @@ let peek_char =
 let _char ~msg f =
   { run = fun input pos more fail succ ->
     if pos < Input.length input then
-      match f (Input.get input pos) with
+      match f (Input.get_char input pos) with
       | None   -> fail input pos more [] msg
       | Some v -> succ input (pos + 1) more v
     else
       let succ' input' pos' more' () =
-        match f (Input.get input' pos') with
+        match f (Input.get_char input' pos') with
         | None   -> fail input' pos' more' [] msg
         | Some v -> succ input' (pos' + 1) more' v
       in
@@ -580,6 +579,14 @@ let not_char c =
 
 let any_char =
   _char ~msg:"any_char" (fun c -> Some c)
+
+let any_uint8 =
+  _char ~msg:"any_uint8" (fun c -> Some (Char.code c))
+
+let any_int8 =
+  (* https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtendRisky *)
+  let s = Sys.word_size - 1 - 8 in
+  _char ~msg:"any_int8" (fun c -> Some ((Char.code c lsl s) asr s))
 
 let count_while ?(init=0) f =
   (* NB: does not advance position. *)

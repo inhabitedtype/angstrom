@@ -78,6 +78,12 @@ val not_char : char -> char t
 val any_char : char t
 (** [any_char] accepts any character and returns it. *)
 
+val any_uint8 : int t
+(** [any_uint8] accepts any byte and returns it as an unsigned int8. *)
+
+val any_int8 : int t
+(** [any_int8] accepts any byte and returns it as a signed int8. *)
+
 val satisfy : (char -> bool) -> char t
 (** [satisfy f] accepts any character for which [f] returns [true] and returns
     the accepted character. *)

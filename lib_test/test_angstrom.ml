@@ -109,6 +109,12 @@ let basic_constructors =
       check_c    ~msg:"non-empty buffer" any_char ["a"] 'a';
       check_fail ~msg:"empty buffer"     any_char [""]
   end
+  ; "any_{,u}int8", `Quick, begin fun () ->
+    check_int ~msg:"positive sign preserved" any_int8 ["\127"] 127;
+    check_int ~msg:"negative sign preserved" any_int8 ["\129"] (-127);
+    check_int ~msg:"sign invariant" any_uint8 ["\127"] 127;
+    check_int ~msg:"sign invariant" any_uint8 ["\129"] (129)
+  end
   ; "string", `Quick, begin fun () ->
       check_s ~msg:"empty string, non-empty buffer" (string "")     ["asdf"] "";
       check_s ~msg:"empty string, empty buffer"     (string "")     [""]     "";
