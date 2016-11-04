@@ -109,6 +109,12 @@ let basic_constructors =
       check_c    ~msg:"non-empty buffer" any_char ["a"] 'a';
       check_fail ~msg:"empty buffer"     any_char [""]
   end
+  ; "any_{,u}int8", `Quick, begin fun () ->
+    check_int ~msg:"positive sign preserved" any_int8 ["\127"] 127;
+    check_int ~msg:"negative sign preserved" any_int8 ["\129"] (-127);
+    check_int ~msg:"sign invariant" any_uint8 ["\127"] 127;
+    check_int ~msg:"sign invariant" any_uint8 ["\129"] (129)
+  end
   ; "string", `Quick, begin fun () ->
       check_s ~msg:"empty string, non-empty buffer" (string "")     ["asdf"] "";
       check_s ~msg:"empty string, empty buffer"     (string "")     [""]     "";
@@ -142,30 +148,18 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     zero : 'a;
     min : 'a;
     max : 'a;
-    set : Bytes.t -> int -> 'a -> unit;
-    get : string -> int -> 'a;
-    check : ?size:int -> msg:string -> 'a Angstrom.t -> string list -> 'a -> unit;
+    dump : Bytes.t -> int -> 'a -> unit;
+    testable : 'a Alcotest.testable
   }
 
-  let int8 = {
-    name = "int8";
-    size = 1;
-    zero = 0;
-    min = ~-128;
-    max = 127;
-    set = Es.set_int8;
-    get = Es.get_int8;
-    check = check_int;
-  }
   let int16 = {
     name = "int16";
     size = 2;
     zero = 0;
     min = ~-32768;
     max = 32767;
-    set = Es.set_int16;
-    get = Es.get_int16;
-    check = check_int;
+    dump = Es.set_int16;
+    testable = Alcotest.int
   }
   let int32 = {
     name = "int32";
@@ -173,9 +167,8 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     zero = Int32.zero;
     min = Int32.min_int;
     max = Int32.max_int;
-    set = Es.set_int32;
-    get = Es.get_int32;
-    check = check_int32;
+    dump = Es.set_int32;
+    testable = Alcotest.int32
   }
   let int64 = {
     name = "int64";
@@ -183,9 +176,8 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     zero = Int64.zero;
     min = Int64.min_int;
     max = Int64.max_int;
-    set = Es.set_int64;
-    get = Es.get_int64;
-    check = check_int64;
+    dump = Es.set_int64;
+    testable = Alcotest.int64
   }
   let float = {
     name = "float";
@@ -194,9 +186,8 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     (* XXX: Not really min/max *)
     min = ~-.2e10;
     max = 2e10;
-    set = Es.set_float;
-    get = Es.get_float;
-    check = check_float;
+    dump = Es.set_float;
+    testable = Alcotest.float
   }
   let double = {
     name = "double";
@@ -205,36 +196,32 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     (* XXX: Not really min/max *)
     min = ~-.2e30;
     max = 2e30;
-    set = Es.set_double;
-    get = Es.get_double;
-    check = check_float;
+    dump = Es.set_double;
+    testable = Alcotest.float
   }
 
-  let uint8 = { int8 with name = "uint8"; min = 0; max = 255 }
   let uint16 = { int16 with name = "uint16"; min = 0; max = 65535 }
   let uint32 = { int32 with name = "uint32" }
   let uint64 = { int64 with name = "uint64" }
 
-  let to_string e x =
-    let buf = Bytes.create e.size in
-    e.set buf 0 x;
-    buf
+   let dump e x =
+     let buf = Bytes.create e.size in
+     e.dump buf 0 x;
+     buf
 
   let make_tests e parse = e.name, `Quick, begin fun () ->
-    e.check ~msg:"zero"     parse [to_string e e.zero]          e.zero;
-    e.check ~msg:"min"      parse [to_string e e.min]           e.min;
-    e.check ~msg:"max"      parse [to_string e e.max]           e.max;
-    e.check ~msg:"trailing" parse [to_string e e.zero ^ "\xff"] e.zero;
+    check_ok ~msg:"zero"     e.testable parse [dump e e.zero]          e.zero;
+    check_ok ~msg:"min"      e.testable parse [dump e e.min]           e.min;
+    check_ok ~msg:"max"      e.testable parse [dump e e.max]           e.max;
+    check_ok ~msg:"trailing" e.testable parse [dump e e.zero ^ "\xff"] e.zero;
   end
 
   module type EndianSig = module type of Le
 
   let tests (module E : EndianSig) = [
-    make_tests int8   E.int8;
     make_tests int16  E.int16;
     make_tests int32  E.int32;
     make_tests int64  E.int64;
-    make_tests uint8  E.uint8;
     make_tests uint16 E.uint16;
     make_tests uint32 E.uint32;
     make_tests uint64 E.uint64;
@@ -248,9 +235,6 @@ let little_endian =
 let big_endian =
   let module E = Endian(EndianString.BigEndian) in
   E.tests (module Be)
-let native_endian =
-  let module E = Endian(EndianString.NativeEndian) in
-  E.tests (module Ne)
 
 let monadic =
   [ "fail", `Quick, begin fun () ->
@@ -333,7 +317,6 @@ let () =
     [ "basic constructors"    , basic_constructors
     ; "little endian"         , little_endian
     ; "big endian"            , big_endian
-    ; "native endian"         , native_endian
     ; "monadic interface"     , monadic
     ; "applicative interface" , applicative
     ; "alternative"           , alternative

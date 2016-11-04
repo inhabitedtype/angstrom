@@ -77,12 +77,11 @@ module Input = struct
     | `String    s -> String.sub s off len
     | `Bigstring b -> Cstruct.to_string (Cstruct.of_bigarray ~off ~len b)
 
-  let get { initial_commit_pos; input } pos =
+  let get_char { initial_commit_pos; input } pos =
     let pos = pos - initial_commit_pos in
     match input with
     | `String s    -> String.unsafe_get s pos
     | `Bigstring b -> Bigarray.Array1.unsafe_get b pos
-
 
   let count_while { initial_commit_pos; input } pos f =
     let i = ref (pos - initial_commit_pos) in
@@ -537,12 +536,12 @@ let unsafe_lookahead p =
 let peek_char =
   { run = fun input pos more fail succ ->
     if pos < Input.length input then
-      succ input pos more (Some (Input.get input pos))
+      succ input pos more (Some (Input.get_char input pos))
     else if more = Complete then
       succ input pos more None
     else
       let succ' input' pos' more' =
-        succ input' pos' more' (Some (Input.get input' pos'))
+        succ input' pos' more' (Some (Input.get_char input' pos'))
       and fail' input' pos' more' =
         succ input' pos' more' None in
       prompt input pos fail' succ'
@@ -551,12 +550,12 @@ let peek_char =
 let _char ~msg f =
   { run = fun input pos more fail succ ->
     if pos < Input.length input then
-      match f (Input.get input pos) with
+      match f (Input.get_char input pos) with
       | None   -> fail input pos more [] msg
       | Some v -> succ input (pos + 1) more v
     else
       let succ' input' pos' more' () =
-        match f (Input.get input' pos') with
+        match f (Input.get_char input' pos') with
         | None   -> fail input' pos' more' [] msg
         | Some v -> succ input' (pos' + 1) more' v
       in
@@ -580,6 +579,14 @@ let not_char c =
 
 let any_char =
   _char ~msg:"any_char" (fun c -> Some c)
+
+let any_uint8 =
+  _char ~msg:"any_uint8" (fun c -> Some (Char.code c))
+
+let any_int8 =
+  (* https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtendRisky *)
+  let s = Sys.word_size - 1 - 8 in
+  _char ~msg:"any_int8" (fun c -> Some ((Char.code c lsl s) asr s))
 
 let count_while ?(init=0) f =
   (* NB: does not advance position. *)
@@ -702,12 +709,10 @@ let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
 
 module type I = sig
-  val int8 : int t
   val int16 : int t
   val int32 : int32 t
   val int64 : int64 t
 
-  val uint8 : int t
   val uint16 : int t
   val uint32 : int32 t
   val uint64 : int64 t
@@ -720,41 +725,27 @@ module Make_endian(Es : EndianString.EndianStringSig) : I = struct
   let get_float s = Es.get_float s 0
   let get_double s = Es.get_double s 0
 
-  let get_int8 s = Es.get_int8 s 0
   let get_int16 s = Es.get_int16 s 0
   let get_int32 s = Es.get_int32 s 0
   let get_int64 s = Es.get_int64 s 0
 
-  let get_uint8 s = Es.get_uint8 s 0
   let get_uint16 s = Es.get_uint16 s 0
   let get_uint32 s = Es.get_int32 s 0
   let get_uint64 s = Es.get_int64 s 0
 
   (* int *)
-  let uint8 =
-    take 1 >>| get_uint8
-  let uint16 =
-    take 2 >>| get_uint16
-  let uint32 =
-    take 4 >>| get_uint32
-  let uint64 =
-    take 8 >>| get_uint64
-  let int8 =
-    take 1 >>| get_int8
-  let int16 =
-    take 2 >>| get_int16
-  let int32 =
-    take 4 >>| get_int32
-  let int64 =
-    take 8 >>| get_int64
+  let int16 = take 2 >>| get_int16
+  let int32 = take 4 >>| get_int32
+  let int64 = take 8 >>| get_int64
+
+  let uint16 = take 2 >>| get_uint16
+  let uint32 = take 4 >>| get_uint32
+  let uint64 = take 8 >>| get_uint64
 
   (* float *)
-  let float =
-    take 4 >>| get_float
-  let double =
-    take 8 >>| get_double
+  let float  = take 4 >>| get_float
+  let double = take 8 >>| get_double
 end
 
 module Le = Make_endian(EndianString.LittleEndian_unsafe)
 module Be = Make_endian(EndianString.BigEndian_unsafe)
-module Ne = Make_endian(EndianString.NativeEndian_unsafe)

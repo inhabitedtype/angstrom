@@ -78,6 +78,12 @@ val not_char : char -> char t
 val any_char : char t
 (** [any_char] accepts any character and returns it. *)
 
+val any_uint8 : int t
+(** [any_uint8] accepts any byte and returns it as an unsigned int8. *)
+
+val any_int8 : int t
+(** [any_int8] accepts any byte and returns it as a signed int8. *)
+
 val satisfy : (char -> bool) -> char t
 (** [satisfy f] accepts any character for which [f] returns [true] and returns
     the accepted character. *)
@@ -140,14 +146,12 @@ val end_of_line : unit t
 
 module type I = sig
 
-  val int8 : int t
   val int16 : int t
   val int32 : int32 t
   val int64 : int64 t
   (** [intN] reads [N] bits and interprets them as a signed integers. The
       assumed endianness of the bits is determined by the implementation. *)
 
-  val uint8 : int t
   val uint16 : int t
   val uint32 : int32 t
   val uint64 : int64 t
@@ -169,9 +173,6 @@ module Le : I
 
 module Be : I
 (** Big endian parsers *)
-
-module Ne : I
-(** Native endian parsers *)
 
 
 (** {2 Combinators} *)
