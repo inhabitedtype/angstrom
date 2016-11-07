@@ -129,6 +129,9 @@ val take_till : (char -> bool) -> string t
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty string. *)
 
+val at_end_of_input : bool t
+(** [at_end_of_input] returns whether the end of the end of input has been
+    reached. This parser always succeeds. *)
 
 val end_of_input : unit t
 (** [end_of_input] succeeds if all the input has been consumed, and fails

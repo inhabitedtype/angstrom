@@ -484,17 +484,23 @@ let ensure n =
 
 (** END: getting input *)
 
-let end_of_input =
-  { run = fun input pos more fail succ ->
+let at_end_of_input =
+  { run = fun input pos more _ succ ->
     if pos < Input.length input then
-      fail input pos more [] "end_of_input"
+      succ input pos more false
     else if more = Complete then
-      succ input pos more ()
+      succ input pos more true
     else
-      let succ' input' pos' more' = fail input' pos' more' [] "end_of_input"
-      and fail' input' pos' more' = succ input' pos' more' () in
+      let succ' input' pos' more' = succ input' pos' more' false
+      and fail' input' pos' more' = succ input' pos' more' true in
       prompt input pos fail' succ'
   }
+
+let end_of_input =
+  at_end_of_input
+  >>= function
+    | true  -> return ()
+    | false -> fail "end_of_input"
 
 let advance n =
   { run = fun input pos more _fail succ -> succ input (pos + n) more () }
