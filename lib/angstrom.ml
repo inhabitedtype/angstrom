@@ -456,18 +456,6 @@ let demand_input =
       prompt input pos fail' succ'
   }
 
-let want_input =
-  { run = fun input pos more _fail succ ->
-    if pos < Input.length input then
-      succ input pos more true
-    else if more = Complete then
-      succ input pos more false
-    else
-      let succ' input' pos' more' = succ input' pos' more' true
-      and fail' input' pos' more' = succ input' pos' more' false in
-      prompt input pos fail' succ'
-  }
-
 let ensure_suspended n input pos more fail succ =
   let rec go =
     { run = fun input' pos' more' fail' succ' ->
@@ -639,17 +627,6 @@ let take_while1 f =
 let take_till f =
   take_while (fun c -> not (f c))
 
-let take_rest =
-  let rec go acc =
-    want_input >>= function
-      | true  ->
-        available >>= fun n ->
-        unsafe_substring n >>= fun str ->
-        go (str::acc)
-      | false ->
-        return (List.rev acc)
-  in
-  go []
 
 let choice ps =
   List.fold_right (<|>) ps (fail "empty")
