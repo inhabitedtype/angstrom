@@ -129,6 +129,14 @@ val take_till : (char -> bool) -> string t
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty string. *)
 
+val advance : int -> unit t
+(** [advance n] advances the input [n] characters, failing if the remaining
+    input is less than [n]. *)
+
+val end_of_line : unit t
+(** [end_of_input] accepts either a line feed [\n], or a carriage return
+    followed by a line feed [\r\n] and returns unit. *)
+
 val at_end_of_input : bool t
 (** [at_end_of_input] returns whether the end of the end of input has been
     reached. This parser always succeeds. *)
@@ -136,10 +144,6 @@ val at_end_of_input : bool t
 val end_of_input : unit t
 (** [end_of_input] succeeds if all the input has been consumed, and fails
     otherwise. *)
-
-val end_of_line : unit t
-(** [end_of_input] accepts either a line feed [\n], or a carriage return
-    followed by a line feed [\r\n] and returns unit. *)
 
 
 (** {2 Little/Big/Native endian parsers} *)
