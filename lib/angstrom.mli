@@ -536,6 +536,8 @@ module Z : sig
   val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
   val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 
+  val available : int t
+
   val parse_only : 'a t -> input -> ('a, string) Result.result
 end
 

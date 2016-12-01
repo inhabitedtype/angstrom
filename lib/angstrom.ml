@@ -695,6 +695,10 @@ module Z = struct
 
   let skip_many1 p =
     p *> skip_many p
+
+  let available =
+    fun input pos more ->
+      D(Input.length input - pos, pos)
 end
 
 let parse_only p input =
