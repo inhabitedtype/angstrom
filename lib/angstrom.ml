@@ -445,6 +445,28 @@ module Z = struct
       | F(ms, msg) -> F(ms, msg)
       | P(k, pos)  -> P(lift3 f k p2 p3, pos)
 
+  let rec lift4 f p1 p2 p3 p4 =
+    fun input pos more ->
+      match p1 input pos more with
+      | D(x, pos)      ->
+        begin match p2 input pos more with
+        | D(y, pos)  ->
+          begin match p3 input pos more with
+          | D(z, pos)  ->
+            begin match p4 input pos more with
+            | D(zz, pos) -> D(f x y z zz, pos)
+            | F(ms, msg) -> F(ms, msg)
+            | P(k, pos)  -> P(lift (fun zz -> f x y z zz) k, pos)
+            end
+          | F(ms, msg) -> F(ms, msg)
+          | P(k, pos)  -> P(lift2 (fun z zz -> f x y z zz) k p4, pos)
+          end
+        | F(ms, msg) -> F(ms, msg)
+        | P(k, pos)  -> P(lift3 (fun y z zz -> f x y z zz) k p3 p4, pos)
+        end
+      | F(ms, msg) -> F(ms, msg)
+      | P(k, pos)  -> P(lift4 f k p2 p3 p4, pos)
+
   let rec lookahead ?back_to p =
     fun input pos more ->
       let back_to =
