@@ -599,16 +599,14 @@ module Z = struct
     in
     go 0
 
-  let take n =
-    let rec go input pos more =
+  let rec take n =
+    fun input pos more ->
       if pos + n <= Input.length input then
         D(Input.substring input pos n, pos + n)
       else if more = Complete then
         F([], "take")
       else
-        P(go, pos)
-    in
-    go
+        P(take n, pos)
 
   let take_while f =
     count_while "take_while" f (fun input pos len ->
@@ -623,6 +621,15 @@ module Z = struct
 
   let take_till f =
     take_while (fun c -> not (f c))
+
+  let rec advance n =
+    fun input pos more ->
+      if pos + n <= Input.length input then
+        D((), pos + n)
+      else if more = Complete then
+        F([], "advance")
+      else
+        P(advance n, pos)
 
   let rec take_rest = 
     fun input pos more ->

@@ -495,6 +495,7 @@ module Z : sig
   val take_while : (char -> bool) -> string t
   val take_while1 : (char -> bool) -> string t
   val take_till : (char -> bool) -> string t
+  val advance : int -> unit t
   val take_rest : string list t
 
   val end_of_input : unit t
