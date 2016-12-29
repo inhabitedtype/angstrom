@@ -216,7 +216,7 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     check_ok ~msg:"trailing" e.testable parse [dump e e.zero ^ "\xff"] e.zero;
   end
 
-  module type EndianSig = module type of Le
+  module type EndianSig = module type of LE
 
   let tests (module E : EndianSig) = [
     make_tests int16  E.int16;
@@ -231,10 +231,10 @@ module Endian(Es : EndianString.EndianStringSig) = struct
 end
 let little_endian =
   let module E = Endian(EndianString.LittleEndian) in
-  E.tests (module Le)
+  E.tests (module LE)
 let big_endian =
   let module E = Endian(EndianString.BigEndian) in
-  E.tests (module Be)
+  E.tests (module BE)
 
 let monadic =
   [ "fail", `Quick, begin fun () ->
