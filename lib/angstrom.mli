@@ -146,37 +146,50 @@ val end_of_input : unit t
     otherwise. *)
 
 
-(** {2 Little/Big/Native endian parsers} *)
-
-module type I = sig
-
+(** Big endian parsers *)
+module BE : sig
   val int16 : int t
   val int32 : int32 t
   val int64 : int64 t
-  (** [intN] reads [N] bits and interprets them as a signed integers. The
-      assumed endianness of the bits is determined by the implementation. *)
+  (** [intN] reads [N] bits and interprets them as big endian signed integers. *)
 
   val uint16 : int t
   val uint32 : int32 t
   val uint64 : int64 t
-  (** [uintN] reads [N] bits and interprets them as an unsigned integers. The
-      assumed endianness of the bits is determined by the implementation. *)
+  (** [uintN] reads [N] bits and interprets them as big endian unsigned
+      integers. *)
 
   val float : float t
-  (** [float] reads four bytes and interprets them as a floating point value.
-      The assumed endianness of the bits is determined by the implementation. *)
+  (** [float] reads 32 bits and interprets them as a big endian floating
+      point value. *)
 
   val double : float t
-  (** [double] reads eight bytes and interprets them as a floating point value.
-      The assumed endianness of the bits is determined by the implementation. *)
-
+  (** [double] reads 64 bits and interprets them as a big endian floating
+      point value. *)
 end
 
-module Le : I
 (** Little endian parsers *)
+module LE : sig
+  val int16 : int t
+  val int32 : int32 t
+  val int64 : int64 t
+  (** [intN] reads [N] bits and interprets them as little endian signed
+      integers. *)
 
-module Be : I
-(** Big endian parsers *)
+  val uint16 : int t
+  val uint32 : int32 t
+  val uint64 : int64 t
+  (** [uintN] reads [N] bits and interprets them as little endian unsigned
+      integers. *)
+
+  val float : float t
+  (** [float] reads 32 bits and interprets them as a little endian floating
+      point value. *)
+
+  val double : float t
+  (** [double] reads 64 bits and interprets them as a little endian floating
+      point value. *)
+end
 
 
 (** {2 Combinators} *)
