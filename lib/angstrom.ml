@@ -209,7 +209,7 @@ module Unbuffered = struct
   let fail_k    buf pos _ marks msg = Fail(marks, msg)
   let succeed_k buf pos _       v   = Done(v, pos - Input.initial_commit_pos buf)
 
-  type 'a t =
+  type +'a t =
     { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_input }
 
   let fail_to_string marks err =

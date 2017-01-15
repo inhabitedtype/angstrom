@@ -44,7 +44,7 @@
     reusable parsers suitable for high-performance applications. *)
 
 
-type 'a t
+type +'a t
 (** A parser for values of type ['a]. *)
 
 
