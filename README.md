@@ -13,7 +13,7 @@ by default and support unbounded lookahead.
 
 ## Installation
 
-Install the library and its depenencies via [OPAM][opam]:
+Install the library and its dependencies via [OPAM][opam]:
 
 [opam]: http://opam.ocaml.org/
 
