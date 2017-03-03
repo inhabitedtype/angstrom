@@ -136,7 +136,7 @@ library. While the original approach of continuation-passing still survives in
 the source code, several modifications have been made in order to adapt the
 ideas to OCaml, and in the process allow for more efficient memory usage and
 integration with monadic concurrency libraries. This library will undoubtedly
-diverge further as time goes on, but it's name will stand as an homage to its
+diverge further as time goes on, but its name will stand as an homage to its
 origin.
 
 [attoparsec]: https://github.com/bos/attoparsec
