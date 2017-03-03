@@ -82,7 +82,7 @@ consequence of this approach to modeling and retrieving input is that the
 parsers cannot iterate over sections of input in a tight loop, which adversely
 affects performance.
 
-Below is a table that compares the features of Angstrom agains the those of
+Below is a table that compares the features of Angstrom against the those of
 other parser-combinator libraries.
 
 [parsec]: https://hackage.haskell.org/package/parsec
@@ -136,7 +136,7 @@ library. While the original approach of continuation-passing still survives in
 the source code, several modifications have been made in order to adapt the
 ideas to OCaml, and in the process allow for more efficient memory usage and
 integration with monadic concurrency libraries. This library will undoubtedly
-diverge further as time goes on, but it's name will stand as an homage to its
+diverge further as time goes on, but its name will stand as an homage to its
 origin.
 
 [attoparsec]: https://github.com/bos/attoparsec
