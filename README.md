@@ -82,7 +82,7 @@ consequence of this approach to modeling and retrieving input is that the
 parsers cannot iterate over sections of input in a tight loop, which adversely
 affects performance.
 
-Below is a table that compares the features of Angstrom agains the those of
+Below is a table that compares the features of Angstrom against the those of
 other parser-combinator libraries.
 
 [parsec]: https://hackage.haskell.org/package/parsec
