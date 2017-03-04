@@ -97,8 +97,8 @@ val string_ci : string -> string t
 
 val skip : (char -> bool) -> unit t
 (** [skip f] accepts any character for which [f] returns [true] and discards
-    the accepted character. [skip f] equivalent to [satisfy f] but discards the
-    accepted character. *)
+    the accepted character. [skip f] is equivalent to [satisfy f] but discards
+    the accepted character. *)
 
 val skip_while : (char -> bool) -> unit t
 (** [skip_while f] accepts input as long as [f] returns [true] and discards
@@ -246,7 +246,7 @@ val fix : ('a t -> 'a t) -> 'a t
     result of every run into a list, returning the result. It's defined by
     passing [fix] a function. This function assumes its argument [m] is a
     parser that behaves exactly like [many p]. You can see this in the
-    expression comprising the left hand slide of the alternative operator
+    expression comprising the left hand side of the alternative operator
     [<|>]. This expression runs the parser [p] followed by the parser [m], and
     after which the result of [p] is cons'd onto the list that [m] produces.
     The right-hand side of the alternative operator provides a base case for
@@ -323,7 +323,8 @@ val (<$>) : ('a -> 'b) -> 'a t -> 'b t
 (** [f <$> p] is equivalent to [p >>| f] *)
 
 val ( *>) : 'a t -> 'b t -> 'b t
-(** [p *> q] runs [p], discards its result and then runs [q]. *)
+(** [p *> q] runs [p], discards its result and then runs [q], and returns its
+    result. *)
 
 val (<* ) : 'a t -> 'b t -> 'a t
 (** [p <* q] runs [p], then runs [q], discards its result, and returns the
@@ -340,14 +341,14 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 
     These functions are more efficient than using the applicative interface
     directly, mostly in terms of memory allocation but also in terms of speed.
-    Prefer them over the applicative interface, even when the artiy of the
+    Prefer them over the applicative interface, even when the arity of the
     function to be lifted exceeds the maximum [n] for which there is an
     implementation for [liftn]. In other words, if [f] has an arity of [5] but
     only [lift4] is provided, do the following:
 
 {[lift4 f m1 m2 m3 m4 <*> m5]}
 
-    Even with the partial application, it will be more efficient the
+    Even with the partial application, it will be more efficient than the
     applicative implementation. *)
 
 
@@ -362,7 +363,7 @@ type input =
 
 val parse_only : 'a t -> input -> ('a, string) Result.result
 (** [parse_only t input] runs [t] on [input]. The parser will receive an [`Eof]
-    after all of input has been consumed. For use-cases requiring that the
+    after all of [input] has been consumed. For use-cases requiring that the
     parser be fed input incrementally, see the {!module:Buffered} and
     {!module:Unbuffered} modules below. *)
 
@@ -392,9 +393,9 @@ module Buffered : sig
 
   val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
   (** [parse ?initial_buffer_size ?input t] runs [t] on [input], if present,
-      and await input if needed. [parse] will allocate a buffer of size
+      and awaits input if needed. [parse] will allocate a buffer of size
       [initial_buffer_size] (defaulting to 4k bytes) to do input buffering and
-      automatically grow the buffer as needed. If [input] is a bigstring, its
+      automatically grows the buffer as needed. If [input] is a bigstring, its
       contents will be copied into the parser's internal buffer, leaving
       ownership with the caller. *)
 
