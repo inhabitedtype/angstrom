@@ -145,6 +145,7 @@ val end_of_input : unit t
 (** [end_of_input] succeeds if all the input has been consumed, and fails
     otherwise. *)
 
+val fold_scan : 'state -> ('state -> char -> 'state option) -> 'state t
 
 (** Big endian parsers *)
 module BE : sig

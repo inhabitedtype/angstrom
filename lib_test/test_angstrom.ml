@@ -267,22 +267,37 @@ let alternative =
 
 let combinators =
   [ "many", `Quick, begin fun () ->
-      check_lc ~msg:"empty input"   (many (char 'a')) [""]  [];
-      check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
-      check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
-  end
+        check_lc ~msg:"empty input"   (many (char 'a')) [""]  [];
+        check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
+        check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
+      end
   ; "sep_by1", `Quick, begin fun () ->
       let parser = sep_by1 (char ',') (char 'a') in
       check_lc ~msg:"single char"     parser ["a"]    ['a'];
       check_lc ~msg:"many chars"      parser ["a,a"]  ['a'; 'a'];
       check_lc ~msg:"no trailing sep"  parser ["a,"]   ['a'];
-  end
+    end
   ; "count", `Quick, begin fun () ->
-    check_lc ~msg:"empty input" (count 0 (char 'a')) [""] [];
-    check_lc ~msg:"exact input" (count 1 (char 'a')) ["a"] ['a'];
-    check_lc ~msg:"additonal input" (count 2 (char 'a')) ["aaa"] ['a'; 'a'];
-    check_fail ~msg:"bad input" (count 2 (char 'a')) ["abb"];
-  end ]
+      check_lc ~msg:"empty input" (count 0 (char 'a')) [""] [];
+      check_lc ~msg:"exact input" (count 1 (char 'a')) ["a"] ['a'];
+      check_lc ~msg:"additonal input" (count 2 (char 'a')) ["aaa"] ['a'; 'a'];
+      check_fail ~msg:"bad input" (count 2 (char 'a')) ["abb"];
+    end
+  ; "fold_scan", `Quick, begin fun () ->
+      check_s ~msg:"fold_scan" (fold_scan "" (fun s -> function
+          | 'a' -> Some s
+          | '.' -> None
+          | c -> Some ((String.make 1 c) ^ s)
+        )) ["abaacba."] "bcb";
+      let p =
+        count 2 (fold_scan "" (fun s -> function
+            | '.' -> None
+            | c -> Some (s ^ String.make 1 c)
+          ))
+        >>| String.concat "" in
+      check_s ~msg:"state reset between runs" p ["bcd."] "bcd";
+    end
+  ]
 
 let incremental =
   [ "within chunk boundary", `Quick, begin fun () ->

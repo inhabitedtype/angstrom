@@ -691,6 +691,20 @@ let skip_many1 p =
 let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
 
+let fold_scan st f =
+  let s = ref st in
+  skip_while (fun c ->
+      match f !s c with
+      | None ->
+        false
+      | Some st ->
+        s := st;
+        true
+    ) >>| fun () ->
+  let res = !s in
+  s := st;
+  res
+
 module Make_endian(Es : EndianString.EndianStringSig) = struct
   let get_float s = Es.get_float s 0
   let get_double s = Es.get_double s 0
