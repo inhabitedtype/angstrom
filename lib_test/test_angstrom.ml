@@ -283,14 +283,14 @@ let combinators =
       check_lc ~msg:"additonal input" (count 2 (char 'a')) ["aaa"] ['a'; 'a'];
       check_fail ~msg:"bad input" (count 2 (char 'a')) ["abb"];
     end
-  ; "fold_scan", `Quick, begin fun () ->
-      check_s ~msg:"fold_scan" (fold_scan "" (fun s -> function
+  ; "scan_state", `Quick, begin fun () ->
+      check_s ~msg:"scan_state" (scan_state "" (fun s -> function
           | 'a' -> Some s
           | '.' -> None
           | c -> Some ((String.make 1 c) ^ s)
         )) ["abaacba."] "bcb";
       let p =
-        count 2 (fold_scan "" (fun s -> function
+        count 2 (scan_state "" (fun s -> function
             | '.' -> None
             | c -> Some (s ^ String.make 1 c)
           ))

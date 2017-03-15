@@ -145,7 +145,17 @@ val end_of_input : unit t
 (** [end_of_input] succeeds if all the input has been consumed, and fails
     otherwise. *)
 
-val fold_scan : 'state -> ('state -> char -> 'state option) -> 'state t
+val scan : 'state -> ('state -> char -> 'state option) -> (string * 'state) t
+(** [scan init f] consumes until [f] returns [None]. Returns the final state
+    before [None] and the accumulated string *)
+
+val scan_state : 'state -> ('state -> char -> 'state option) -> 'state t
+(** [scan init f] Like [scan] but only returns the final state before [None].
+    Much more efficient than [scan]*)
+
+val scan_string : 'state -> ('state -> char -> 'state option) -> string t
+(** [scan init f] Like [scan] but discards the final state and returns the
+    accumulated string *)
 
 (** Big endian parsers *)
 module BE : sig
