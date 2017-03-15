@@ -53,7 +53,7 @@ let rec finalize state result =
 
 let response = function
   | Partial p  -> `Consumed(p.committed, `Need_unknown)
-  | Done(_, c) -> `Stop_consumed((), c)
+  | Done(c, _) -> `Stop_consumed((), c)
   | Fail _     -> `Stop ()
 
 let default_pushback () = Deferred.unit
