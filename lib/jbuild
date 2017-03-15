@@ -1,0 +1,5 @@
+(library
+ ((name angstrom)
+  (public_name angstrom)
+  (wrapped false)
+  (libraries (cstruct ocplib-endian result))))

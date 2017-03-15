@@ -1,0 +1,9 @@
+(executables
+ ((libraries (alcotest angstrom))
+  (modules (test_angstrom))
+  (names (test_angstrom))))
+
+(alias
+ ((name   runtest)
+  (deps   (test_angstrom.exe))
+  (action (run ${<}))))

@@ -1,5 +1,5 @@
 opam-version: "1.2"
-name: "angstrom"
+name: "angstrom-unix"
 maintainer: "Spiros Eliopoulos <spiros@inhabitedtype.com>"
 authors: [ "Spiros Eliopoulos <spiros@inhabitedtype.com>" ]
 license: "BSD-3-clause"
@@ -13,25 +13,8 @@ build: [
     "--%{async:enable}%-async"]
   ["ocaml" "setup.ml" "-build"]
 ]
-install: ["ocaml" "setup.ml" "-install"]
-remove: [
-  ["ocamlfind" "remove" "angstrom"]
-]
-build-test: [
-  ["ocaml" "setup.ml" "-configure" "--enable-tests"]
-  ["ocaml" "setup.ml" "-build"]
-  ["ocaml" "setup.ml" "-test"]
-]
 depends: [
-  "alcotest" {test & >= "0.4.1" & < "0.8.0"}
-  "cstruct" {>= "0.7.0"}
-  "ocplib-endian" {>= "0.6"}
-  "ocamlfind" {build}
-  "result"
-]
-depopts: [
-  "async"
+  "angstrom"
   "base-unix"
-  "lwt"
 ]
 available: [ ocaml-version >= "4.03.0" ]

@@ -1,0 +1,5 @@
+(library
+ ((name angstrom_unix)
+  (public_name angstrom.unix)
+  (wrapped false)
+  (libraries (angstrom unix))))
