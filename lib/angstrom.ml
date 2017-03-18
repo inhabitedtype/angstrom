@@ -694,28 +694,28 @@ let skip_many1 p =
 let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
 
-let scan_state st f =
-  let s = ref st in
-  skip_while (fun c ->
-      match f !s c with
-      | None ->
-        false
-      | Some st ->
-        s := st;
-        true
-    ) >>| fun () ->
-  let res = !s in
-  s := st;
-  res
+let scan_ state f =
+  { run = fun input pos more fail succ ->
+    let state = ref state in
+    let parser =
+      count_while (fun c ->
+        match f !state c with
+        | None -> false
+        | Some state' -> state := state'; true)
+      >>| fun n -> n, !state
+    in
+    parser.run input pos more fail succ }
 
-let scan st f =
-  scan_state (Buffer.create 8, st) (fun (b, x) c ->
-      match f x c with
-      | None -> None
-      | Some s -> Some (b, s)
-    ) >>| (fun (b, s) -> (Buffer.contents b, s))
+let scan state f =
+  scan_ state f
+  >>= fun (n, state) -> unsafe_substring n
+  >>| fun string     -> string, state
 
-let scan_string s f = scan s f >>| fst
+let scan_state state f =
+  scan_ state f >>= fun (n, state) -> advance n *> return state
+
+let scan_string state f =
+  scan_ state f >>= fun (n, _) -> unsafe_substring n
 
 module Make_endian(Es : EndianString.EndianStringSig) = struct
   let get_float s = Es.get_float s 0
