@@ -194,8 +194,8 @@ module Unbuffered = struct
 
   type 'a state =
     | Partial of 'a partial
-    | Done    of 'a * int
-    | Fail    of string list * string
+    | Done    of int * 'a
+    | Fail    of int * string list * string
   and 'a partial =
     { committed : int
     ; continue  : input -> more -> 'a state }
@@ -206,8 +206,8 @@ module Unbuffered = struct
   type 'a failure = (string list -> string -> 'a state) with_input
   type ('a, 'r) success = ('a -> 'r state) with_input
 
-  let fail_k    buf pos _ marks msg = Fail(marks, msg)
-  let succeed_k buf pos _       v   = Done(v, pos - Input.initial_commit_pos buf)
+  let fail_k    buf pos _ marks msg = Fail(pos - Input.initial_commit_pos buf, marks, msg)
+  let succeed_k buf pos _       v   = Done(pos - Input.initial_commit_pos buf, v)
 
   type +'a t =
     { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_input }
@@ -216,13 +216,13 @@ module Unbuffered = struct
     String.concat " > " marks ^ ": " ^ err
 
   let state_to_option = function
-    | Done(v, _) -> Some v
+    | Done(_, v) -> Some v
     | _          -> None
 
   let state_to_result = function
-    | Done(v, _)        -> Result.Ok v
-    | Partial _         -> Result.Error "incomplete input"
-    | Fail (marks, err) -> Result.Error (fail_to_string marks err)
+    | Done(_, v)          -> Result.Ok v
+    | Partial _           -> Result.Error "incomplete input"
+    | Fail(_, marks, err) -> Result.Error (fail_to_string marks err)
 
   let parse ?(input=`String "") p =
     p.run (Input.create 0 input) 0 Incomplete fail_k succeed_k
@@ -237,8 +237,8 @@ type more = Unbuffered.more =
 
 type 'a state = 'a Unbuffered.state =
   | Partial of 'a partial
-  | Done    of 'a * int
-  | Fail    of string list * string
+  | Done    of int * 'a
+  | Fail    of int * string list * string
 and 'a partial = 'a Unbuffered.partial =
   { committed : int
   ; continue  : input -> more -> 'a state }
@@ -255,13 +255,15 @@ module Buffered = struct
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state)
-    | Done    of 'a * unconsumed
-    | Fail    of string list * string * unconsumed
+    | Done    of unconsumed * 'a
+    | Fail    of unconsumed * string list * string
 
   let from_unbuffered_state ~f buffer = function
-    | Unbuffered.Partial p      -> Partial (f p)
-    | Unbuffered.Done (v , con) -> Done(v, buffer#uncommitted_with_shift con)
-    | Unbuffered.Fail (ms, err) -> Fail(ms, err, buffer#uncommitted)
+    | Unbuffered.Partial p              -> Partial (f p)
+    | Unbuffered.Done(consumed, v) ->
+      Done(buffer#uncommitted_with_shift consumed, v)
+    | Unbuffered.Fail(consumed, marks, msg) ->
+      Fail(buffer#uncommitted_with_shift consumed, marks, msg)
 
   let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
     if initial_buffer_size < 1 then
@@ -282,36 +284,37 @@ module Buffered = struct
 
   let feed state input =
     match state with
-    | Partial k            -> k input
-    | Fail(marks, msg, us) ->
+    | Partial k -> k input
+    | Fail(unconsumed, marks, msg) ->
       begin match input with
       | `Eof   -> state
       | #input as input ->
-        let buffer = buffer_of_unconsumed us in
+        let buffer = buffer_of_unconsumed unconsumed in
         buffer#feed input;
-        Fail(marks, msg, buffer#uncommitted)
+        Fail(buffer#uncommitted, marks, msg)
       end
-    | Done(v, us) ->
+    | Done(unconsumed, v) ->
       begin match input with
       | `Eof   -> state
       | #input as input ->
-        let buffer = buffer_of_unconsumed us in
+        let buffer = buffer_of_unconsumed unconsumed in
         buffer#feed input;
-        Done(v, buffer#uncommitted)
+        Done(buffer#uncommitted, v)
       end
 
   let state_to_option = function
-    | Done(v, _) -> Some v
+    | Done(_, v) -> Some v
     | _          -> None
 
   let state_to_result = function
     | Partial _           -> Result.Error "incomplete input"
-    | Done(v, _)          -> Result.Ok v
-    | Fail(marks, err, _) -> Result.Error (Unbuffered.fail_to_string marks err)
+    | Done(_, v)          -> Result.Ok v
+    | Fail(_, marks, msg) -> Result.Error (Unbuffered.fail_to_string marks msg)
 
   let state_to_unconsumed = function
-    | (Done(_, us) | Fail(_, _, us)) -> Some us
-    | _                              -> None
+    | Done(unconsumed, _)
+    | Fail(unconsumed, _, _) -> Some unconsumed
+    | _                      -> None
 
 end
 
