@@ -271,6 +271,9 @@ let combinators =
         check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
         check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
       end
+  ; "many_till", `Quick, begin fun () ->
+      check_lc ~msg:"not greedy" (many_till any_char (char '-')) ["ab-ab-"] ['a'; 'b'];
+    end
   ; "sep_by1", `Quick, begin fun () ->
       let parser = sep_by1 (char ',') (char 'a') in
       check_lc ~msg:"single char"     parser ["a"]    ['a'];

@@ -675,7 +675,7 @@ let many1 p =
 
 let many_till p t =
   fix (fun m ->
-    (lift2 cons p m) <|> (t *> return []))
+    (t *> return []) <|> (lift2 cons p m))
 
 let sep_by1 s p =
   fix (fun m ->
