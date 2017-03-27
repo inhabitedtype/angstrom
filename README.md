@@ -28,8 +28,8 @@ As such, its source distribution includes implementations of various RFCs that
 are illustrative of real-world applications of the library. These include an
 [HTTP parser][http] and a [JSON parser][json].
 
-[http]: https://github.com/inhabitedtype/angstrom/blob/master/rfcs/rFC2616.ml
-[json]: https://github.com/inhabitedtype/angstrom/blob/master/rfcs/rFC7159.ml
+[http]: https://github.com/inhabitedtype/angstrom/blob/master/examples/rFC2616.ml
+[json]: https://github.com/inhabitedtype/angstrom/blob/master/examples/rFC7159.ml
 
 In addition, it is an informal tradition for OCaml parser-combinator libraries
 to include in their READMEs a parser for a simple arithmetic expression
