@@ -55,7 +55,10 @@ module S = struct
   let unescaped buf = function
     | '"'  -> `Terminate
     | '\\' -> `Escaped
-    | c    -> Buffer.add_char buf c; `Unescaped
+    | c    ->
+      if c <= '\031'
+      then `Error (Printf.sprintf "unexpected character '%c'" c)
+      else begin Buffer.add_char buf c; `Unescaped end
 
   let escaped buf = function
     | '\x22' -> Buffer.add_char buf '\x22'; `Unescaped
