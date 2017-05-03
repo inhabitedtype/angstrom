@@ -608,7 +608,7 @@ let string_ f s =
    * the io. *)
   let len = String.length s in
   ensure len >>= fun s'->
-    if f s = f s'
+    if String.equal (f s) (f s')
       then return s'
       else fail "string"
 
