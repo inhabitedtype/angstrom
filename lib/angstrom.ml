@@ -491,9 +491,9 @@ let at_end_of_input =
   { run = fun input pos more _ succ ->
     if pos < Input.length input then
       succ input pos more false
-    else if more = Complete then
-      succ input pos more true
-    else
+    else match more with
+    | Complete -> succ input pos more true
+    | Incomplete ->
       let succ' input' pos' more' = succ input' pos' more' false
       and fail' input' pos' more' = succ input' pos' more' true in
       prompt input pos fail' succ'
@@ -608,7 +608,7 @@ let string_ f s =
    * the io. *)
   let len = String.length s in
   ensure len >>= fun s'->
-    if f s = f s'
+    if String.equal (f s) (f s')
       then return s'
       else fail "string"
 
