@@ -8,7 +8,7 @@ Copyrights:  (C) 2016 Inhabited Type LLC
 License:     BSD-3-clause
 Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
-OCamlVersion: >= 4.01
+OCamlVersion: >= 4.03
 Synopsis:    Parser combinators built for speed and memory-efficiency
 Description:
    Angstrom is a parser-combinator library that makes it easy to write
