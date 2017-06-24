@@ -23,7 +23,7 @@ build-test: [
   ["ocaml" "setup.ml" "-test"]
 ]
 depends: [
-  "alcotest" {test & >= "0.4.1"}
+  "alcotest" {test & >= "0.4.1" & < "0.8.0"}
   "cstruct" {>= "0.7.0"}
   "ocplib-endian" {>= "0.6"}
   "ocamlfind" {build}
