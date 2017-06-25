@@ -613,7 +613,7 @@ let string_ f s =
       else fail "string"
 
 let string s    = string_ (fun x -> x) s
-let string_ci s = string_ String.lowercase s
+let string_ci s = string_ String.lowercase_ascii s
 
 let skip_while f =
   count_while f >>= advance
