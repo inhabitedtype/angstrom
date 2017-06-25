@@ -304,11 +304,11 @@ val commit : unit t
     other purposes.
 
     The {!module:Unbuffered} parsing interface will report directly to the
-    caller the number of bytes committed to the when returning a {Partial}
-    state, allowing the caller to reuse those bytes for any purpose. The
-    {!module:Buffered} will keep track of the region of committed bytes in its
-    internal buffer and reuse that region to store additional input when
-    necessary. *)
+    caller the number of bytes committed to the when returning a
+    {!Unbuffered.state.Partial} state, allowing the caller to reuse those bytes
+    for any purpose. The {!module:Buffered} will keep track of the region of
+    committed bytes in its internal buffer and reuse that region to store
+    additional input when necessary. *)
 
 
 (** {2 Monadic/Applicative interface} *)
@@ -441,7 +441,7 @@ end
     input that has yet to be consumed by the parser. The
     {Unbuffered.state.Partial} parser state reports to the user how much input
     the parser consumed during its last run, via the
-    {!Unbuffered.partial.consumed} field. This area of input must be discarded
+    {!Unbuffered.partial.committed} field. This area of input must be discarded
     before parsing can resume. Once additional input has been collected, the
     unconsumed input as well as new input must be passed to the parser state
     via the {!Unbuffered.partial.continue} function, together with an
