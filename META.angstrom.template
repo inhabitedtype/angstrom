@@ -1,0 +1,16 @@
+# JBUILDER_GEN
+
+package "lwt" (
+  description = "Deprecated. Use angstrom-lwt directly"
+  requires = "angstrom-lwt"
+)
+
+package "lwt-unix" (
+  description = "Deprecated. Use angstrom-lwt-unix directly"
+  requires = "angstrom-lwt-unix"
+)
+
+package "async" (
+  description = "Deprecated. Use angstrom-async directly"
+  requires = "angstrom-async"
+)
