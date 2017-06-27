@@ -14,9 +14,9 @@ build-test: [
 ]
 depends: [
   "jbuilder" {build & >= "1.0+beta10"}
-  "alcotest" {test & >= "0.4.1"}
+  "alcotest" {test & >= "0.4.1" & < "0.8.0"}
   "cstruct" {>= "0.7.0"}
   "ocplib-endian" {>= "0.6"}
   "result"
 ]
-available: [ ocaml-version >= "4.02.3" ]
+available: [ ocaml-version >= "4.03.0" ]
