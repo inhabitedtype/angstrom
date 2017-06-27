@@ -7,5 +7,6 @@
 
 (alias
  ((name   runtest)
+  (package angstrom)
   (deps   (test_angstrom.exe))
   (action (run ${<}))))
