@@ -2,6 +2,6 @@
 
 (library
  ((name angstrom_lwt_unix)
-  (public_name angstrom.lwt-unix)
+  (public_name angstrom-lwt-unix)
   (wrapped false)
   (libraries (angstrom lwt.unix))))
