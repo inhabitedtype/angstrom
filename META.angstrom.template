@@ -1,8 +1,8 @@
 # JBUILDER_GEN
 
-package "lwt" (
-  description = "Deprecated. Use angstrom-lwt directly"
-  requires = "angstrom-lwt"
+package "unix" (
+  description = "Deprecated. Use angstrom-unix directly"
+  requires = "angstrom-unix"
 )
 
 package "lwt-unix" (
