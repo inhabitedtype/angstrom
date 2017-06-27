@@ -1,5 +1,4 @@
 opam-version: "1.2"
-name: "angstrom-unix"
 maintainer: "Spiros Eliopoulos <spiros@inhabitedtype.com>"
 authors: [ "Spiros Eliopoulos <spiros@inhabitedtype.com>" ]
 license: "BSD-3-clause"
@@ -7,13 +6,14 @@ homepage: "https://github.com/inhabitedtype/angstrom"
 bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "https://github.com/inhabitedtype/angstrom.git"
 build: [
-  ["ocaml" "setup.ml" "-configure" "--prefix" prefix
-    "--%{base-unix:enable}%-unix"
-    "--%{lwt:enable}%-lwt"
-    "--%{async:enable}%-async"]
-  ["ocaml" "setup.ml" "-build"]
+  ["jbuilder" "subst"] {pinned}
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]
+build-test: [
+  ["jbuilder" "runtest" "-p" name]
 ]
 depends: [
+  "jbuilder" {build & >= "1.0+beta10"}
   "angstrom"
   "base-unix"
 ]

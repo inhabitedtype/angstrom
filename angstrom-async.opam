@@ -7,10 +7,14 @@ homepage: "https://github.com/inhabitedtype/angstrom"
 bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "https://github.com/inhabitedtype/angstrom.git"
 build: [
-  ["jbuilder" "build" "--only-packages" "angstrom-async" "--root" "."
-   "-j" jobs "@install"]
+  ["jbuilder" "subst"] {pinned}
+  ["jbuilder" "build" "-p" name "-j" jobs]
+]
+build-test: [
+  ["jbuilder" "runtest" "-p" name]
 ]
 depends: [
+  "jbuilder" {build & >= "1.0+beta10"}
   "angstrom"
   "async"
 ]
