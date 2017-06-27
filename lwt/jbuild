@@ -1,3 +1,5 @@
+(jbuild_version 1)
+
 (library
  ((name angstrom_lwt_unix)
   (public_name angstrom.lwt-unix)

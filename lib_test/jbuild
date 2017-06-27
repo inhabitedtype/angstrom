@@ -1,3 +1,5 @@
+(jbuild_version 1)
+
 (executables
  ((libraries (alcotest angstrom))
   (modules (test_angstrom))
