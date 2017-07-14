@@ -202,7 +202,6 @@ module Endian(Es : EndianString.EndianStringSig) = struct
 
   let uint16 = { int16 with name = "uint16"; min = 0; max = 65535 }
   let uint32 = { int32 with name = "uint32" }
-  let uint64 = { int64 with name = "uint64" }
 
    let dump e x =
      let buf = Bytes.create e.size in
@@ -224,7 +223,6 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     make_tests int64  E.int64;
     make_tests uint16 E.uint16;
     make_tests uint32 E.uint32;
-    make_tests uint64 E.uint64;
     make_tests float  E.float;
     make_tests double E.double;
   ]

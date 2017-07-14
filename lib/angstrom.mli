@@ -166,7 +166,6 @@ module BE : sig
 
   val uint16 : int t
   val uint32 : int32 t
-  val uint64 : int64 t
   (** [uintN] reads [N] bits and interprets them as big endian unsigned
       integers. *)
 
@@ -189,7 +188,6 @@ module LE : sig
 
   val uint16 : int t
   val uint32 : int32 t
-  val uint64 : int64 t
   (** [uintN] reads [N] bits and interprets them as little endian unsigned
       integers. *)
 
