@@ -1,9 +1,29 @@
 language: c
-sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
-script: bash -ex .travis-opam.sh
+sudo: false
+services:
+  - docker
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-docker.sh
+script: bash -ex ./.travis-docker.sh
 env:
-  - OCAML_VERSION=4.03
-  - OCAML_VERSION=4.04
-os:
-  - linux
+  global:
+  - PINS="angstrom-async:. angstrom-lwt-unix:. angstrom-unix:. angstrom:."
+  matrix:
+  - PACKAGE="angstrom" DISTRO="ubuntu-16.04" OCAML_VERSION="4.04.2"
+  - PACKAGE="angstrom-async" DISTRO="ubuntu-16.04" OCAML_VERSION="4.04.2"
+  - PACKAGE="angstrom-lwt-unix" DISTRO="ubuntu-16.04" OCAML_VERSION="4.04.2"
+  - PACKAGE="angstrom-unix" DISTRO="ubuntu-16.04" OCAML_VERSION="4.04.2"
+  - PACKAGE="angstrom" DISTRO="alpine-3.5" OCAML_VERSION="4.03.0"
+  - PACKAGE="angstrom-async" DISTRO="alpine-3.5" OCAML_VERSION="4.03.0"
+  - PACKAGE="angstrom-lwt-unix" DISTRO="alpine-3.5" OCAML_VERSION="4.03.0"
+  - PACKAGE="angstrom-unix" DISTRO="alpine-3.5" OCAML_VERSION="4.03.0"
+  - PACKAGE="angstrom" DISTRO="debian-unstable" OCAML_VERSION="4.03.0"
+  - PACKAGE="angstrom-async" DISTRO="debian-unstable" OCAML_VERSION="4.03.0"
+  - PACKAGE="angstrom-lwt-unix" DISTRO="debian-unstable" OCAML_VERSION="4.03.0"
+  - PACKAGE="angstrom-unix" DISTRO="debian-unstable" OCAML_VERSION="4.03.0"
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/6ee5059c7420709f4ad1
+    on_success: change
+    on_failure: always
+    on_start: false

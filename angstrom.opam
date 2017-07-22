@@ -1,5 +1,4 @@
 opam-version: "1.2"
-name: "angstrom"
 maintainer: "Spiros Eliopoulos <spiros@inhabitedtype.com>"
 authors: [ "Spiros Eliopoulos <spiros@inhabitedtype.com>" ]
 license: "BSD-3-clause"
@@ -7,31 +6,17 @@ homepage: "https://github.com/inhabitedtype/angstrom"
 bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "https://github.com/inhabitedtype/angstrom.git"
 build: [
-  ["ocaml" "setup.ml" "-configure" "--prefix" prefix
-    "--%{base-unix:enable}%-unix"
-    "--%{lwt:enable}%-lwt"
-    "--%{async:enable}%-async"]
-  ["ocaml" "setup.ml" "-build"]
-]
-install: ["ocaml" "setup.ml" "-install"]
-remove: [
-  ["ocamlfind" "remove" "angstrom"]
+  ["jbuilder" "subst"] {pinned}
+  ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 build-test: [
-  ["ocaml" "setup.ml" "-configure" "--enable-tests"]
-  ["ocaml" "setup.ml" "-build"]
-  ["ocaml" "setup.ml" "-test"]
+  ["jbuilder" "runtest" "-p" name]
 ]
 depends: [
+  "jbuilder" {build & >= "1.0+beta10"}
   "alcotest" {test & >= "0.4.1" & < "0.8.0"}
   "cstruct" {>= "0.7.0"}
   "ocplib-endian" {>= "0.6"}
-  "ocamlfind" {build}
   "result"
-]
-depopts: [
-  "async"
-  "base-unix"
-  "lwt"
 ]
 available: [ ocaml-version >= "4.03.0" ]

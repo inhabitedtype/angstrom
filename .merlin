@@ -1,8 +1,0 @@
-S lib/**
-S lwt/**
-S async/**
-B _build/**
-
-PKG cstruct result
-PKG alcotest cohttp uri
-PKG lwt async core
