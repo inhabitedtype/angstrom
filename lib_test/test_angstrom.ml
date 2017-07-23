@@ -222,7 +222,6 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     make_tests int32  E.int32;
     make_tests int64  E.int64;
     make_tests uint16 E.uint16;
-    make_tests uint32 E.uint32;
     make_tests float  E.float;
     make_tests double E.double;
   ]

@@ -165,9 +165,8 @@ module BE : sig
   (** [intN] reads [N] bits and interprets them as big endian signed integers. *)
 
   val uint16 : int t
-  val uint32 : int32 t
-  (** [uintN] reads [N] bits and interprets them as big endian unsigned
-      integers. *)
+  (** [uint16] reads [16] bits and interprets them as a big endian unsigned
+      integer. *)
 
   val float : float t
   (** [float] reads 32 bits and interprets them as a big endian floating
@@ -187,9 +186,8 @@ module LE : sig
       integers. *)
 
   val uint16 : int t
-  val uint32 : int32 t
-  (** [uintN] reads [N] bits and interprets them as little endian unsigned
-      integers. *)
+  (** [uint16] reads [16] bits and interprets them as a little endian unsigned
+      integer. *)
 
   val float : float t
   (** [float] reads 32 bits and interprets them as a little endian floating
