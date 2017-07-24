@@ -1,4 +1,4 @@
-open Async.Std
+open Async
 
 let main parser () =
   let toss _ = Deferred.unit in

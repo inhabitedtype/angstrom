@@ -1,6 +1,6 @@
 module R = Result
-open Core.Std
-open Core_bench.Std
+open Core
+open Core_bench
 
 let read file =
   let open Unix in
