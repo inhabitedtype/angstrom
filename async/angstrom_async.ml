@@ -33,8 +33,8 @@
 
 module R = Result
 open Angstrom.Unbuffered
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 let rec finalize state result =
   (* It is very important to understand the assumptions that go into the second
