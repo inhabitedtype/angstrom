@@ -721,22 +721,16 @@ module Make_endian(Es : EndianString.EndianStringSig) = struct
   let get_float s = Es.get_float s 0
   let get_double s = Es.get_double s 0
 
-  let get_int16 s = Es.get_int16 s 0
-  let get_int32 s = Es.get_int32 s 0
-  let get_int64 s = Es.get_int64 s 0
-
+  let get_int16  s = Es.get_int16 s 0
   let get_uint16 s = Es.get_uint16 s 0
-  let get_uint32 s = Es.get_int32 s 0
-  let get_uint64 s = Es.get_int64 s 0
+  let get_int32  s = Es.get_int32 s 0
+  let get_int64  s = Es.get_int64 s 0
 
   (* int *)
-  let int16 = take 2 >>| get_int16
-  let int32 = take 4 >>| get_int32
-  let int64 = take 8 >>| get_int64
-
+  let int16  = take 2 >>| get_int16
   let uint16 = take 2 >>| get_uint16
-  let uint32 = take 4 >>| get_uint32
-  let uint64 = take 8 >>| get_uint64
+  let int32  = take 4 >>| get_int32
+  let int64  = take 8 >>| get_int64
 
   (* float *)
   let float  = take 4 >>| get_float
