@@ -187,7 +187,7 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     min = ~-.2e10;
     max = 2e10;
     dump = Es.set_float;
-    testable = Alcotest.float
+    testable = Alcotest.float 0.0
   }
   let double = {
     name = "double";
@@ -197,7 +197,7 @@ module Endian(Es : EndianString.EndianStringSig) = struct
     min = ~-.2e30;
     max = 2e30;
     dump = Es.set_double;
-    testable = Alcotest.float
+    testable = Alcotest.float 0.0
   }
 
   let uint16 = { int16 with name = "uint16"; min = 0; max = 65535 }
