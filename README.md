@@ -51,8 +51,9 @@ let integer =
   take_while1 (function '0' .. '9' -> true | _ -> false) >>| int_of_string
 
 let chainl1 e op =
-  fix (fun r ->
-    e >>= fun x -> (op <*> (return x) <*> r) <|> return x)
+  let rec go acc =
+    (lift2 (fun f x -> f acc x) op e >>= go) <|> return acc in
+  e >>= fun init -> go init
 
 let expr : int t =
   fix (fun expr ->
