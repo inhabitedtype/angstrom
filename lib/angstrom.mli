@@ -389,7 +389,7 @@ val parse_only : 'a t -> input -> ('a, string) Result.result
     in can also be reused. *)
 module Buffered : sig
   type unconsumed =
-    { buffer : bigstring
+    { buf : bigstring
     ; off : int
     ; len : int }
 
