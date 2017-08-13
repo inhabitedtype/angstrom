@@ -31,8 +31,12 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-type bigstring =
-  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+module Bigarray = struct 
+  (* Do not access Bigarray operations directly. If anything's needed, refer to
+   * the internal Bigstring module. *)
+end
+
+type bigstring = Bigstring.t
 
 type input =
   [ `String    of string
@@ -41,7 +45,7 @@ type input =
 let input_length input =
   match input with
   | `String s    -> String.length s
-  | `Bigstring b -> Bigarray.Array1.dim b
+  | `Bigstring b -> Bigstring.length b
 
 module Input = struct
   type t =
@@ -75,13 +79,13 @@ module Input = struct
     let off = pos - initial_commit_pos in
     match input with
     | `String    s -> String.sub s off len
-    | `Bigstring b -> Cstruct.to_string (Cstruct.of_bigarray ~off ~len b)
+    | `Bigstring b -> Bigstring.substring b off len
 
   let get_char { initial_commit_pos; input } pos =
     let pos = pos - initial_commit_pos in
     match input with
-    | `String s    -> String.unsafe_get s pos
-    | `Bigstring b -> Bigarray.Array1.unsafe_get b pos
+    | `String    s -> String.unsafe_get s pos
+    | `Bigstring b -> Bigstring.unsafe_get b pos
 
   let count_while { initial_commit_pos; input } pos f =
     let i = ref (pos - initial_commit_pos) in
@@ -90,7 +94,7 @@ module Input = struct
     | `String s    ->
       while !i < len && f (String.unsafe_get s !i) do incr i; done
     | `Bigstring b ->
-      while !i < len && f (Bigarray.Array1.unsafe_get b !i) do incr i; done
+      while !i < len && f (Bigstring.unsafe_get b !i) do incr i; done
     end;
     !i - (pos - initial_commit_pos)
 
@@ -110,11 +114,11 @@ class buffer cstruct =
   let internal = ref cstruct in
   let _writable_space t =
     let { Cstruct.buffer; len } = !internal in
-    Bigarray.Array1.dim buffer - len
+    Bigstring.length buffer - len
   in
   let _trailing_space t =
     let { Cstruct.buffer; off; len } = !internal in
-    Bigarray.Array1.dim buffer - (off + len)
+    Bigstring.length buffer - (off + len)
   in
   let compress () =
     let off, len = 0, Cstruct.len !internal in
@@ -123,7 +127,7 @@ class buffer cstruct =
     internal := buffer
   in
   let grow to_copy =
-    let init_size = Bigarray.Array1.dim (!internal).Cstruct.buffer in
+    let init_size = Bigstring.length (!internal).Cstruct.buffer in
     let size  = ref init_size in
     let space = _writable_space () in
     while space + !size - init_size < to_copy do
@@ -165,7 +169,7 @@ object(self)
 
   method internal =
     let { Cstruct.buffer; off; len } = !internal in
-    Bigarray.Array1.sub buffer off len
+    Bigstring.sub buffer off len
 
   method uncommitted_with_shift n =
     let { Cstruct.buffer; off; len } = Cstruct.shift !internal n in
