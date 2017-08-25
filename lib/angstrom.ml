@@ -103,94 +103,6 @@ module Input = struct
 
 end
 
-type _unconsumed =
-  { buffer : bigstring
-  ; off : int
-  ; len : int }
-
-(* Encapsulate state with an object, Smalltalk style. Callers are not putting
- * this in tight loops so none of that performance jibber jabber. *)
-class buffer cstruct =
-  let internal = ref cstruct in
-  let _writable_space t =
-    let { Cstruct.buffer; len } = !internal in
-    Bigstring.length buffer - len
-  in
-  let _trailing_space t =
-    let { Cstruct.buffer; off; len } = !internal in
-    Bigstring.length buffer - (off + len)
-  in
-  let compress () =
-    let off, len = 0, Cstruct.len !internal in
-    let buffer = Cstruct.of_bigarray ~off ~len (!internal).Cstruct.buffer in
-    Cstruct.blit !internal 0 buffer 0 len;
-    internal := buffer
-  in
-  let grow to_copy =
-    let init_size = Bigstring.length (!internal).Cstruct.buffer in
-    let size  = ref init_size in
-    let space = _writable_space () in
-    while space + !size - init_size < to_copy do
-      size := (3 * !size) / 2
-    done;
-    let buffer = Cstruct.(set_len (create !size)) (!internal).Cstruct.len in
-    Cstruct.blit !internal 0 buffer 0 (!internal).Cstruct.len;
-    internal := buffer
-  in
-  let ensure_space len =
-    (* XXX(seliopou): could use some heuristics here to determine whether its
-     * worth it to compress or grow *)
-    begin if _trailing_space () >= len then
-      () (* there is enough room at the end *)
-    else if _writable_space () >= len then
-      compress ()
-    else
-      grow len
-    end;
-    (* The above will grow the internal buffer but not change the length of the
-     * view into the buffer. So it's necesasry to add the desired length at
-     * this point. *)
-    internal := Cstruct.add_len !internal len
-  in
-object(self)
-  method feed (input:input) =
-    let len = input_length input in
-    ensure_space len;
-    let off = Cstruct.len !internal - len in
-    match input with
-    | `String s ->
-      let allocator _ = Cstruct.sub !internal off len in
-      ignore (Cstruct.of_string ~allocator s)
-    | `Bigstring b ->
-      Cstruct.blit (Cstruct.of_bigarray b) 0 !internal off len
-
-  method commit len =
-    internal := Cstruct.shift !internal len
-
-  method internal =
-    let { Cstruct.buffer; off; len } = !internal in
-    Bigstring.sub buffer off len
-
-  method uncommitted_with_shift n =
-    let { Cstruct.buffer; off; len } = Cstruct.shift !internal n in
-    { buffer; off; len }
-
-  method uncommitted =
-    self#uncommitted_with_shift 0
-end
-
-let buffer_of_cstruct cstruct =
-  new buffer cstruct
-
-let buffer_of_size size =
-  new buffer Cstruct.(set_len (create size) 0)
-
-let buffer_of_bigstring ?(off=0) ?len bigstring =
-  buffer_of_cstruct (Cstruct.of_bigarray ~off ?len bigstring)
-
-let buffer_of_unconsumed { buffer; off; len} =
-  buffer_of_bigstring ~off ~len buffer
-
 module Unbuffered = struct
   type more =
     | Complete
@@ -252,8 +164,8 @@ type 'a t = 'a Unbuffered.t =
 
 
 module Buffered = struct
-  type unconsumed = _unconsumed =
-    { buffer : bigstring
+  type unconsumed = Buffering.unconsumed =
+    { buf : bigstring
     ; off : int
     ; len : int }
 
@@ -262,29 +174,35 @@ module Buffered = struct
     | Done    of unconsumed * 'a
     | Fail    of unconsumed * string list * string
 
-  let from_unbuffered_state ~f buffer = function
-    | Unbuffered.Partial p              -> Partial (f p)
+  let from_unbuffered_state ~f buffering = function
+    | Unbuffered.Partial p         -> Partial (f p)
     | Unbuffered.Done(consumed, v) ->
-      Done(buffer#uncommitted_with_shift consumed, v)
+      let unconsumed = Buffering.unconsumed ~shift:consumed buffering in
+      Done(unconsumed, v)
     | Unbuffered.Fail(consumed, marks, msg) ->
-      Fail(buffer#uncommitted_with_shift consumed, marks, msg)
+      let unconsumed = Buffering.unconsumed ~shift:consumed buffering in
+      Fail(unconsumed, marks, msg)
 
   let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
     if initial_buffer_size < 1 then
       failwith "parse: invalid argument, initial_buffer_size < 1";
     let initial_buffer_size = max initial_buffer_size (input_length input) in
-    let buffer = buffer_of_size initial_buffer_size in
-    buffer#feed input;
-    let rec f p =
-      ();
-      function
-      | `Eof  -> from_unbuffered_state buffer ~f (p.continue (`Bigstring buffer#internal) Complete)
-      | #input as input ->
-        buffer#commit p.committed;
-        buffer#feed input;
-        from_unbuffered_state buffer ~f (p.continue (`Bigstring buffer#internal) Incomplete)
+    let buffering = Buffering.create initial_buffer_size in
+    Buffering.feed_input buffering input;
+    let rec f p input =
+      Buffering.shift buffering p.committed;
+      let more =
+        match input with
+        | `Eof            -> Complete
+        | #input as input ->
+          Buffering.feed_input buffering input;
+          Incomplete
+      in
+      let for_reading = Buffering.for_reading buffering in
+      from_unbuffered_state buffering ~f (p.continue (`Bigstring for_reading) more)
     in
-    from_unbuffered_state buffer ~f (Unbuffered.parse ~input:(`Bigstring buffer#internal) p)
+    let for_reading = Buffering.for_reading buffering in
+    from_unbuffered_state buffering ~f (Unbuffered.parse ~input:(`Bigstring for_reading) p)
 
   let feed state input =
     match state with
@@ -293,17 +211,17 @@ module Buffered = struct
       begin match input with
       | `Eof   -> state
       | #input as input ->
-        let buffer = buffer_of_unconsumed unconsumed in
-        buffer#feed input;
-        Fail(buffer#uncommitted, marks, msg)
+        let buffering = Buffering.of_unconsumed unconsumed in
+        Buffering.feed_input buffering input;
+        Fail(Buffering.unconsumed buffering, marks, msg)
       end
     | Done(unconsumed, v) ->
       begin match input with
       | `Eof   -> state
       | #input as input ->
-        let buffer = buffer_of_unconsumed unconsumed in
-        buffer#feed input;
-        Done(buffer#uncommitted, v)
+        let buffering = Buffering.of_unconsumed unconsumed in
+        Buffering.feed_input buffering input;
+        Done(Buffering.unconsumed buffering, v)
       end
 
   let state_to_option = function
