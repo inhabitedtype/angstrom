@@ -62,7 +62,7 @@ let expr : int t =
     chainl1 term (add <|> sub))
 
 let eval (str:string) : int =
-  match parse_only expr (`String str) with
+  match parse_string expr str with
   | Result.Ok v      -> v
   | Result.Error msg -> failwith msg
 ```
