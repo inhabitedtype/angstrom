@@ -364,15 +364,18 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 type bigstring =
   (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-type input =
-  [ `String    of string
-  | `Bigstring of bigstring ]
-
-val parse_only : 'a t -> input -> ('a, string) Result.result
-(** [parse_only t input] runs [t] on [input]. The parser will receive an [`Eof]
-    after all of [input] has been consumed. For use-cases requiring that the
+val parse_bigstring : 'a t -> bigstring -> ('a, string) Result.result
+(** [parse_bigstring t bs] runs [t] on [bs]. The parser will receive an [`Eof]
+    after all of [bs] has been consumed. For use-cases requiring that the
     parser be fed input incrementally, see the {!module:Buffered} and
     {!module:Unbuffered} modules below. *)
+
+val parse_string : 'a t -> string -> ('a, string) Result.result
+(** [parse_string t bs] runs [t] on [bs]. The parser will receive an [`Eof]
+    after all of [bs] has been consumed. For use-cases requiring that the
+    parser be fed input incrementally, see the {!module:Buffered} and
+    {!module:Unbuffered} modules below. *)
+
 
 (** Buffered parsing interface.
 
@@ -393,8 +396,12 @@ module Buffered : sig
     ; off : int
     ; len : int }
 
+  type input =
+    [ `Bigstring of bigstring
+    | `String    of string ]
+
   type 'a state =
-    | Partial of ([ input | `Eof ] -> 'a state) (** The parser requires more input. *)
+    | Partial of ([ input | `Eof ]-> 'a state) (** The parser requires more input. *)
     | Done    of unconsumed * 'a (** The parser succeeded. *)
     | Fail    of unconsumed * string list * string (** The parser failed. *)
 
@@ -453,6 +460,7 @@ module Unbuffered : sig
     | Complete
     | Incomplete
 
+
   type 'a state =
     | Partial of 'a partial (** The parser requires more input. *)
     | Done    of int * 'a (** The parser succeeded, consuming specified bytes. *)
@@ -462,14 +470,14 @@ module Unbuffered : sig
       (** The number of bytes committed during the last input feeding.
           Callers must drop this number of bytes from the beginning of the
           input on subsequent calls. See {!commit} for additional details. *)
-    ; continue : input -> more -> 'a state
+    ; continue : bigstring -> more -> 'a state
       (** A continuation of a parse that requires additional input. The input
           should include all uncommitted input (as reported by previous partial
           states) in addition to any new input that has become available, as
           well as an indication of whether there is {!more} input to come.  *)
     }
 
-  val parse : ?input:input -> 'a t -> 'a state
+  val parse : ?input:bigstring -> 'a t -> 'a state
   (** [parse ?input t] runs [t] on [input], if present, and await input if
       needed. *)
 

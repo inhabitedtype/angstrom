@@ -36,6 +36,8 @@ open Angstrom.Unbuffered
 open Core
 open Async
 
+let empty_bigstring = Bigstring.create 0
+
 let rec finalize state result =
   (* It is very important to understand the assumptions that go into the second
    * case. If execution reaches that case, then that means that the parser has
@@ -46,10 +48,13 @@ let rec finalize state result =
    *
    * In other words, the second case looks wrong but it's not. *)
   match state, result with
-  | Partial p, `Eof_with_unconsumed_data s -> finalize (p.continue (`String s ) Complete) `Eof
-  | Partial p, `Eof                        -> finalize (p.continue (`String "") Complete) `Eof
-  | Partial _, `Stopped ()                 -> assert false
-  | state    , _                           -> state_to_result state
+  | Partial p, `Eof_with_unconsumed_data s ->
+    let bigstring = Bigstring.of_string s in
+    finalize (p.continue bigstring Complete) `Eof
+  | Partial p, `Eof                        ->
+    finalize (p.continue empty_bigstring Complete) `Eof
+  | Partial _, `Stopped () -> assert false
+  | state    , _           -> state_to_result state
 
 let response = function
   | Partial p  -> `Consumed(p.committed, `Need_unknown)
@@ -63,7 +68,7 @@ let parse ?(pushback=default_pushback) p reader =
   let handle_chunk buf ~pos ~len =
     begin match !state with
     | Partial p ->
-      state := p.continue (`Bigstring (Bigstring.sub_shared ~pos ~len buf)) Incomplete;
+      state := p.continue (Bigstring.sub_shared ~pos ~len buf) Incomplete;
     | _         -> ()
     end;
     pushback () >>| fun () -> response !state

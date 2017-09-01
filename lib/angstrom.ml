@@ -38,64 +38,46 @@ end
 
 type bigstring = Bigstring.t
 
-type input =
-  [ `String    of string
-  | `Bigstring of bigstring ]
-
-let input_length input =
-  match input with
-  | `String s    -> String.length s
-  | `Bigstring b -> Bigstring.length b
 
 module Input = struct
   type t =
     { mutable commit_pos : int
     ; initial_commit_pos : int
-    ; input : input
+    ; buffer : bigstring
     }
 
-  let create initial_commit_pos input =
+  let create initial_commit_pos buffer =
     { commit_pos = initial_commit_pos
     ; initial_commit_pos
-    ; input
+    ; buffer
     }
 
-  let length { initial_commit_pos; input}  =
-    input_length input + initial_commit_pos
+  let length { initial_commit_pos; buffer }  =
+    Bigstring.length buffer + initial_commit_pos
 
   let committed_bytes { commit_pos; initial_commit_pos } =
     commit_pos - initial_commit_pos
 
-  let initial_commit_pos t =
-    t.initial_commit_pos
-
-  let commit_pos t =
-    t.commit_pos
+  let initial_commit_pos { initial_commit_pos } = initial_commit_pos
+  let commit_pos         { commit_pos }         = commit_pos
 
   let uncommitted_bytes t =
-    input_length t.input - commit_pos t
+    Bigstring.length t.buffer - commit_pos t
 
-  let substring { initial_commit_pos; input } pos len =
+  let substring { initial_commit_pos; buffer } pos len =
     let off = pos - initial_commit_pos in
-    match input with
-    | `String    s -> String.sub s off len
-    | `Bigstring b -> Bigstring.substring b off len
+    Bigstring.substring buffer ~off ~len
 
-  let get_char { initial_commit_pos; input } pos =
+  let get_char { initial_commit_pos; buffer } pos =
     let pos = pos - initial_commit_pos in
-    match input with
-    | `String    s -> String.unsafe_get s pos
-    | `Bigstring b -> Bigstring.unsafe_get b pos
+    Bigstring.unsafe_get buffer pos
 
-  let count_while { initial_commit_pos; input } pos f =
+  let count_while { initial_commit_pos; buffer } pos f =
     let i = ref (pos - initial_commit_pos) in
-    let len = input_length input in
-    begin match input with
-    | `String s    ->
-      while !i < len && f (String.unsafe_get s !i) do incr i; done
-    | `Bigstring b ->
-      while !i < len && f (Bigstring.unsafe_get b !i) do incr i; done
-    end;
+    let len = Bigstring.length buffer in
+    while !i < len && f (Bigstring.unsafe_get buffer !i) do 
+      incr i
+    done;
     !i - (pos - initial_commit_pos)
 
   let commit t pos =
@@ -114,7 +96,7 @@ module Unbuffered = struct
     | Fail    of int * string list * string
   and 'a partial =
     { committed : int
-    ; continue  : input -> more -> 'a state }
+    ; continue  : bigstring -> more -> 'a state }
 
   type 'a with_input =
     Input.t ->  int -> more -> 'a
@@ -140,10 +122,10 @@ module Unbuffered = struct
     | Partial _           -> Result.Error "incomplete input"
     | Fail(_, marks, err) -> Result.Error (fail_to_string marks err)
 
-  let parse ?(input=`String "") p =
+  let parse ?(input=Bigstring.empty) p =
     p.run (Input.create 0 input) 0 Incomplete fail_k succeed_k
 
-  let parse_only p input =
+  let parse_bigstring p input =
     state_to_result (p.run (Input.create 0 input) 0 Complete fail_k succeed_k)
 end
 
@@ -157,7 +139,7 @@ type 'a state = 'a Unbuffered.state =
   | Fail    of int * string list * string
 and 'a partial = 'a Unbuffered.partial =
   { committed : int
-  ; continue  : input -> more -> 'a state }
+  ; continue  : bigstring -> more -> 'a state }
 
 type 'a t = 'a Unbuffered.t =
   { run : 'r. ('r Unbuffered.failure -> ('a, 'r) Unbuffered.success -> 'r state) Unbuffered.with_input }
@@ -168,6 +150,15 @@ module Buffered = struct
     { buf : bigstring
     ; off : int
     ; len : int }
+
+  type input =
+    [ `Bigstring of bigstring
+    | `String    of string ]
+
+  let input_length input =
+    match input with
+    | `String s    -> String.length s
+    | `Bigstring b -> Bigstring.length b
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state)
@@ -199,10 +190,10 @@ module Buffered = struct
           Incomplete
       in
       let for_reading = Buffering.for_reading buffering in
-      from_unbuffered_state buffering ~f (p.continue (`Bigstring for_reading) more)
+      from_unbuffered_state buffering ~f (p.continue for_reading more)
     in
     let for_reading = Buffering.for_reading buffering in
-    from_unbuffered_state buffering ~f (Unbuffered.parse ~input:(`Bigstring for_reading) p)
+    from_unbuffered_state buffering ~f (Unbuffered.parse ~input:for_reading p)
 
   let feed state input =
     match state with
@@ -240,8 +231,14 @@ module Buffered = struct
 
 end
 
-let parse_only p input =
-  Unbuffered.parse_only p input
+let parse_bigstring p bs =
+  Unbuffered.parse_bigstring p bs
+
+let parse_string p s =
+  let len = String.length s in
+  let bs  = Bigstring.create len in
+  Bigstring.blit_from_string s 0 bs 0 len;
+  parse_bigstring p bs
 
 let return =
   fun v ->
@@ -357,7 +354,7 @@ let rec prompt input pos fail succ =
   let commit_pos        = Input.commit_pos input in
   (* The continuation should not hold any references to input above. *)
   let continue input more =
-    let length = input_length input in
+    let length = Bigstring.length input in
     if length < uncommitted_bytes then
       failwith "prompt: input shrunk!";
     let input = Input.create commit_pos input in
