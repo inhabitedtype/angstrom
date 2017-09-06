@@ -54,12 +54,13 @@ let check_fail ?size ~msg p is =
   check ?size (fun result -> Alcotest.(check (result none any)) msg r result)
     p is
 
-let check_c  ?size ~msg p is r = check_ok ?size ~msg Alcotest.char            p is r
-let check_lc ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list char)     p is r
-let check_co ?size ~msg p is r = check_ok ?size ~msg Alcotest.(option char)   p is r
-let check_s  ?size ~msg p is r = check_ok ?size ~msg Alcotest.string          p is r
-let check_ls ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list string)   p is r
-let check_int ?size ~msg p is r = check_ok ?size ~msg Alcotest.int            p is r
+let check_c   ?size ~msg p is r = check_ok ?size ~msg Alcotest.char            p is r
+let check_lc  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list char)     p is r
+let check_co  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(option char)   p is r
+let check_s   ?size ~msg p is r = check_ok ?size ~msg Alcotest.string          p is r
+let check_ls  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list string)   p is r
+let check_int ?size ~msg p is r = check_ok ?size ~msg Alcotest.int             p is r
+
 let check_int32 ?size ~msg p is r =
   let module Alco_int32 = struct
     type t = int32
@@ -67,6 +68,7 @@ let check_int32 ?size ~msg p is r =
     let equal (a : int32) (b : int32) = compare a b = 0
   end in
   check_ok ?size ~msg (module Alco_int32) p is r
+
 let check_int64 ?size ~msg p is r =
   let module Alco_int64 = struct
     type t = int64
@@ -74,6 +76,7 @@ let check_int64 ?size ~msg p is r =
     let equal (a : int64) (b : int64) = compare a b = 0
   end in
   check_ok ?size ~msg (module Alco_int64) p is r
+
 let check_float ?size ~msg p is r =
   let module Alco_float = struct
     type t = float
@@ -141,14 +144,25 @@ let basic_constructors =
   end
   ]
 
-module Endian(Es : EndianString.EndianStringSig) = struct
+module Bigstring = Angstrom__Bigstring (* trollface *)
+
+module type EndianBigstring = sig
+  val set_int16 : Bigstring.t -> off:int -> int -> unit
+  val set_int32 : Bigstring.t -> off:int -> int32 -> unit
+  val set_int64 : Bigstring.t -> off:int -> int64 -> unit
+
+  val set_float  : Bigstring.t -> off:int -> float -> unit
+  val set_double : Bigstring.t -> off:int -> float -> unit
+end
+
+module Endian(Es : EndianBigstring) = struct
   type 'a endian = {
     name : string;
     size : int;
     zero : 'a;
     min : 'a;
     max : 'a;
-    dump : Bytes.t -> int -> 'a -> unit;
+    dump : Bigstring.t -> off:int -> 'a -> unit;
     testable : 'a Alcotest.testable
   }
 
@@ -203,16 +217,16 @@ module Endian(Es : EndianString.EndianStringSig) = struct
   let uint16 = { int16 with name = "uint16"; min = 0; max = 65535 }
   let uint32 = { int32 with name = "uint32" }
 
-   let dump e x =
-     let buf = Bytes.create e.size in
-     e.dump buf 0 x;
-     buf
+   let dump actual size value =
+     let buf = Bigstring.of_string ~off:0 ~len:size (String.make size '\xff') in
+     actual buf ~off:0 value;
+     Bigstring.substring ~off:0 ~len:size buf
 
   let make_tests e parse = e.name, `Quick, begin fun () ->
-    check_ok ~msg:"zero"     e.testable parse [dump e e.zero]          e.zero;
-    check_ok ~msg:"min"      e.testable parse [dump e e.min]           e.min;
-    check_ok ~msg:"max"      e.testable parse [dump e e.max]           e.max;
-    check_ok ~msg:"trailing" e.testable parse [dump e e.zero ^ "\xff"] e.zero;
+    check_ok ~msg:"zero"     e.testable parse [dump e.dump e.size       e.zero] e.zero;
+    check_ok ~msg:"min"      e.testable parse [dump e.dump e.size       e.min ] e.min;
+    check_ok ~msg:"max"      e.testable parse [dump e.dump e.size       e.max ] e.max;
+    check_ok ~msg:"trailing" e.testable parse [dump e.dump (e.size + 1) e.zero] e.zero;
   end
 
   module type EndianSig = module type of LE
@@ -227,10 +241,25 @@ module Endian(Es : EndianString.EndianStringSig) = struct
   ]
 end
 let little_endian =
-  let module E = Endian(EndianString.LittleEndian) in
+  let module E = Endian(struct
+    let set_int16  = Bigstring.unsafe_set_16_le
+    let set_int32  = Bigstring.unsafe_set_32_le
+    let set_int64  = Bigstring.unsafe_set_64_le
+
+    let set_float  bs ~off f = Bigstring.unsafe_set_32_le bs ~off (Int32.bits_of_float f)
+    let set_double bs ~off d = Bigstring.unsafe_set_64_le bs ~off (Int64.bits_of_float d)
+  end) in
   E.tests (module LE)
+
 let big_endian =
-  let module E = Endian(EndianString.BigEndian) in
+  let module E = Endian(struct
+    let set_int16  = Bigstring.unsafe_set_16_be
+    let set_int32  = Bigstring.unsafe_set_32_be
+    let set_int64  = Bigstring.unsafe_set_64_be
+
+    let set_float  bs ~off f = Bigstring.unsafe_set_32_be bs ~off (Int32.bits_of_float f)
+    let set_double bs ~off d = Bigstring.unsafe_set_64_be bs ~off (Int64.bits_of_float d)
+  end) in
   E.tests (module BE)
 
 let monadic =
