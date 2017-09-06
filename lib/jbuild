@@ -3,4 +3,4 @@
 (library
  ((name angstrom)
   (public_name angstrom)
-  (libraries (bigarray ocplib-endian result))))
+  (libraries (bigarray result))))

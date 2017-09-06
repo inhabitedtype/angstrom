@@ -64,13 +64,15 @@ module Input = struct
   let uncommitted_bytes t =
     Bigstring.length t.buffer - commit_pos t
 
-  let substring { initial_commit_pos; buffer } pos len =
+  let apply { initial_commit_pos; buffer } (pos:int) (len:int) ~f =
     let off = pos - initial_commit_pos in
-    Bigstring.substring buffer ~off ~len
+    f buffer ~off ~len
 
-  let get_char { initial_commit_pos; buffer } pos =
-    let pos = pos - initial_commit_pos in
-    Bigstring.unsafe_get buffer pos
+  let substring t pos len =
+    apply t pos len ~f:Bigstring.substring
+
+  let get_char t pos =
+    apply t pos 1 ~f:(fun buf ~off ~len:_ -> Bigstring.unsafe_get buf off)
 
   let count_while { initial_commit_pos; buffer } pos f =
     let i = ref (pos - initial_commit_pos) in
@@ -389,20 +391,28 @@ let ensure_suspended n input pos more fail succ =
   in
   (demand_input *> go).run input pos more fail succ
 
-let unsafe_substring n =
+let unsafe_apply len ~f =
   { run = fun input pos more fail succ ->
-    succ input (pos + n) more (Input.substring input pos n)
+    succ input (pos + len) more (Input.apply input pos len ~f)
   }
+
+let unsafe_apply_opt len ~f =
+  { run = fun input pos more fail succ ->
+    match Input.apply input pos len ~f with
+    | Error e -> fail input pos more [] e
+    | Ok    x -> succ input (pos + len) more x }
+
+let unsafe_substring n = unsafe_apply n ~f:Bigstring.substring
 
 let ensure n =
   { run = fun input pos more fail succ ->
     if pos + n <= Input.length input then
       succ input pos more ()
     else
-      ensure_suspended n input pos more fail succ
-  }
-  *> unsafe_substring n
+      ensure_suspended n input pos more fail succ }
 
+let ensure_apply     n ~f = ensure n *> unsafe_apply     n ~f
+let ensure_apply_opt n ~f = ensure n *> unsafe_apply_opt n ~f
 
 (** END: getting input *)
 
@@ -501,7 +511,7 @@ let any_uint8 =
 
 let any_int8 =
   (* https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtendRisky *)
-  let s = Sys.word_size - 1 - 8 in
+  let s = Sys.int_size - 8 in
   _char ~msg:"any_int8" (fun c -> Some ((Char.code c lsl s) asr s))
 
 let count_while ?(init=0) f =
@@ -526,19 +536,23 @@ let string_ f s =
   (* XXX(seliopou): Inefficient. Could check prefix equality to short-circuit
    * the io. *)
   let len = String.length s in
-  ensure len >>= fun s'->
-    if String.equal (f s) (f s')
-      then return s'
-      else fail "string"
+  ensure_apply_opt len ~f:(fun buffer ~off ~len ->
+    let i = ref 0 in
+    while !i < len && f (Bigstring.unsafe_get buffer (off + !i)) = f (String.unsafe_get s !i) do
+      incr i
+    done;
+    if len = !i
+    then Ok (Bigstring.substring buffer ~off ~len)
+    else Error "string")
 
 let string s    = string_ (fun x -> x) s
-let string_ci s = string_ String.lowercase_ascii s
+let string_ci s = string_ Char.lowercase_ascii s
 
 let skip_while f =
   count_while f >>= advance
 
 let take n =
-  ensure (max n 0)
+  ensure_apply (max n 0) ~f:Bigstring.substring
 
 let peek_string n =
   unsafe_lookahead (take n)
@@ -636,25 +650,24 @@ let scan_state state f =
 let scan_string state f =
   scan_ state f >>= fun (n, _) -> unsafe_substring n
 
-module Make_endian(Es : EndianString.EndianStringSig) = struct
-  let get_float s = Es.get_float s 0
-  let get_double s = Es.get_double s 0
+module BE = struct
+  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_u16_be bs ~off)
+  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_16_be  bs ~off)
 
-  let get_int16  s = Es.get_int16 s 0
-  let get_uint16 s = Es.get_uint16 s 0
-  let get_int32  s = Es.get_int32 s 0
-  let get_int64  s = Es.get_int64 s 0
+  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_32_be bs ~off)
+  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_64_be bs ~off)
 
-  (* int *)
-  let int16  = take 2 >>| get_int16
-  let uint16 = take 2 >>| get_uint16
-  let int32  = take 4 >>| get_int32
-  let int64  = take 8 >>| get_int64
-
-  (* float *)
-  let float  = take 4 >>| get_float
-  let double = take 8 >>| get_double
+  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstring.unsafe_get_32_be bs ~off))
+  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstring.unsafe_get_64_be bs ~off))
 end
 
-module BE = Make_endian(EndianString.BigEndian_unsafe)
-module LE = Make_endian(EndianString.LittleEndian_unsafe)
+module LE = struct
+  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_u16_le bs ~off)
+  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_16_le  bs ~off)
+
+  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_32_le bs ~off)
+  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_64_le bs ~off)
+
+  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstring.unsafe_get_32_le bs ~off))
+  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstring.unsafe_get_64_le bs ~off))
+end

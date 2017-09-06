@@ -35,3 +35,15 @@ val unsafe_set_32_be : t -> off:int -> int32 -> unit
 
 val unsafe_set_64_le : t -> off:int -> int64 -> unit
 val unsafe_set_64_be : t -> off:int -> int64 -> unit
+
+val unsafe_get_16_le : t -> off:int -> int
+val unsafe_get_16_be : t -> off:int -> int
+
+val unsafe_get_u16_le : t -> off:int -> int
+val unsafe_get_u16_be : t -> off:int -> int
+
+val unsafe_get_32_le : t -> off:int -> int32
+val unsafe_get_32_be : t -> off:int -> int32
+
+val unsafe_get_64_le : t -> off:int -> int64
+val unsafe_get_64_be : t -> off:int -> int64

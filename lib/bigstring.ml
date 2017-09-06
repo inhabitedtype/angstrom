@@ -41,36 +41,70 @@ let of_string ~off ~len s =
   blit_from_string s off b 0 len;
   b
 
-external caml_bigstring_set_16u : bigstring -> off:int -> int -> unit = "%caml_bigstring_set16u"
-external caml_bigstring_set_32u : bigstring -> off:int -> int32 -> unit = "%caml_bigstring_set32u"
-external caml_bigstring_set_64u : bigstring -> off:int -> int64 -> unit = "%caml_bigstring_set64u"
+external caml_bigstring_set_16 : bigstring -> off:int -> int   -> unit = "%caml_bigstring_set16u"
+external caml_bigstring_set_32 : bigstring -> off:int -> int32 -> unit = "%caml_bigstring_set32u"
+external caml_bigstring_set_64 : bigstring -> off:int -> int64 -> unit = "%caml_bigstring_set64u"
+
+external caml_bigstring_get_16 : bigstring -> off:int -> int   = "%caml_bigstring_get16u"
+external caml_bigstring_get_32 : bigstring -> off:int -> int32 = "%caml_bigstring_get32u"
+external caml_bigstring_get_64 : bigstring -> off:int -> int64 = "%caml_bigstring_get64u"
 
 module Swap = struct
   external bswap16 : int -> int = "%bswap16"
   external bswap_int32 : int32 -> int32 = "%bswap_int32"
   external bswap_int64 : int64 -> int64 = "%bswap_int64"
 
-  let caml_bigstring_set_16u bs ~off i =
-    caml_bigstring_set_16u bs off (bswap16 i)
+  let caml_bigstring_set_16 bs ~off i =
+    caml_bigstring_set_16 bs off (bswap16 i)
 
-  let caml_bigstring_set_32u bs ~off i =
-    caml_bigstring_set_32u bs off (bswap_int32 i)
+  let caml_bigstring_set_32 bs ~off i =
+    caml_bigstring_set_32 bs off (bswap_int32 i)
 
-  let caml_bigstring_set_64u bs ~off i =
-    caml_bigstring_set_64u bs off (bswap_int64 i)
+  let caml_bigstring_set_64 bs ~off i =
+    caml_bigstring_set_64 bs off (bswap_int64 i)
+
+  let caml_bigstring_get_16 bs ~off =
+    bswap16 (caml_bigstring_get_16 bs off)
+
+  let caml_bigstring_get_32 bs ~off =
+    bswap_int32 (caml_bigstring_get_32 bs off)
+
+  let caml_bigstring_get_64 bs ~off =
+    bswap_int64 (caml_bigstring_get_64 bs off)
 end
 
 let unsafe_set_16_le, unsafe_set_16_be =
   if Sys.big_endian
-  then Swap.caml_bigstring_set_16u, caml_bigstring_set_16u
-  else caml_bigstring_set_16u     , Swap.caml_bigstring_set_16u
+  then Swap.caml_bigstring_set_16, caml_bigstring_set_16
+  else caml_bigstring_set_16     , Swap.caml_bigstring_set_16
 
 let unsafe_set_32_le, unsafe_set_32_be =
   if Sys.big_endian
-  then Swap.caml_bigstring_set_32u, caml_bigstring_set_32u
-  else caml_bigstring_set_32u     , Swap.caml_bigstring_set_32u
+  then Swap.caml_bigstring_set_32, caml_bigstring_set_32
+  else caml_bigstring_set_32     , Swap.caml_bigstring_set_32
 
 let unsafe_set_64_le, unsafe_set_64_be =
   if Sys.big_endian
-  then Swap.caml_bigstring_set_64u, caml_bigstring_set_64u
-  else caml_bigstring_set_64u     , Swap.caml_bigstring_set_64u
+  then Swap.caml_bigstring_set_64, caml_bigstring_set_64
+  else caml_bigstring_set_64     , Swap.caml_bigstring_set_64
+
+let unsafe_get_u16_le, unsafe_get_u16_be =
+  if Sys.big_endian
+  then Swap.caml_bigstring_get_16, caml_bigstring_get_16
+  else caml_bigstring_get_16     , Swap.caml_bigstring_get_16
+
+let unsafe_get_16_le x ~off =
+  ((unsafe_get_u16_le x ~off) lsl (Sys.int_size - 16)) asr (Sys.int_size - 16)
+
+let unsafe_get_16_be x ~off =
+  ((unsafe_get_u16_be x~off ) lsl (Sys.int_size - 16)) asr (Sys.int_size - 16)
+
+let unsafe_get_32_le, unsafe_get_32_be =
+  if Sys.big_endian
+  then Swap.caml_bigstring_get_32, caml_bigstring_get_32
+  else caml_bigstring_get_32     , Swap.caml_bigstring_get_32
+
+let unsafe_get_64_le, unsafe_get_64_be =
+  if Sys.big_endian
+  then Swap.caml_bigstring_get_64, caml_bigstring_get_64
+  else caml_bigstring_get_64     , Swap.caml_bigstring_get_64
