@@ -42,9 +42,6 @@ let ensure t to_copy =
 let write_pos t =
   t.off + t.len
 
-let read_pos t =
-  t.off
-
 let feed_string t ~off ~len str =
   assert (off >= 0);
   assert (String.length str >= len - off);
