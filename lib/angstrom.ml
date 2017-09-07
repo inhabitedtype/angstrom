@@ -550,6 +550,9 @@ let skip_while f =
 let take n =
   ensure_apply (max n 0) ~f:Bigstring.substring
 
+let take_bigstring n =
+  ensure_apply (max n 0) ~f:Bigstring.copy
+
 let peek_string n =
   unsafe_lookahead (take n)
 

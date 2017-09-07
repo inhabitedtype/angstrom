@@ -27,6 +27,8 @@ val blit_to_bytes  : t -> int -> Bytes.t -> int -> int -> unit
 val sub : t -> off:int -> len:int -> t
 val substring : t -> off:int -> len:int -> string
 
+val copy : t -> off:int -> len:int -> t
+
 val unsafe_set_16_le : t -> off:int -> int -> unit
 val unsafe_set_16_be : t -> off:int -> int -> unit
 

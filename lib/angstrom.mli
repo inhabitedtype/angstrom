@@ -48,6 +48,9 @@ type +'a t
 (** A parser for values of type ['a]. *)
 
 
+type bigstring =
+  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
 (** {2 Basic parsers} *)
 
 val peek_char : char option t
@@ -101,6 +104,10 @@ val skip_while : (char -> bool) -> unit t
 val take : int -> string t
 (** [take n] accepts exactly [n] characters of input and returns them as a
     string. *)
+
+val take_bigstring : int -> bigstring t
+(** [take_bigstring n] accepts exactly [n] characters of input and returns them
+    as a bigstring. *)
 
 val take_while : (char -> bool) -> string t
 (** [take_while f] accepts input as long as [f] returns [true] and returns the
@@ -360,9 +367,6 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 
 
 (** {2 Running} *)
-
-type bigstring =
-  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
 val parse_bigstring : 'a t -> bigstring -> ('a, string) Result.result
 (** [parse_bigstring t bs] runs [t] on [bs]. The parser will receive an [`Eof]

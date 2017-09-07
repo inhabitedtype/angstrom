@@ -3,6 +3,11 @@ open Angstrom
 module Alcotest = struct
   include Alcotest
 
+  let bigstring =
+    Alcotest.testable
+      (fun fmt _bs -> Fmt.pf fmt "<bigstring>")
+      ( = )
+
   let result (type a) (type e) a e =
     let (module A: TESTABLE with type t = a) = a in
     let (module E: TESTABLE with type t = e) = e in
@@ -58,6 +63,7 @@ let check_c   ?size ~msg p is r = check_ok ?size ~msg Alcotest.char            p
 let check_lc  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list char)     p is r
 let check_co  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(option char)   p is r
 let check_s   ?size ~msg p is r = check_ok ?size ~msg Alcotest.string          p is r
+let check_bs  ?size ~msg p is r = check_ok ?size ~msg Alcotest.bigstring       p is r
 let check_ls  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list string)   p is r
 let check_int ?size ~msg p is r = check_ok ?size ~msg Alcotest.int             p is r
 
@@ -84,6 +90,8 @@ let check_float ?size ~msg p is r =
     let equal (a : float) (b : float) = compare a b = 0
   end in
   check_ok ?size ~msg (module Alco_float) p is r
+
+let bigstring_of_string s = Angstrom__Bigstring.of_string s ~off:0 ~len:(String.length s)
 
 let basic_constructors =
   [ "peek_char", `Quick, begin fun () ->
@@ -135,6 +143,12 @@ let basic_constructors =
 
       check_fail ~msg:"input is prefix of string"     (string_ci "asdf") ["Asd"];
       check_fail ~msg:"non-empty string, empty input" (string_ci "test") [""]
+  end
+  ; "take_bigstring", `Quick, begin fun () ->
+      check_bs ~msg:"empty bigstring"       (take_bigstring 0) ["asdf"] (bigstring_of_string "");
+      check_bs ~msg:"bigstring"             (take_bigstring 2) ["asdf"] (bigstring_of_string "as");
+
+      check_fail ~msg:"asking for too much" (take_bigstring 5) ["asdf"];
   end
   ; "take_while", `Quick, begin fun () ->
       check_s ~msg:"true, non-empty input"  (take_while (fun _ -> true)) ["asdf"] "asdf";

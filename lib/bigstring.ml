@@ -27,6 +27,11 @@ let blit_from_string src src_off dst dst_off len =
 let sub t ~off ~len =
   BA1.sub t off len
 
+let copy src ~off ~len =
+  let dst = create len in
+  BA1.blit (BA1.sub src off len) dst;
+  dst
+
 let substring t ~off ~len =
   let b = Bytes.create len in
   blit_to_bytes t off b 0 len;
