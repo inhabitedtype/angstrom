@@ -55,22 +55,22 @@ module Swap = struct
   external bswap_int64 : int64 -> int64 = "%bswap_int64"
 
   let caml_bigstring_set_16 bs ~off i =
-    caml_bigstring_set_16 bs off (bswap16 i)
+    caml_bigstring_set_16 bs ~off (bswap16 i)
 
   let caml_bigstring_set_32 bs ~off i =
-    caml_bigstring_set_32 bs off (bswap_int32 i)
+    caml_bigstring_set_32 bs ~off (bswap_int32 i)
 
   let caml_bigstring_set_64 bs ~off i =
-    caml_bigstring_set_64 bs off (bswap_int64 i)
+    caml_bigstring_set_64 bs ~off (bswap_int64 i)
 
   let caml_bigstring_get_16 bs ~off =
-    bswap16 (caml_bigstring_get_16 bs off)
+    bswap16 (caml_bigstring_get_16 bs ~off)
 
   let caml_bigstring_get_32 bs ~off =
-    bswap_int32 (caml_bigstring_get_32 bs off)
+    bswap_int32 (caml_bigstring_get_32 bs ~off)
 
   let caml_bigstring_get_64 bs ~off =
-    bswap_int64 (caml_bigstring_get_64 bs off)
+    bswap_int64 (caml_bigstring_get_64 bs ~off)
 end
 
 let unsafe_set_16_le, unsafe_set_16_be =
