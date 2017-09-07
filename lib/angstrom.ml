@@ -52,39 +52,36 @@ module Input = struct
     ; buffer
     }
 
-  let length { initial_commit_pos; buffer }  =
-    Bigstring.length buffer + initial_commit_pos
+  let length t =
+    Bigstring.length t.buffer + t.initial_commit_pos
 
-  let committed_bytes { commit_pos; initial_commit_pos } =
-    commit_pos - initial_commit_pos
+  let committed_bytes t =
+    t.commit_pos - t.initial_commit_pos
 
-  let initial_commit_pos { initial_commit_pos } = initial_commit_pos
-  let commit_pos         { commit_pos }         = commit_pos
+  let initial_commit_pos t = t.initial_commit_pos
+  let commit_pos         t = t.commit_pos
 
   let uncommitted_bytes t =
     Bigstring.length t.buffer - commit_pos t
 
-  let apply { initial_commit_pos; buffer } (pos:int) (len:int) ~f =
-    let off = pos - initial_commit_pos in
-    f buffer ~off ~len
-
-  let substring t pos len =
-    apply t pos len ~f:Bigstring.substring
+  let apply t pos len ~f =
+    let off = pos - t.initial_commit_pos in
+    f t.buffer ~off ~len
 
   let get_char t pos =
     apply t pos 1 ~f:(fun buf ~off ~len:_ -> Bigstring.unsafe_get buf off)
 
-  let count_while { initial_commit_pos; buffer } pos f =
-    let i = ref (pos - initial_commit_pos) in
+  let count_while t pos f =
+    let buffer = t.buffer in
+    let i = ref (pos - t.initial_commit_pos) in
     let len = Bigstring.length buffer in
     while !i < len && f (Bigstring.unsafe_get buffer !i) do 
       incr i
     done;
-    !i - (pos - initial_commit_pos)
+    !i - (pos - t.initial_commit_pos)
 
   let commit t pos =
     t.commit_pos <- pos
-
 end
 
 module Unbuffered = struct
@@ -245,10 +242,11 @@ let parse_string p s =
 let return =
   fun v ->
     { run = fun input pos more _fail succ ->
-      succ input pos more v }
+      succ input pos more v
+    }
 
 let fail msg =
-  { run = fun input pos more fail succ ->
+  { run = fun input pos more fail _succ ->
     fail input pos more [] msg
   }
 
@@ -392,7 +390,7 @@ let ensure_suspended n input pos more fail succ =
   (demand_input *> go).run input pos more fail succ
 
 let unsafe_apply len ~f =
-  { run = fun input pos more fail succ ->
+  { run = fun input pos more _fail succ ->
     succ input (pos + len) more (Input.apply input pos len ~f)
   }
 
@@ -400,7 +398,8 @@ let unsafe_apply_opt len ~f =
   { run = fun input pos more fail succ ->
     match Input.apply input pos len ~f with
     | Error e -> fail input pos more [] e
-    | Ok    x -> succ input (pos + len) more x }
+    | Ok    x -> succ input (pos + len) more x
+  }
 
 let unsafe_substring n = unsafe_apply n ~f:Bigstring.substring
 
@@ -445,9 +444,6 @@ let available =
     succ input pos more (Input.length input - pos)
   }
 
-let get_buffer_and_pos =
-  { run = fun input pos more _fail succ -> succ input pos more (input, pos) }
-
 let commit =
   { run = fun input pos more _fail succ ->
     Input.commit input pos;
@@ -460,7 +456,7 @@ let unsafe_lookahead p =
     p.run input pos more fail succ' }
 
 let peek_char =
-  { run = fun input pos more fail succ ->
+  { run = fun input pos more _fail succ ->
     if pos < Input.length input then
       succ input pos more (Some (Input.get_char input pos))
     else if more = Complete then
