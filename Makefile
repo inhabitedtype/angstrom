@@ -1,15 +1,15 @@
 .PHONY: all build clean test
 
 build:
-	jbuilder build @install
+	jbuilder build --dev @install
 
 all: build
 
 test:
-	jbuilder runtest
+	jbuilder --dev runtest
 
 install:
-	jbuilder install
+	jbuilder --dev install
 
 uninstall:
 	jbuilder uninstall
