@@ -1,10 +1,13 @@
 (jbuild_version 1)
 
 (library
- ((name angstrom)
+ ((name        angstrom)
   (public_name angstrom)
   (libraries
     (bigarray
      result))
-  (c_names
-    (bigstring_stubs))))
+  (c_names (bigstring_stubs))
+  (js_of_ocaml (
+    (javascript_files (runtime.js))
+    ))
+  ))
