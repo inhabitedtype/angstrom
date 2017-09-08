@@ -6,10 +6,10 @@ build:
 all: build
 
 test:
-	jbuilder --dev runtest
+	jbuilder runtest --dev
 
 install:
-	jbuilder --dev install
+	jbuilder install --dev
 
 uninstall:
 	jbuilder uninstall
