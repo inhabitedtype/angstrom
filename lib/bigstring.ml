@@ -12,9 +12,14 @@ let length t = BA1.dim t
 let unsafe_get = BA1.unsafe_get
 let unsafe_set = BA1.unsafe_set
 
-external blit            : t       -> int -> t       -> int -> int -> unit = "it_bigstring_blit_to_bigstring" [@@noalloc]
-external blit_to_bytes   : t       -> int -> Bytes.t -> int -> int -> unit = "it_bigstring_blit_to_bytes"     [@@noalloc]
-external blit_from_bytes : Bytes.t -> int -> t       -> int -> int -> unit = "it_bigstring_blit_from_bytes"   [@@noalloc]
+external blit            : t       -> int -> t       -> int -> int -> unit =
+  "angstrom_bigstring_blit_to_bigstring" [@@noalloc]
+
+external blit_to_bytes   : t       -> int -> Bytes.t -> int -> int -> unit =
+  "angstrom_bigstring_blit_to_bytes"     [@@noalloc]
+
+external blit_from_bytes : Bytes.t -> int -> t       -> int -> int -> unit =
+  "angstrom_bigstring_blit_from_bytes"   [@@noalloc]
 
 let blit_from_string src src_off dst dst_off len =
   blit_from_bytes (Bytes.unsafe_of_string src) src_off dst dst_off len
