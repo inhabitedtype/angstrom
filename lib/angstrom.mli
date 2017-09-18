@@ -105,10 +105,6 @@ val take : int -> string t
 (** [take n] accepts exactly [n] characters of input and returns them as a
     string. *)
 
-val take_bigstring : int -> bigstring t
-(** [take_bigstring n] accepts exactly [n] characters of input and returns them
-    as a bigstring. *)
-
 val take_while : (char -> bool) -> string t
 (** [take_while f] accepts input as long as [f] returns [true] and returns the
     accepted characters as a string.
@@ -129,6 +125,31 @@ val take_till : (char -> bool) -> string t
 
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty string. *)
+
+val take_bigstring : int -> bigstring t
+(** [take_bigstring n] accepts exactly [n] characters of input and returns them
+    as a bigstring. *)
+
+val take_bigstring_while : (char -> bool) -> bigstring t
+(** [take_bigstring_while f] accepts input as long as [f] returns [true] and
+    returns the accepted characters as a bigstring.
+
+    This parser does not fail. If [f] returns [false] on the first character,
+    it will return the empty bigstring. *)
+
+val take_bigstring_while1 : (char -> bool) -> bigstring t
+(** [take_bigstring_while f] accepts input as long as [f] returns [true] and
+    returns the accepted characters as a bigstring.
+
+    This parser requires that [f] return [true] for at least one character of
+    input, and will fail otherwise. *)
+
+val take_bigstring_till : (char -> bool) -> bigstring t
+(** [take_bigstring_till f] accepts input as long as [f] returns [false] and
+    returns the accepted characters as a bigstring.
+
+    This parser does not fail. If [f] returns [true] on the first character, it
+    will return the empty bigstring. *)
 
 val advance : int -> unit t
 (** [advance n] advances the input [n] characters, failing if the remaining
@@ -379,6 +400,54 @@ val parse_string : 'a t -> string -> ('a, string) Result.result
     after all of [bs] has been consumed. For use-cases requiring that the
     parser be fed input incrementally, see the {!module:Buffered} and
     {!module:Unbuffered} modules below. *)
+
+(** Unsafe operations on Angstrom's internal buffer
+
+    Each {!t} value has its own internal {!bigstring} buffer.  These functions
+    allow direct access to this buffer without an explicit copy.
+
+    These functions are considered {b unsafe} as they expose the buffer
+    directly.  The buffer could be modified by Angstrom by future parsing
+    operations.  Any modifications by a caller could affect future parsing
+    operations. *)
+module Unsafe : sig
+  val take : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
+  (** [take n f] accepts exactly [n] characters of input into the parser's
+      internal buffer then calls [f buffer ~off ~len].  [buffer] is the
+      parser's internal buffer.  [off] is the offset from the start of [buffer]
+      containing the requested content.  [len] is the length of the requested
+      content.  [len] is guaranteed to be equal to [n]. *)
+
+  val take_while : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
+  (** [take_while check f] accepts input into the parser's interal buffer as
+      long as [check] returns [true] then calls [f buffer ~off ~len].  [buffer]
+      is the parser's internal buffer.  [off] is the offset from the start of
+      [buffer] containing the requested content.  [len] is the length of the
+      content matched by [check].
+
+      This parser does not fail. If [check] returns [false] on the first
+      character, [len] will be [0]. *)
+
+  val take_while1 : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
+  (** [take_while1 check f] accepts input into the parser's interal buffer as
+      long as [check] returns [true] then calls [f buffer ~off ~len].  [buffer]
+      is the parser's internal buffer.  [off] is the offset from the start of
+      [buffer] containing the requested content.  [len] is the length of the
+      content matched by [check].
+
+      This parser requires that [f] return [true] for at least one character of
+      input, and will fail otherwise. *)
+
+  val take_till : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
+  (** [take_till check f] accepts input into the parser's interal buffer as
+      long as [check] returns [false] then calls [f buffer ~off ~len].  [buffer]
+      is the parser's internal buffer.  [off] is the offset from the start of
+      [buffer] containing the requested content.  [len] is the length of the
+      content matched by [check].
+
+      This parser does not fail. If [check] returns [true] on the first
+      character, [len] will be [0]. *)
+end
 
 
 (** Buffered parsing interface.
