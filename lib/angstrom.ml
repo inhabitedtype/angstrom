@@ -463,7 +463,7 @@ let peek_char =
       succ input pos more None
     else
       let rec succ' input' pos' more' =
-        if pos < Input.length input then
+        if pos' < Input.length input' then
           succ input' pos' more' (Some (Input.get_char input' pos'))
         else if more' = Complete then
           succ input' pos' more' None
