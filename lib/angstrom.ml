@@ -402,6 +402,7 @@ let unsafe_apply_opt len ~f =
   }
 
 let unsafe_substring n = unsafe_apply n ~f:Bigstring.substring
+let unsafe_copy n = unsafe_apply n ~f:Bigstring.copy
 
 let ensure n =
   { run = fun input pos more fail succ ->
@@ -550,6 +551,21 @@ let skip_while f =
 let take n =
   ensure_apply (max n 0) ~f:Bigstring.substring
 
+let take_bigstring n =
+  ensure_apply (max n 0) ~f:Bigstring.copy
+
+let take_bigstring_while f =
+  count_while f >>= unsafe_copy
+
+let take_bigstring_while1 f =
+  count_while f
+  >>= function
+    | 0 -> fail "take_bigstring_while1"
+    | n -> unsafe_copy n
+
+let take_bigstring_till f =
+  take_bigstring_while (fun c -> not (f c))
+
 let peek_string n =
   unsafe_lookahead (take n)
 
@@ -666,4 +682,22 @@ module LE = struct
 
   let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstring.unsafe_get_32_le bs ~off))
   let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstring.unsafe_get_64_le bs ~off))
+end
+
+module Unsafe = struct
+  let take n f =
+    ensure_apply (max n 0) ~f
+
+  let take_while check f =
+    count_while check >>= fun n ->
+    take n f
+
+  let take_while1 check f =
+    count_while check
+    >>= function
+      | 0 -> fail "take_while1"
+      | n -> take n f
+
+  let take_till check f =
+    take_while (fun c -> not (check c)) f
 end
