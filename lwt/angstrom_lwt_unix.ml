@@ -41,7 +41,7 @@ let parse ?(pushback=default_pushback) p in_chan =
   let bytes = Bytes.create size in
   let rec loop = function
     | Partial k ->
-      Lwt_io.read_into in_chan (Bytes.unsafe_to_string bytes) 0 size
+      Lwt_io.read_into in_chan bytes 0 size
       >|= begin function
         | 0   -> k `Eof
         | len ->
