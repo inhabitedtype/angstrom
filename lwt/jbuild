@@ -1,7 +1,8 @@
 (jbuild_version 1)
 
 (library
- ((name angstrom_lwt_unix)
+ ((name        angstrom_lwt_unix)
   (public_name angstrom-lwt-unix)
   (wrapped false)
+  (flags (:standard -safe-string))
   (libraries (angstrom lwt.unix))))
