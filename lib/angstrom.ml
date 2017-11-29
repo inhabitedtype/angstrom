@@ -358,7 +358,7 @@ let rec prompt input pos fail succ =
     if length < uncommitted_bytes then
       failwith "prompt: input shrunk!";
     let input = Input.create commit_pos input in
-    if length = uncommitted_bytes then
+    if length = uncommitted_bytes || pos = Input.length input then
       if more = Complete then
         fail input pos Complete
       else
@@ -462,12 +462,8 @@ let peek_char =
     else if more = Complete then
       succ input pos more None
     else
-      let rec succ' input' pos' more' =
-        if pos' < Input.length input' then
-          succ input' pos' more' (Some (Input.get_char input' pos'))
-        else if more' = Complete then
-          succ input' pos' more' None
-        else prompt input' pos' fail' succ'
+      let succ' input' pos' more' =
+        succ input' pos' more' (Some (Input.get_char input' pos'))
       and fail' input' pos' more' =
         succ input' pos' more' None in
       prompt input pos fail' succ'
