@@ -352,6 +352,26 @@ let incremental =
         (string "thisthat") ["this"; "that"] "thisthat";
       check_s ~msg:"string straddling 3 inputs"
         (string "thisthat") ["thi"; "st"; "hat"] "thisthat";
+      end
+  ; "peek_char and empty chunks", `Quick, begin fun () ->
+      let decoder len =
+        let open Angstrom in
+
+        let buf = Buffer.create len in
+
+        fix @@ fun m ->
+        available >>= function
+        | 0 -> peek_char >>= (function
+            | Some _ -> commit *> m
+            | None ->
+              let ret = Buffer.contents buf in
+              Buffer.clear buf;
+              commit *> return ret)
+        | n -> take n >>= fun chunk -> Buffer.add_string buf chunk; commit *> m
+      in
+
+      check_s ~msg:"empty input multiple times and peek_char"
+        (decoder 0xFF) [ "Whole Lotta Love"; ""; ""; "" ] "Whole Lotta Love"
     end
   ; "across chunk boundary", `Quick, begin fun () ->
       check_s ~size:4 ~msg:"string on each side of 2 chunks"

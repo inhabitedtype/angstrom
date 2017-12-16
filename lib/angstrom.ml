@@ -358,7 +358,7 @@ let rec prompt input pos fail succ =
     if length < uncommitted_bytes then
       failwith "prompt: input shrunk!";
     let input = Input.create commit_pos input in
-    if length = uncommitted_bytes then
+    if length = uncommitted_bytes || pos = Input.length input then
       if more = Complete then
         fail input pos Complete
       else
