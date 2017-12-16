@@ -485,14 +485,36 @@ let _char ~msg f =
       ensure_suspended 1 input pos more fail succ'
   }
 
-let peek_char_fail =
-  unsafe_lookahead (_char ~msg:"peek_char_fail" (fun c -> Some c))
+(* Like _char but specialized for parsers that just return the character that
+ * satisfies [f]. Avoids an allocation. *)
+let _char_pred ~msg f =
+  { run = fun input pos more fail succ ->
+    if pos < Input.length input then
+      let c = Input.get_char input pos in
+      if f c
+      then succ input (pos + 1) more c
+      else fail input pos more [] msg
+    else
+      let succ' input' pos' more' () =
+        let c = Input.get_char input' pos' in
+        if f c
+        then succ input' (pos' + 1) more' c
+        else fail input' pos' more' [] msg
+      in
+      ensure_suspended 1 input pos more fail succ' }
+
+(* This parser is too important to not be optimized. Do a custom job. *)
+let rec peek_char_fail =
+  { run = fun input pos more fail succ ->
+    if pos < Input.length input
+    then succ input pos more (Input.get_char input pos)
+    else
+      let succ' input' pos' more' () =
+        peek_char_fail.run input' pos' more' fail succ in
+      ensure_suspended 1 input pos more fail succ' }
 
 let satisfy f =
-  _char ~msg:"satisfy" (fun c -> if f c then Some c else None)
-
-let skip f =
-  _char ~msg:"skip" (fun c -> if f c then Some () else None)
+  _char_pred ~msg:"satisfy" f
 
 let char c =
   satisfy (fun c' -> c = c') <?> (String.make 1 c)
@@ -501,7 +523,7 @@ let not_char c =
   satisfy (fun c' -> c <> c') <?> ("not " ^ String.make 1 c)
 
 let any_char =
-  _char ~msg:"any_char" (fun c -> Some c)
+  _char_pred ~msg:"any_char" (fun _ -> true)
 
 let any_uint8 =
   _char ~msg:"any_uint8" (fun c -> Some (Char.code c))
@@ -510,6 +532,9 @@ let any_int8 =
   (* https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtendRisky *)
   let s = Sys.int_size - 8 in
   _char ~msg:"any_int8" (fun c -> Some ((Char.code c lsl s) asr s))
+
+let skip f =
+  _char ~msg:"skip" (fun c -> if f c then Some () else None)
 
 let count_while ?(init=0) f =
   (* NB: does not advance position. *)

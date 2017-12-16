@@ -25,6 +25,7 @@ let make_bench name parser contents =
     match Angstrom.(parse_bigstring parser contents) with
     | R.Ok _ -> ()
     | R.Error err -> failwith err)
+;;
 
 let make_endian name p        = make_bench name (Angstrom.skip_many p)   zero
 let make_json   name contents = make_bench name RFC7159.json             contents
@@ -70,12 +71,23 @@ let main () =
         float_of_string "172429151501664");
     ]
   in
+  let characters =
+    let contents = Bigstring.of_string "a" in
+    let open Angstrom in
+    Bench.make_command [
+      make_bench "peek_char_fail" peek_char_fail contents;
+      make_bench "any_char"       any_char       contents;
+      make_bench "char"           (char 'a')     contents;
+      make_bench "not_char"       (not_char 'b') contents;
+    ]
+  in
   Command.run
     (Command.group ~summary:"various angstrom benchmarks" 
-      [ "json"   , json
-      ; "endian" , endian
-      ; "http"   , http 
-      ; "numbers", numbers
+      [ "json"      , json
+      ; "endian"    , endian
+      ; "http"      , http
+      ; "numbers"   , numbers
+      ; "characters", characters
     ])
 
 let () = main ()
