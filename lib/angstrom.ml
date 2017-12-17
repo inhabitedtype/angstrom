@@ -535,7 +535,7 @@ let count_while ?(init=0) f =
   (* NB: does not advance position. *)
   let rec go acc =
     { run = fun input pos more fail succ ->
-      let n = Input.count_while input (pos + acc) f in
+      let n = Input.count_while input (pos + acc) ~f in
       let acc' = n + acc in
       (* Check if the loop terminated because it reached the end of the input
        * buffer. If so, then prompt for additional input and continue. *)
