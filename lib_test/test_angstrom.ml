@@ -156,6 +156,12 @@ let basic_constructors =
       check_s ~msg:"false, non-empty input" (take_while (fun _ -> false)) ["asdf"] "";
       check_s ~msg:"false, empty input"     (take_while (fun _ -> false)) [""] "";
   end
+  ; "take_while1", `Quick, begin fun () ->
+      check_s ~msg:"true, non-empty input"     (take_while1 (fun _ -> true)) ["asdf"] "asdf";
+      check_fail ~msg:"false, non-empty input" (take_while1 (fun _ -> false)) ["asdf"];
+      check_fail ~msg:"true, empty input"      (take_while1 (fun _ -> true)) [""];
+      check_fail ~msg:"false, empty input"     (take_while1 (fun _ -> false)) [""];
+  end
   ]
 
 module Bigstring = Angstrom__Bigstring (* trollface *)
