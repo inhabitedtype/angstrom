@@ -384,7 +384,9 @@ let string_ f s =
   let len = String.length s in
   ensure_apply_opt len ~f:(fun buffer ~off ~len ->
     let i = ref 0 in
-    while !i < len && f (Bigstring.unsafe_get buffer (off + !i)) = f (String.unsafe_get s !i) do
+    while !i < len && Char.equal (f (Bigstring.unsafe_get buffer (off + !i)))
+                                 (f (String.unsafe_get s !i))
+    do
       incr i
     done;
     if len = !i
