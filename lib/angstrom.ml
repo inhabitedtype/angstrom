@@ -85,7 +85,7 @@ module Input = struct
 end
 
 module Unbuffered = struct
-  type more =
+  type more = More.t =
     | Complete
     | Incomplete
 
@@ -128,17 +128,13 @@ module Unbuffered = struct
     state_to_result (p.run (Input.create 0 input) 0 Complete fail_k succeed_k)
 end
 
-type more = Unbuffered.more =
-  | Complete
-  | Incomplete
-
 type 'a state = 'a Unbuffered.state =
   | Partial of 'a partial
   | Done    of int * 'a
   | Fail    of int * string list * string
 and 'a partial = 'a Unbuffered.partial =
   { committed : int
-  ; continue  : bigstring -> more -> 'a state }
+  ; continue  : bigstring -> More.t -> 'a state }
 
 type 'a t = 'a Unbuffered.t =
   { run : 'r. ('r Unbuffered.failure -> ('a, 'r) Unbuffered.success -> 'r state) Unbuffered.with_input }
@@ -181,7 +177,7 @@ module Buffered = struct
     Buffering.feed_input buffering input;
     let rec f p input =
       Buffering.shift buffering p.committed;
-      let more =
+      let more : More.t =
         match input with
         | `Eof            -> Complete
         | #input as input ->
@@ -359,10 +355,9 @@ let rec prompt input pos fail succ =
       failwith "prompt: input shrunk!";
     let input = Input.create commit_pos input in
     if length = uncommitted_bytes || pos = Input.length input then
-      if more = Complete then
-        fail input pos Complete
-      else
-        prompt input pos fail succ
+      match (more : More.t) with
+      | Complete   -> fail input pos More.Complete
+      | Incomplete -> prompt input pos fail succ
     else
       succ input pos more
   in
@@ -370,7 +365,7 @@ let rec prompt input pos fail succ =
 
 let demand_input =
   { run = fun input pos more fail succ ->
-    match more with
+    match (more : More.t) with
     | Complete   -> fail input pos more [] "not enough input"
     | Incomplete ->
       let succ' input' pos' more' = succ input' pos' more' ()
@@ -605,7 +600,6 @@ let take_while1 f =
 
 let take_till f =
   take_while (fun c -> not (f c))
-
 
 let choice ps =
   List.fold_right (<|>) ps (fail "empty")
