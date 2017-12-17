@@ -9,8 +9,8 @@ let empty       = create 0
 module BA1 = Bigarray.Array1
 
 let length t = BA1.dim t
-let unsafe_get = BA1.unsafe_get
-let unsafe_set = BA1.unsafe_set
+external unsafe_get : t -> int -> char         = "%caml_ba_unsafe_ref_1"
+external unsafe_set : t -> int -> char -> unit = "%caml_ba_unsafe_set_1"
 
 external blit            : t       -> int -> t       -> int -> int -> unit =
   "angstrom_bigstring_blit_to_bigstring" [@@noalloc]
