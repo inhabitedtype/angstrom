@@ -82,6 +82,16 @@ let main () =
       make_bench "advance 1"      (advance 1)    contents;
     ]
   in
+  let loops =
+    let contents = Bigstring.of_string (String.make 1024 'a') in
+    let open Angstrom in
+    Bench.make_command [
+      make_bench "skip_while  true" (skip_while  (fun _ -> true)) contents;
+      make_bench "take_while  true" (take_while  (fun _ -> true)) contents;
+      make_bench "take_while1 true" (take_while1 (fun _ -> true)) contents;
+      make_bench "many any_char "   (many any_char)               contents;
+    ]
+  in
   Command.run
     (Command.group ~summary:"various angstrom benchmarks" 
       [ "json"      , json
@@ -89,6 +99,7 @@ let main () =
       ; "http"      , http
       ; "numbers"   , numbers
       ; "characters", characters
+      ; "loops"     , loops
     ])
 
 let () = main ()
