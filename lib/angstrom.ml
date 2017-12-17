@@ -39,110 +39,17 @@ end
 type bigstring = Bigstring.t
 
 
-module Input = struct
-  type t =
-    { mutable commit_pos : int
-    ; initial_commit_pos : int
-    ; buffer : bigstring
-    }
-
-  let create initial_commit_pos buffer =
-    { commit_pos = initial_commit_pos
-    ; initial_commit_pos
-    ; buffer
-    }
-
-  let length t =
-    Bigstring.length t.buffer + t.initial_commit_pos
-
-  let committed_bytes t =
-    t.commit_pos - t.initial_commit_pos
-
-  let initial_commit_pos t = t.initial_commit_pos
-  let commit_pos         t = t.commit_pos
-
-  let uncommitted_bytes t =
-    Bigstring.length t.buffer - commit_pos t
-
-  let apply t pos len ~f =
-    let off = pos - t.initial_commit_pos in
-    f t.buffer ~off ~len
-
-  let get_char t pos =
-    apply t pos 1 ~f:(fun buf ~off ~len:_ -> Bigstring.unsafe_get buf off)
-
-  let count_while t pos f =
-    let buffer = t.buffer in
-    let i = ref (pos - t.initial_commit_pos) in
-    let len = Bigstring.length buffer in
-    while !i < len && f (Bigstring.unsafe_get buffer !i) do 
-      incr i
-    done;
-    !i - (pos - t.initial_commit_pos)
-
-  let commit t pos =
-    t.commit_pos <- pos
-end
-
 module Unbuffered = struct
-  type more =
+  include Parser
+
+  type more = More.t = 
     | Complete
     | Incomplete
-
-  type 'a state =
-    | Partial of 'a partial
-    | Done    of int * 'a
-    | Fail    of int * string list * string
-  and 'a partial =
-    { committed : int
-    ; continue  : bigstring -> more -> 'a state }
-
-  type 'a with_input =
-    Input.t ->  int -> more -> 'a
-
-  type 'a failure = (string list -> string -> 'a state) with_input
-  type ('a, 'r) success = ('a -> 'r state) with_input
-
-  let fail_k    buf pos _ marks msg = Fail(pos - Input.initial_commit_pos buf, marks, msg)
-  let succeed_k buf pos _       v   = Done(pos - Input.initial_commit_pos buf, v)
-
-  type +'a t =
-    { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_input }
-
-  let fail_to_string marks err =
-    String.concat " > " marks ^ ": " ^ err
-
-  let state_to_option = function
-    | Done(_, v) -> Some v
-    | _          -> None
-
-  let state_to_result = function
-    | Done(_, v)          -> Result.Ok v
-    | Partial _           -> Result.Error "incomplete input"
-    | Fail(_, marks, err) -> Result.Error (fail_to_string marks err)
-
-  let parse ?(input=Bigstring.empty) p =
-    p.run (Input.create 0 input) 0 Incomplete fail_k succeed_k
-
-  let parse_bigstring p input =
-    state_to_result (p.run (Input.create 0 input) 0 Complete fail_k succeed_k)
 end
 
-type more = Unbuffered.more =
-  | Complete
-  | Incomplete
-
-type 'a state = 'a Unbuffered.state =
-  | Partial of 'a partial
-  | Done    of int * 'a
-  | Fail    of int * string list * string
-and 'a partial = 'a Unbuffered.partial =
-  { committed : int
-  ; continue  : bigstring -> more -> 'a state }
-
-type 'a t = 'a Unbuffered.t =
-  { run : 'r. ('r Unbuffered.failure -> ('a, 'r) Unbuffered.success -> 'r state) Unbuffered.with_input }
-
+include Unbuffered
+include Parser.Monad
+include Parser.Choice
 
 module Buffered = struct
   type unconsumed = Buffering.unconsumed =
@@ -181,7 +88,7 @@ module Buffered = struct
     Buffering.feed_input buffering input;
     let rec f p input =
       Buffering.shift buffering p.committed;
-      let more =
+      let more : More.t =
         match input with
         | `Eof            -> Complete
         | #input as input ->
@@ -239,113 +146,6 @@ let parse_string p s =
   Bigstring.blit_from_string s 0 bs 0 len;
   parse_bigstring p bs
 
-let return =
-  fun v ->
-    { run = fun input pos more _fail succ ->
-      succ input pos more v
-    }
-
-let fail msg =
-  { run = fun input pos more fail _succ ->
-    fail input pos more [] msg
-  }
-
-let (>>=) p f =
-  { run = fun input pos more fail succ ->
-    let succ' input' pos' more' v = (f v).run input' pos' more' fail succ in
-    p.run input pos more fail succ'
-  }
-
-let (>>|) p f =
-  { run = fun input pos more fail succ ->
-    let succ' input' pos' more' v = succ input' pos' more' (f v) in
-    p.run input pos more fail succ'
-  }
-
-let (<$>) f m =
-  m >>| f
-
-let (<*>) f m =
-  (* f >>= fun f -> m >>| f *)
-  { run = fun input pos more fail succ ->
-    let succ0 input0 pos0 more0 f =
-      let succ1 input1 pos1 more1 m = succ input1 pos1 more1 (f m) in
-      m.run input0 pos0 more0 fail succ1
-    in
-    f.run input pos more fail succ0 }
-
-let lift f m =
-  f <$> m
-
-let lift2 f m1 m2 =
-  { run = fun input pos more fail succ ->
-    let succ1 input1 pos1 more1 m1 =
-      let succ2 input2 pos2 more2 m2 = succ input2 pos2 more2 (f m1 m2) in
-      m2.run input1 pos1 more1 fail succ2
-    in
-    m1.run input pos more fail succ1 }
-
-let lift3 f m1 m2 m3 =
-  { run = fun input pos more fail succ ->
-    let succ1 input1 pos1 more1 m1 =
-      let succ2 input2 pos2 more2 m2 =
-        let succ3 input3 pos3 more3 m3 =
-          succ input3 pos3 more3 (f m1 m2 m3) in
-        m3.run input2 pos2 more2 fail succ3 in
-      m2.run input1 pos1 more1 fail succ2
-    in
-    m1.run input pos more fail succ1 }
-
-let lift4 f m1 m2 m3 m4 =
-  { run = fun input pos more fail succ ->
-    let succ1 input1 pos1 more1 m1 =
-      let succ2 input2 pos2 more2 m2 =
-        let succ3 input3 pos3 more3 m3 =
-          let succ4 input4 pos4 more4 m4 =
-            succ input4 pos4 more4 (f m1 m2 m3 m4) in
-          m4.run input3 pos3 more3 fail succ4 in
-        m3.run input2 pos2 more2 fail succ3 in
-      m2.run input1 pos1 more1 fail succ2
-    in
-    m1.run input pos more fail succ1 }
-
-let ( *>) a b =
-  (* a >>= fun _ -> b *)
-  { run = fun input pos more fail succ ->
-    let succ' input' pos' more' _ = b.run input' pos' more' fail succ in
-    a.run input pos more fail succ'
-  }
-
-let (<* ) a b =
-  (* a >>= fun x -> b >>| fun _ -> x *)
-  { run = fun input pos more fail succ ->
-    let succ0 input0 pos0 more0 x =
-      let succ1 input1 pos1 more1 _ = succ input1 pos1 more1 x in
-      b.run input0 pos0 more0 fail succ1
-    in
-    a.run input pos more fail succ0 }
-
-let (<?>) p mark =
-  { run = fun input pos more fail succ ->
-    let fail' input' pos' more' marks msg =
-      fail input' pos' more' (mark::marks) msg in
-    p.run input pos more fail' succ
-  }
-
-let (<|>) p q =
-  { run = fun input pos more fail succ ->
-    let fail' input' pos' more' marks msg =
-      (* The only two constructors that introduce new failure continuations are
-       * [<?>] and [<|>]. If the initial input position is less than the length
-       * of the committed input, then calling the failure continuation will
-       * have the effect of unwinding all choices and collecting marks along
-       * the way. *)
-      if pos < Input.commit_pos input' then
-        fail input' pos' more marks msg
-      else
-        q.run input' pos more' fail succ in
-    p.run input pos more fail' succ
-  }
 
 (** BEGIN: getting input *)
 
@@ -359,10 +159,9 @@ let rec prompt input pos fail succ =
       failwith "prompt: input shrunk!";
     let input = Input.create commit_pos input in
     if length = uncommitted_bytes || pos = Input.length input then
-      if more = Complete then
-        fail input pos Complete
-      else
-        prompt input pos fail succ
+      match (more : More.t) with
+      | Complete   -> fail input pos More.Complete
+      | Incomplete -> prompt input pos fail succ
     else
       succ input pos more
   in
@@ -370,7 +169,7 @@ let rec prompt input pos fail succ =
 
 let demand_input =
   { run = fun input pos more fail succ ->
-    match more with
+    match (more : More.t) with
     | Complete   -> fail input pos more [] "not enough input"
     | Incomplete ->
       let succ' input' pos' more' = succ input' pos' more' ()
@@ -540,7 +339,7 @@ let count_while ?(init=0) f =
   (* NB: does not advance position. *)
   let rec go acc =
     { run = fun input pos more fail succ ->
-      let n = Input.count_while input (pos + acc) f in
+      let n = Input.count_while input (pos + acc) ~f in
       let acc' = n + acc in
       (* Check if the loop terminated because it reached the end of the input
        * buffer. If so, then prompt for additional input and continue. *)
@@ -605,7 +404,6 @@ let take_while1 f =
 
 let take_till f =
   take_while (fun c -> not (f c))
-
 
 let choice ps =
   List.fold_right (<|>) ps (fail "empty")
