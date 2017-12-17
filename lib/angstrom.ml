@@ -200,9 +200,6 @@ let unsafe_apply_opt len ~f =
     | Ok    x -> succ input (pos + len) more x
   }
 
-let unsafe_substring n = unsafe_apply n ~f:Bigstring.substring
-let unsafe_copy n = unsafe_apply n ~f:Bigstring.copy
-
 let ensure n =
   { run = fun input pos more fail succ ->
     if pos + n <= Input.length input then
@@ -335,23 +332,51 @@ let any_int8 =
 let skip f =
   _char ~msg:"skip" (fun c -> if f c then Some () else None)
 
-let count_while ?(init=0) f =
-  (* NB: does not advance position. *)
-  let rec go acc =
-    { run = fun input pos more fail succ ->
-      let n = Input.count_while input (pos + acc) ~f in
-      let acc' = n + acc in
-      (* Check if the loop terminated because it reached the end of the input
-       * buffer. If so, then prompt for additional input and continue. *)
-      if pos + acc' < Input.length input || more = Complete then
-        succ input pos more acc'
+let rec count_while ~init ~f ~with_buffer =
+  { run = fun input pos more fail succ ->
+    let len         = Input.count_while input (pos + init) ~f in
+    let input_len   = Input.length input in
+    let init'       = init + len in
+    (* Check if the loop terminated because it reached the end of the input
+     * buffer. If so, then prompt for additional input and continue. *)
+    if pos + init' < input_len || more = Complete
+    then succ input (pos + init') more (Input.apply input pos init' ~f:with_buffer)
+    else
+      let succ' input' pos' more' =
+        (count_while ~init:init' ~f ~with_buffer).run input' pos' more' fail succ
+      and fail' input' pos' more' =
+        succ input' pos' more' (Input.apply input' pos' init' ~f:with_buffer)
+      in
+      prompt input pos fail' succ'
+  }
+
+let rec count_while1 ~f ~with_buffer =
+  { run = fun input pos more fail succ ->
+    let len         = Input.count_while input pos ~f in
+    let input_len   = Input.length input in
+    (* Check if the loop terminated because it reached the end of the input
+     * buffer. If so, then prompt for additional input and continue. *)
+    if len < 1
+    then 
+      if pos < input_len || more = Complete
+      then fail input pos more [] "count_while1"
       else
-        let succ' input' pos' more' = (go acc').run input' pos' more' fail succ
-        and fail' input' pos' more' = succ input' pos' more' acc' in
+        let succ' input' pos' more' =
+          (count_while1 ~f ~with_buffer).run input' pos' more' fail succ
+        and fail' input' pos' more' =
+          fail input' pos' more' [] "count_while1"
+        in
         prompt input pos fail' succ'
-    }
-  in
-  go init
+    else if pos + len < input_len || more = Complete
+    then succ input (pos + len) more (Input.apply input pos len ~f:with_buffer)
+    else
+      let succ' input' pos' more' =
+        (count_while ~init:len ~f ~with_buffer).run input' pos' more' fail succ
+      and fail' input' pos' more' =
+        succ input' pos' more' (Input.apply input' pos' len ~f:with_buffer)
+      in
+      prompt input pos fail' succ'
+  }
 
 let string_ f s =
   (* XXX(seliopou): Inefficient. Could check prefix equality to short-circuit
@@ -370,7 +395,7 @@ let string s    = string_ (fun x -> x) s
 let string_ci s = string_ Char.lowercase_ascii s
 
 let skip_while f =
-  count_while f >>= advance
+  count_while ~init:0 ~f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())
 
 let take n =
   ensure_apply (max n 0) ~f:Bigstring.substring
@@ -379,13 +404,10 @@ let take_bigstring n =
   ensure_apply (max n 0) ~f:Bigstring.copy
 
 let take_bigstring_while f =
-  count_while f >>= unsafe_copy
+  count_while ~init:0 ~f ~with_buffer:Bigstring.copy
 
 let take_bigstring_while1 f =
-  count_while f
-  >>= function
-    | 0 -> fail "take_bigstring_while1"
-    | n -> unsafe_copy n
+  count_while1 ~f ~with_buffer:Bigstring.copy
 
 let take_bigstring_till f =
   take_bigstring_while (fun c -> not (f c))
@@ -394,13 +416,10 @@ let peek_string n =
   unsafe_lookahead (take n)
 
 let take_while f =
-  count_while f >>= unsafe_substring
+  count_while ~init:0 ~f ~with_buffer:Bigstring.substring
 
 let take_while1 f =
-  count_while f
-  >>= function
-    | 0 -> fail "take_while1"
-    | n -> unsafe_substring n
+  count_while1 ~f ~with_buffer:Bigstring.substring
 
 let take_till f =
   take_while (fun c -> not (f c))
@@ -462,28 +481,28 @@ let skip_many1 p =
 let end_of_line =
   (char '\n' *> return ()) <|> (string "\r\n" *> return ()) <?> "end_of_line"
 
-let scan_ state f =
+let scan_ state f ~with_buffer =
   { run = fun input pos more fail succ ->
     let state = ref state in
     let parser =
-      count_while (fun c ->
+      count_while ~init:0 ~f:(fun c ->
         match f !state c with
         | None -> false
         | Some state' -> state := state'; true)
-      >>| fun n -> n, !state
+      ~with_buffer
+      >>| fun x -> x, !state
     in
     parser.run input pos more fail succ }
 
 let scan state f =
-  scan_ state f
-  >>= fun (n, state) -> unsafe_substring n
-  >>| fun string     -> string, state
+  scan_ state f ~with_buffer:Bigstring.substring
 
 let scan_state state f =
-  scan_ state f >>= fun (n, state) -> advance n *> return state
+  scan_ state f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())
+  >>| fun ((), state) -> state
 
 let scan_string state f =
-  scan_ state f >>= fun (n, _) -> unsafe_substring n
+  scan state f >>| fst
 
 module BE = struct
   let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_u16_be bs ~off)
@@ -512,14 +531,10 @@ module Unsafe = struct
     ensure_apply (max n 0) ~f
 
   let take_while check f =
-    count_while check >>= fun n ->
-    take n f
+    count_while ~init:0 ~f:check ~with_buffer:f
 
   let take_while1 check f =
-    count_while check
-    >>= function
-      | 0 -> fail "take_while1"
-      | n -> take n f
+    count_while1 ~f:check ~with_buffer:f
 
   let take_till check f =
     take_while (fun c -> not (check c)) f
