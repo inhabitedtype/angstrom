@@ -79,6 +79,7 @@ let main () =
       make_bench "any_char"       any_char       contents;
       make_bench "char"           (char 'a')     contents;
       make_bench "not_char"       (not_char 'b') contents;
+      make_bench "advance 1"      (advance 1)    contents;
     ]
   in
   Command.run
