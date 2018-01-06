@@ -411,6 +411,7 @@ val parse_string : 'a t -> string -> ('a, string) Result.result
     operations.  Any modifications by a caller could affect future parsing
     operations. *)
 module Unsafe : sig
+
   val take : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [take n f] accepts exactly [n] characters of input into the parser's
       internal buffer then calls [f buffer ~off ~len].  [buffer] is the
@@ -447,6 +448,14 @@ module Unsafe : sig
 
       This parser does not fail. If [check] returns [true] on the first
       character, [len] will be [0]. *)
+
+  val peek : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
+  (** [peek n ~f] accepts exactly [n] characters and calls [f buffer ~off ~len]
+      with [len = n]. If there is not enough input, it will fail. If [f] does
+      not return a direct or indirect reference to [buffer], then this function
+      is entirely safe to use.
+
+      This parser does not advance the input. Use it for lookahead. *)
 end
 
 
