@@ -532,6 +532,9 @@ module Unsafe = struct
   let take n f =
     ensure_apply (max n 0) ~f
 
+  let peek n f =
+    unsafe_lookahead (take n f)
+
   let take_while check f =
     count_while ~init:0 ~f:check ~with_buffer:f
 
