@@ -7,37 +7,6 @@ module Alcotest = struct
     Alcotest.testable
       (fun fmt _bs -> Fmt.pf fmt "<bigstring>")
       ( = )
-
-  let result (type a) (type e) a e =
-    let (module A: TESTABLE with type t = a) = a in
-    let (module E: TESTABLE with type t = e) = e in
-    let module M = struct
-      type t = (a, e) Result.result
-      let pp fmt t = match t with
-        | Result.Ok    t -> Format.fprintf fmt "Ok @[(%a)@]" A.pp t
-        | Result.Error e -> Format.fprintf fmt "Error @[(%a)@]" E.pp e
-      let equal x y = match x, y with
-        | Result.Ok    x, Result.Ok    y -> A.equal x y
-        | Result.Error x, Result.Error y -> E.equal x y
-        | _             , _              -> false
-    end in
-    (module M: TESTABLE with type t = M.t)
-
-  let none (type a) =
-    let module M = struct
-      type t = a
-      let pp fmt _ = Format.pp_print_string fmt "Alcotest.none"
-      let equal _ _ = false
-    end in
-    (module M: TESTABLE with type t = M.t)
-
-  let any (type a) =
-    let module M = struct
-      type t = a
-      let pp fmt _ = Format.pp_print_string fmt "Alcotest.any"
-      let equal _ _ = true
-    end in
-    (module M: TESTABLE with type t = M.t)
 end
 
 let check ?size f p is =
@@ -56,7 +25,7 @@ let check_ok ?size ~msg test p is r =
 
 let check_fail ?size ~msg p is =
   let r = Result.Error "" in
-  check ?size (fun result -> Alcotest.(check (result none any)) msg r result)
+  check ?size (fun result -> Alcotest.(check (result reject pass)) msg r result)
     p is
 
 let check_c   ?size ~msg p is r = check_ok ?size ~msg Alcotest.char            p is r
@@ -66,30 +35,6 @@ let check_s   ?size ~msg p is r = check_ok ?size ~msg Alcotest.string          p
 let check_bs  ?size ~msg p is r = check_ok ?size ~msg Alcotest.bigstring       p is r
 let check_ls  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list string)   p is r
 let check_int ?size ~msg p is r = check_ok ?size ~msg Alcotest.int             p is r
-
-let check_int32 ?size ~msg p is r =
-  let module Alco_int32 = struct
-    type t = int32
-    let pp fmt i = Format.pp_print_string fmt (Int32.to_string i)
-    let equal (a : int32) (b : int32) = compare a b = 0
-  end in
-  check_ok ?size ~msg (module Alco_int32) p is r
-
-let check_int64 ?size ~msg p is r =
-  let module Alco_int64 = struct
-    type t = int64
-    let pp fmt i = Format.pp_print_string fmt (Int64.to_string i)
-    let equal (a : int64) (b : int64) = compare a b = 0
-  end in
-  check_ok ?size ~msg (module Alco_int64) p is r
-
-let check_float ?size ~msg p is r =
-  let module Alco_float = struct
-    type t = float
-    let pp fmt f = Format.pp_print_string fmt (string_of_float f)
-    let equal (a : float) (b : float) = compare a b = 0
-  end in
-  check_ok ?size ~msg (module Alco_float) p is r
 
 let bigstring_of_string s = Angstrom__Bigstring.of_string s ~off:0 ~len:(String.length s)
 
@@ -313,10 +258,10 @@ let alternative =
 
 let combinators =
   [ "many", `Quick, begin fun () ->
-        check_lc ~msg:"empty input"   (many (char 'a')) [""]  [];
-        check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
-        check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
-      end
+      check_lc ~msg:"empty input"   (many (char 'a')) [""]  [];
+      check_lc ~msg:"single char"   (many (char 'a')) ["a"] ['a'];
+      check_lc ~msg:"two chars"     (many (char 'a')) ["aa"] ['a'; 'a'];
+    end
   ; "many_till", `Quick, begin fun () ->
       check_lc ~msg:"not greedy" (many_till any_char (char '-')) ["ab-ab-"] ['a'; 'b'];
     end
