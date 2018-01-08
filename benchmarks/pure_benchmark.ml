@@ -29,7 +29,7 @@ let make_bench name parser contents =
 
 let make_endian name p        = make_bench name (Angstrom.skip_many p)   zero
 let make_json   name contents = make_bench name RFC7159.json             contents
-let make_http   name contents = make_bench name RFC2616.request          contents
+let make_http   name contents = make_bench name (Angstrom.skip_many RFC2616.request) contents
 
 (* For input files involving trailing numbers, .e.g, [http-requests.txt.100],
  * go into the [benchmarks/data] directory and use the [replicate] script to
