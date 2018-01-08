@@ -387,29 +387,23 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
     applicative implementation. *)
 
 
-(** {2 Running} *)
+(** Unsafe Operations on Angstrom's Internal Buffer
 
-val parse_bigstring : 'a t -> bigstring -> ('a, string) Result.result
-(** [parse_bigstring t bs] runs [t] on [bs]. The parser will receive an [`Eof]
-    after all of [bs] has been consumed. For use-cases requiring that the
-    parser be fed input incrementally, see the {!module:Buffered} and
-    {!module:Unbuffered} modules below. *)
+    These functions are considered {b unsafe} as they expose the input buffer
+    to client code without any protections against modification, or leaking
+    references. They are exposed to support performance-sensitive parsers that
+    want to avoid allocation at all costs. Client code should take care to
+    write the input buffer callback functions such that they:
 
-val parse_string : 'a t -> string -> ('a, string) Result.result
-(** [parse_string t bs] runs [t] on [bs]. The parser will receive an [`Eof]
-    after all of [bs] has been consumed. For use-cases requiring that the
-    parser be fed input incrementally, see the {!module:Buffered} and
-    {!module:Unbuffered} modules below. *)
+    {ul
+    {- do not modify the input buffer {i outside} of the range 
+       [\[off, off + len)];}
+    {- do not modify the input buffer {i inside} of the range 
+       [\[off, off + len)] if the parser might backtrack; and}
+    {- do not return any direct or indirect references to the input buffer.}} 
 
-(** Unsafe operations on Angstrom's internal buffer
-
-    Each {!t} value has its own internal {!bigstring} buffer.  These functions
-    allow direct access to this buffer without an explicit copy.
-
-    These functions are considered {b unsafe} as they expose the buffer
-    directly.  The buffer could be modified by Angstrom by future parsing
-    operations.  Any modifications by a caller could affect future parsing
-    operations. *)
+    If the input buffer callback functions do not do any of these things, then
+    the client may consider their use safe. *)
 module Unsafe : sig
 
   val take : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
@@ -451,12 +445,27 @@ module Unsafe : sig
 
   val peek : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [peek n ~f] accepts exactly [n] characters and calls [f buffer ~off ~len]
-      with [len = n]. If there is not enough input, it will fail. If [f] does
-      not return a direct or indirect reference to [buffer], then this function
-      is entirely safe to use.
+      with [len = n]. If there is not enough input, it will fail. 
 
       This parser does not advance the input. Use it for lookahead. *)
 end
+
+
+
+
+(** {2 Running} *)
+
+val parse_bigstring : 'a t -> bigstring -> ('a, string) Result.result
+(** [parse_bigstring t bs] runs [t] on [bs]. The parser will receive an [`Eof]
+    after all of [bs] has been consumed. For use-cases requiring that the
+    parser be fed input incrementally, see the {!module:Buffered} and
+    {!module:Unbuffered} modules below. *)
+
+val parse_string : 'a t -> string -> ('a, string) Result.result
+(** [parse_string t bs] runs [t] on [bs]. The parser will receive an [`Eof]
+    after all of [bs] has been consumed. For use-cases requiring that the
+    parser be fed input incrementally, see the {!module:Buffered} and
+    {!module:Unbuffered} modules below. *)
 
 
 (** Buffered parsing interface.
