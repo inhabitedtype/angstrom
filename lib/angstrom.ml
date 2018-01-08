@@ -61,11 +61,6 @@ module Buffered = struct
     [ `Bigstring of bigstring
     | `String    of string ]
 
-  let input_length input =
-    match input with
-    | `String s    -> String.length s
-    | `Bigstring b -> Bigstring.length b
-
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state)
     | Done    of unconsumed * 'a
@@ -80,12 +75,10 @@ module Buffered = struct
       let unconsumed = Buffering.unconsumed ~shift:consumed buffering in
       Fail(unconsumed, marks, msg)
 
-  let parse ?(initial_buffer_size=0x1000) ?(input=`String "") p =
+  let parse ?(initial_buffer_size=0x1000) p =
     if initial_buffer_size < 1 then
       failwith "parse: invalid argument, initial_buffer_size < 1";
-    let initial_buffer_size = max initial_buffer_size (input_length input) in
     let buffering = Buffering.create initial_buffer_size in
-    Buffering.feed_input buffering input;
     let rec f p input =
       Buffering.shift buffering p.committed;
       let more : More.t =
@@ -96,10 +89,11 @@ module Buffered = struct
           Incomplete
       in
       let for_reading = Buffering.for_reading buffering in
-      from_unbuffered_state buffering ~f (p.continue for_reading more)
+      p.continue for_reading ~off:0 ~len:(Bigstring.length for_reading) more
+      |> from_unbuffered_state buffering ~f
     in
-    let for_reading = Buffering.for_reading buffering in
-    from_unbuffered_state buffering ~f (Unbuffered.parse ~input:for_reading p)
+    Unbuffered.parse p
+    |> from_unbuffered_state buffering ~f
 
   let feed state input =
     match state with
@@ -150,22 +144,21 @@ let parse_string p s =
 (** BEGIN: getting input *)
 
 let rec prompt input pos fail succ =
-  let uncommitted_bytes = Input.uncommitted_bytes input in
-  let commit_pos        = Input.commit_pos input in
+  let parser_uncommitted_bytes = Input.parser_uncommitted_bytes input in
+  let parser_committed_bytes   = Input.parser_committed_bytes   input in 
   (* The continuation should not hold any references to input above. *)
-  let continue input more =
-    let length = Bigstring.length input in
-    if length < uncommitted_bytes then
+  let continue input ~off ~len more =
+    if len < parser_uncommitted_bytes then
       failwith "prompt: input shrunk!";
-    let input = Input.create commit_pos input in
-    if length = uncommitted_bytes || pos = Input.length input then
+    let input = Input.create input ~off ~len ~committed_bytes:parser_committed_bytes in
+    if len = parser_uncommitted_bytes || pos = Input.length input then
       match (more : More.t) with
       | Complete   -> fail input pos More.Complete
       | Incomplete -> prompt input pos fail succ
     else
       succ input pos more
   in
-  Partial { committed = Input.committed_bytes input; continue }
+  Partial { committed = Input.bytes_for_client_to_commit input; continue }
 
 let demand_input =
   { run = fun input pos more fail succ ->
