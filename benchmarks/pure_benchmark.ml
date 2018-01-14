@@ -5,14 +5,14 @@ open Core_bench
 let read file =
   let open Unix in
   let size = Int64.to_int_exn (stat file).st_size in
-  let buf  = String.create size in
+  let buf  = Bytes.create size in
   let rec loop pos len fd =
     let n = read ~pos ~len ~buf fd in
     if n > 0 then loop (pos + n) (len - n) fd
   in
   with_file ~mode:[O_RDONLY] file ~f:(fun fd ->
     loop 0 size fd);
-  Bigstring.of_string buf
+  Bigstring.of_bytes buf
 ;;
 
 let zero =
