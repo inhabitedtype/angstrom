@@ -496,7 +496,7 @@ module Buffered : sig
     | Done    of unconsumed * 'a (** The parser succeeded. *)
     | Fail    of unconsumed * string list * string (** The parser failed. *)
 
-  val parse : ?initial_buffer_size:int -> ?input:input -> 'a t -> 'a state
+  val parse : ?initial_buffer_size:int -> 'a t -> 'a state
   (** [parse ?initial_buffer_size ?input t] runs [t] on [input], if present,
       and awaits input if needed. [parse] will allocate a buffer of size
       [initial_buffer_size] (defaulting to 4k bytes) to do input buffering and
@@ -551,7 +551,6 @@ module Unbuffered : sig
     | Complete
     | Incomplete
 
-
   type 'a state =
     | Partial of 'a partial (** The parser requires more input. *)
     | Done    of int * 'a (** The parser succeeded, consuming specified bytes. *)
@@ -561,14 +560,14 @@ module Unbuffered : sig
       (** The number of bytes committed during the last input feeding.
           Callers must drop this number of bytes from the beginning of the
           input on subsequent calls. See {!commit} for additional details. *)
-    ; continue : bigstring -> more -> 'a state
+    ; continue : bigstring -> off:int -> len:int -> more -> 'a state
       (** A continuation of a parse that requires additional input. The input
           should include all uncommitted input (as reported by previous partial
           states) in addition to any new input that has become available, as
           well as an indication of whether there is {!more} input to come.  *)
     }
 
-  val parse : ?input:bigstring -> 'a t -> 'a state
+  val parse : 'a t -> 'a state
   (** [parse ?input t] runs [t] on [input], if present, and await input if
       needed. *)
 
