@@ -38,8 +38,8 @@
 void
 angstrom_bigstring_blit_to_bytes(value vsrc, value vsrc_off, value vdst, value vdst_off, value vlen)
 {
-    void *src = ((void *)Caml_ba_data_val(vsrc)) + Long_val(vsrc_off),
-         *dst = ((void *)String_val(vdst))       + Long_val(vdst_off);
+    void *src = ((char *)Caml_ba_data_val(vsrc)) + Long_val(vsrc_off),
+         *dst = ((char *)String_val(vdst))       + Long_val(vdst_off);
     size_t len = Long_val(vlen);
     memcpy(dst, src, len);
 }
@@ -47,8 +47,8 @@ angstrom_bigstring_blit_to_bytes(value vsrc, value vsrc_off, value vdst, value v
 void
 angstrom_bigstring_blit_to_bigstring(value vsrc, value vsrc_off, value vdst, value vdst_off, value vlen)
 {
-    void *src = ((void *)Caml_ba_data_val(vsrc)) + Long_val(vsrc_off),
-         *dst = ((void *)Caml_ba_data_val(vdst)) + Long_val(vdst_off);
+    void *src = ((char *)Caml_ba_data_val(vsrc)) + Long_val(vsrc_off),
+         *dst = ((char *)Caml_ba_data_val(vdst)) + Long_val(vdst_off);
     size_t len = Long_val(vlen);
     memcpy(dst, src, len);
 }
@@ -56,8 +56,8 @@ angstrom_bigstring_blit_to_bigstring(value vsrc, value vsrc_off, value vdst, val
 void
 angstrom_bigstring_blit_from_bytes(value vsrc, value vsrc_off, value vdst, value vdst_off, value vlen)
 {
-    void *src = ((void *)String_val(vsrc))       + Long_val(vsrc_off),
-         *dst = ((void *)Caml_ba_data_val(vdst)) + Long_val(vdst_off);
+    void *src = ((char *)String_val(vsrc))       + Long_val(vsrc_off),
+         *dst = ((char *)Caml_ba_data_val(vdst)) + Long_val(vdst_off);
     size_t len = Long_val(vlen);
     memcpy(dst, src, len);
 }

@@ -7,7 +7,8 @@
     (bigarray
      result))
   (c_names (bigstring_stubs))
-  (flags (:standard -safe-string))
+  (c_flags (-Wall -Wextra -Wpedantic))
+  (flags   (:standard -safe-string))
   (js_of_ocaml (
     (javascript_files (runtime.js))
     ))
