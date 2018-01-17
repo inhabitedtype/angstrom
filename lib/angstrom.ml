@@ -144,6 +144,10 @@ let parse_string p s =
 (** BEGIN: getting input *)
 
 let rec prompt input pos fail succ =
+  (* [prompt] should only call [succ] if it has received more input. If there
+   * is no chance that the input will grow, i.e., [more = Complete], then
+   * [prompt] should call [fail]. Otherwise (in the case where the input
+   * hasn't grown but [more = Incomplete] just prompt again. *)
   let parser_uncommitted_bytes = Input.parser_uncommitted_bytes input in
   let parser_committed_bytes   = Input.parser_committed_bytes   input in 
   (* The continuation should not hold any references to input above. *)
