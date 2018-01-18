@@ -38,11 +38,10 @@ let parse_bigstring p input =
   state_to_result (p.run input 0 Complete fail_k succeed_k)
 
 module Monad = struct
-  let return =
-    fun v ->
-      { run = fun input pos more _fail succ ->
-        succ input pos more v
-      }
+  let return v =
+    { run = fun input pos more _fail succ ->
+      succ input pos more v
+    }
 
   let fail msg =
     { run = fun input pos more fail _succ ->
