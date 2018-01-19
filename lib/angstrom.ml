@@ -155,7 +155,7 @@ let rec prompt input pos fail succ =
     if len < parser_uncommitted_bytes then
       failwith "prompt: input shrunk!";
     let input = Input.create input ~off ~len ~committed_bytes:parser_committed_bytes in
-    if len = parser_uncommitted_bytes || pos = Input.length input then
+    if len = parser_uncommitted_bytes then
       match (more : More.t) with
       | Complete   -> fail input pos More.Complete
       | Incomplete -> prompt input pos fail succ
