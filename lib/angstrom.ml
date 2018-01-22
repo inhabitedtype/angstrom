@@ -228,7 +228,9 @@ let end_of_input =
     | false -> fail "end_of_input"
 
 let advance n =
-  { run = fun input pos more _fail succ -> succ input (pos + n) more () }
+  if n < 0
+  then fail "advance"
+  else { run = fun input pos more _fail succ -> succ input (pos + n) more () }
 
 let pos =
   { run = fun input pos more _fail succ -> succ input pos more pos }
