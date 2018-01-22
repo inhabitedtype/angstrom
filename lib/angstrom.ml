@@ -342,7 +342,7 @@ let rec count_while ~init ~f ~with_buffer =
       let succ' input' pos' more' =
         (count_while ~init:init' ~f ~with_buffer).run input' pos' more' fail succ
       and fail' input' pos' more' =
-        succ input' pos' more' (Input.apply input' pos' init' ~f:with_buffer)
+        succ input' (pos' + init') more' (Input.apply input' pos' init' ~f:with_buffer)
       in
       prompt input pos fail' succ'
   }
@@ -370,7 +370,7 @@ let rec count_while1 ~f ~with_buffer =
       let succ' input' pos' more' =
         (count_while ~init:len ~f ~with_buffer).run input' pos' more' fail succ
       and fail' input' pos' more' =
-        succ input' pos' more' (Input.apply input' pos' len ~f:with_buffer)
+        succ input' (pos' + len) more' (Input.apply input' pos' len ~f:with_buffer)
       in
       prompt input pos fail' succ'
   }

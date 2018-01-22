@@ -341,6 +341,14 @@ let incremental =
         (string "thi" *> string "st" *> commit *> string "hat") ["thi"; "st"; "hat"] "hat";
     end ]
 
+let count_while_regression =
+  [ "proper position set after count_while", `Quick, begin fun () ->
+    check_s ~msg:"take_while then eof"
+      (take_while (fun _ -> true) <* end_of_input) ["asdf"; ""] "asdf";
+    check_s ~msg:"take_while1 then eof"
+      (take_while1 (fun _ -> true) <* end_of_input) ["asdf"; ""] "asdf";
+  end ]
+
 let () =
   Alcotest.run "test suite"
     [ "basic constructors"    , basic_constructors
@@ -350,4 +358,6 @@ let () =
     ; "applicative interface" , applicative
     ; "alternative"           , alternative
     ; "combinators"           , combinators
-    ; "incremental input"     , incremental ]
+    ; "incremental input"     , incremental 
+    ; "count_while regression", count_while_regression
+  ]
