@@ -33,7 +33,7 @@
 
 type t
 
-val create : Bigstring.t -> off:int -> len:int -> committed_bytes:int -> t
+val create : Bigstringaf.t -> off:int -> len:int -> committed_bytes:int -> t
 
 val length : t -> int
 
@@ -46,7 +46,7 @@ val bytes_for_client_to_commit : t -> int
 val get_char    : t -> int -> char
 val count_while : t -> int -> f:(char -> bool) -> int
 
-val apply : t -> int -> int -> f:(Bigstring.t -> off:int -> len:int -> 'a) -> 'a
+val apply : t -> int -> int -> f:(Bigstringaf.t -> off:int -> len:int -> 'a) -> 'a
 
 val commit : t -> int -> unit
 

@@ -36,7 +36,7 @@ module Bigarray = struct
    * the internal Bigstring module. *)
 end
 
-type bigstring = Bigstring.t
+type bigstring = Bigstringaf.t
 
 
 module Unbuffered = struct
@@ -89,7 +89,7 @@ module Buffered = struct
           Incomplete
       in
       let for_reading = Buffering.for_reading buffering in
-      p.continue for_reading ~off:0 ~len:(Bigstring.length for_reading) more
+      p.continue for_reading ~off:0 ~len:(Bigstringaf.length for_reading) more
       |> from_unbuffered_state buffering ~f
     in
     Unbuffered.parse p
@@ -136,8 +136,8 @@ let parse_bigstring p bs =
 
 let parse_string p s =
   let len = String.length s in
-  let bs  = Bigstring.create len in
-  Bigstring.blit_from_string s 0 bs 0 len;
+  let bs  = Bigstringaf.create len in
+  Bigstringaf.unsafe_blit_from_string s ~src_off:0 bs ~dst_off:0 ~len;
   parse_bigstring p bs
 
 
@@ -383,13 +383,13 @@ let string_ f s =
   let len = String.length s in
   ensure_apply_opt len ~f:(fun buffer ~off ~len ->
     let i = ref 0 in
-    while !i < len && Char.equal (f (Bigstring.unsafe_get buffer (off + !i)))
+    while !i < len && Char.equal (f (Bigstringaf.unsafe_get buffer (off + !i)))
                                  (f (String.unsafe_get s !i))
     do
       incr i
     done;
     if len = !i
-    then Ok (Bigstring.substring buffer ~off ~len)
+    then Ok (Bigstringaf.substring buffer ~off ~len)
     else Error "string")
 
 let string s    = string_ (fun x -> x) s
@@ -399,16 +399,16 @@ let skip_while f =
   count_while ~init:0 ~f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())
 
 let take n =
-  ensure_apply (max n 0) ~f:Bigstring.substring
+  ensure_apply (max n 0) ~f:Bigstringaf.substring
 
 let take_bigstring n =
-  ensure_apply (max n 0) ~f:Bigstring.copy
+  ensure_apply (max n 0) ~f:Bigstringaf.copy
 
 let take_bigstring_while f =
-  count_while ~init:0 ~f ~with_buffer:Bigstring.copy
+  count_while ~init:0 ~f ~with_buffer:Bigstringaf.copy
 
 let take_bigstring_while1 f =
-  count_while1 ~f ~with_buffer:Bigstring.copy
+  count_while1 ~f ~with_buffer:Bigstringaf.copy
 
 let take_bigstring_till f =
   take_bigstring_while (fun c -> not (f c))
@@ -417,10 +417,10 @@ let peek_string n =
   unsafe_lookahead (take n)
 
 let take_while f =
-  count_while ~init:0 ~f ~with_buffer:Bigstring.substring
+  count_while ~init:0 ~f ~with_buffer:Bigstringaf.substring
 
 let take_while1 f =
-  count_while1 ~f ~with_buffer:Bigstring.substring
+  count_while1 ~f ~with_buffer:Bigstringaf.substring
 
 let take_till f =
   take_while (fun c -> not (f c))
@@ -496,7 +496,7 @@ let scan_ state f ~with_buffer =
     parser.run input pos more fail succ }
 
 let scan state f =
-  scan_ state f ~with_buffer:Bigstring.substring
+  scan_ state f ~with_buffer:Bigstringaf.substring
 
 let scan_state state f =
   scan_ state f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())
@@ -506,25 +506,25 @@ let scan_string state f =
   scan state f >>| fst
 
 module BE = struct
-  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_u16_be bs ~off)
-  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_16_be  bs ~off)
+  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_be bs off)
+  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_be  bs off)
 
-  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_32_be bs ~off)
-  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_64_be bs ~off)
+  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_be bs off)
+  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_be bs off)
 
-  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstring.unsafe_get_32_be bs ~off))
-  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstring.unsafe_get_64_be bs ~off))
+  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_be bs off))
+  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_be bs off))
 end
 
 module LE = struct
-  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_u16_le bs ~off)
-  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_16_le  bs ~off)
+  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_le bs off)
+  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_le bs off)
 
-  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_32_le bs ~off)
-  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstring.unsafe_get_64_le bs ~off)
+  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_le bs off)
+  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_le bs off)
 
-  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstring.unsafe_get_32_le bs ~off))
-  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstring.unsafe_get_64_le bs ~off))
+  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_le bs off))
+  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_le bs off))
 end
 
 module Unsafe = struct

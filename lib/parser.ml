@@ -4,7 +4,7 @@ type 'a state =
   | Fail    of int * string list * string
 and 'a partial =
   { committed : int
-  ; continue  : Bigstring.t -> off:int -> len:int -> More.t -> 'a state }
+  ; continue  : Bigstringaf.t -> off:int -> len:int -> More.t -> 'a state }
 
 type 'a with_state = Input.t ->  int -> More.t -> 'a
 
@@ -30,11 +30,11 @@ let state_to_result = function
   | Fail(_, marks, err) -> Result.Error (fail_to_string marks err)
 
 let parse p =
-  let input = Input.create Bigstring.empty ~committed_bytes:0 ~off:0 ~len:0 in
+  let input = Input.create Bigstringaf.empty ~committed_bytes:0 ~off:0 ~len:0 in
   p.run input 0 Incomplete fail_k succeed_k
 
 let parse_bigstring p input =
-  let input = Input.create input ~committed_bytes:0 ~off:0 ~len:(Bigstring.length input) in
+  let input = Input.create input ~committed_bytes:0 ~off:0 ~len:(Bigstringaf.length input) in
   state_to_result (p.run input 0 Complete fail_k succeed_k)
 
 module Monad = struct

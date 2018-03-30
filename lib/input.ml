@@ -36,7 +36,7 @@ type t =
   ; client_committed_bytes         : int
   ; off                            : int
   ; len                            : int
-  ; buffer                         : Bigstring.t
+  ; buffer                         : Bigstringaf.t
   }
 
 let create buffer ~off ~len ~committed_bytes =
@@ -68,14 +68,14 @@ let apply t pos len ~f =
   f t.buffer ~off ~len
 
 let get_char t pos =
-  apply t pos 1 ~f:(fun buf ~off ~len:_ -> Bigstring.unsafe_get buf off)
+  apply t pos 1 ~f:(fun buf ~off ~len:_ -> Bigstringaf.unsafe_get buf off)
 
 let count_while t pos ~f =
   let buffer = t.buffer in
   let off    = offset_in_buffer t pos in
   let i      = ref off in
   let len    = t.len in
-  while !i < len && f (Bigstring.unsafe_get buffer !i) do 
+  while !i < len && f (Bigstringaf.unsafe_get buffer !i) do 
     incr i
   done;
   !i - off

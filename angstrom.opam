@@ -15,7 +15,7 @@ build-test: [
 depends: [
   "jbuilder" {build & >= "1.0+beta10"}
   "alcotest" {test & >= "0.8.1"}
-  "base-bigarray"
+  "bigstringaf"
   "result"
 ]
 available: [ ocaml-version >= "4.03.0" ]
