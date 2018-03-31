@@ -122,12 +122,11 @@ After this, you may install a development version of the library using the
 install command as usual.
 
 For building and running the tests during development, you will need to install
-the `alcotest` package and reconfigure the build process to enable tests:
+the `alcotest` package:
 
 ```bash
 opam install alcotest
-./configure --enable-tests
-make && make test
+make test
 ```
 
 ## Acknowledgements
