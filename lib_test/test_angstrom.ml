@@ -195,12 +195,12 @@ module Endian(Es : EndianBigstring) = struct
   module type EndianSig = module type of LE
 
   let tests (module E : EndianSig) = [
-    make_tests int16  E.int16;
-    make_tests int32  E.int32;
-    make_tests int64  E.int64;
-    make_tests uint16 E.uint16;
-    make_tests float  E.float;
-    make_tests double E.double;
+    make_tests int16  E.any_int16;
+    make_tests int32  E.any_int32;
+    make_tests int64  E.any_int64;
+    make_tests uint16 E.any_uint16;
+    make_tests float  E.any_float;
+    make_tests double E.any_double;
   ]
 end
 let little_endian =

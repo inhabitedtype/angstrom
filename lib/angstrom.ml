@@ -506,25 +506,68 @@ let scan_string state f =
   scan state f >>| fst
 
 module BE = struct
-  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_be bs off)
-  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_be  bs off)
+  let int16 n =
+    ensure 2 *>
+    { run = fun input pos more fail succ ->
+      if Input.get_int16_be input pos = (n land 0xffff)
+      then succ input (pos + 2) more ()
+      else fail input pos more [] "int16" }
 
-  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_be bs off)
-  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_be bs off)
+  let int32 n =
+    ensure 4 *>
+    { run = fun input pos more fail succ ->
+      if Input.get_int32_be input pos = n
+      then succ input (pos + 4) more ()
+      else fail input pos more [] "int32" }
 
-  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_be bs off))
-  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_be bs off))
+  let int64 n =
+    ensure 8 *>
+    { run = fun input pos more fail succ ->
+      if Input.get_int64_be input pos = n
+      then succ input (pos + 8) more ()
+      else fail input pos more [] "int64" }
+
+  let any_uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_be bs off)
+  let any_int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_be  bs off)
+
+  let any_int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_be bs off)
+  let any_int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_be bs off)
+
+  let any_float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_be bs off))
+  let any_double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_be bs off))
 end
 
 module LE = struct
-  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_le bs off)
-  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_le bs off)
 
-  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_le bs off)
-  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_le bs off)
+  let int16 n =
+    ensure 2 *>
+    { run = fun input pos more fail succ ->
+      if Input.get_int16_le input pos = (n land 0xffff)
+      then succ input (pos + 2) more ()
+      else fail input pos more [] "int16" }
 
-  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_le bs off))
-  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_le bs off))
+  let int32 n =
+    ensure 4 *>
+    { run = fun input pos more fail succ ->
+      if Input.get_int32_le input pos = n
+      then succ input (pos + 4) more ()
+      else fail input pos more [] "int32" }
+
+  let int64 n =
+    ensure 8 *>
+    { run = fun input pos more fail succ ->
+      if Input.get_int64_le input pos = n
+      then succ input (pos + 8) more ()
+      else fail input pos more [] "int64" }
+
+  let any_uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_le bs off)
+  let any_int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_le bs off)
+
+  let any_int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_le bs off)
+  let any_int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_le bs off)
+
+  let any_float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_le bs off))
+  let any_double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_le bs off))
 end
 
 module Unsafe = struct

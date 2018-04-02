@@ -68,7 +68,32 @@ let apply t pos len ~f =
   f t.buffer ~off ~len
 
 let get_char t pos =
-  apply t pos 1 ~f:(fun buf ~off ~len:_ -> Bigstringaf.unsafe_get buf off)
+  let off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_get t.buffer off
+
+let get_int16_le t pos =
+  let off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_get_int16_le t.buffer off
+
+let get_int32_le t pos =
+  let off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_get_int32_le t.buffer off
+
+let get_int64_le t pos =
+  let off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_get_int64_le t.buffer off
+
+let get_int16_be t pos =
+  let off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_get_int16_be t.buffer off
+
+let get_int32_be t pos =
+  let off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_get_int32_be t.buffer off
+
+let get_int64_be t pos =
+  let off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_get_int64_be t.buffer off
 
 let count_while t pos ~f =
   let buffer = t.buffer in
