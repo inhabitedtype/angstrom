@@ -54,8 +54,8 @@ let main () =
   in
   let endian =
     Bench.make_command [
-      make_endian "int64 le" Angstrom.LE.int64;
-      make_endian "int64 be" Angstrom.BE.int64;
+      make_endian "int64 le" Angstrom.LE.any_int64;
+      make_endian "int64 be" Angstrom.BE.any_int64;
     ]
   in
   let http =
@@ -92,14 +92,35 @@ let main () =
       make_bench "many any_char "   (many any_char)               contents;
     ]
   in
+  let short_strings =
+    let contents = Bigstring.of_string "\r\n\r\n\r\n" in
+    let old_style_be (n : int) =
+      Angstrom.(BE.any_int16 >>= fun i -> if i = n then return () else fail "not newline") in
+    Bench.make_command [
+      make_bench "string \"\\r\\n\""  (Angstrom.string   "\r\n") contents;
+      make_bench "BE.any_int16 >>= f" (old_style_be      0x0d0a) contents;
+      make_bench "BE.int16 0x0d0a"    (Angstrom.BE.int16 0x0d0a) contents;
+      make_bench "LE.int16 0x0a0d"    (Angstrom.LE.int16 0x0a0d) contents;
+    ]
+  in
+  let http_version =
+    let contents = Bigstring.of_string "HTTP/" in
+    Bench.make_command [
+      make_bench "string \"HTTP/\""   (Angstrom.string   "HTTP/") contents;
+      make_bench "BE.int32 *> char"   (Angstrom.(BE.int32 0x48545450l *> char '/')) contents;
+      make_bench "LE.int32 *> char"   (Angstrom.(LE.int32 0x50545448l *> char '/')) contents;
+    ]
+  in
   Command.run
     (Command.group ~summary:"various angstrom benchmarks" 
-      [ "json"      , json
-      ; "endian"    , endian
-      ; "http"      , http
-      ; "numbers"   , numbers
-      ; "characters", characters
-      ; "loops"     , loops
+      [ "json"         , json
+      ; "endian"       , endian
+      ; "http"         , http
+      ; "numbers"      , numbers
+      ; "characters"   , characters
+      ; "loops"        , loops
+      ; "short-strings", short_strings
+      ; "http-version" , http_version
     ])
 
 let () = main ()
