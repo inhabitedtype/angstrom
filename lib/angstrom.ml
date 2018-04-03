@@ -263,39 +263,6 @@ let peek_char =
       prompt input pos fail' succ'
   }
 
-let _char ~msg f =
-  { run = fun input pos more fail succ ->
-    if pos < Input.length input then
-      match f (Input.get_char input pos) with
-      | None   -> fail input pos more [] msg
-      | Some v -> succ input (pos + 1) more v
-    else
-      let succ' input' pos' more' () =
-        match f (Input.get_char input' pos') with
-        | None   -> fail input' pos' more' [] msg
-        | Some v -> succ input' (pos' + 1) more' v
-      in
-      ensure_suspended 1 input pos more fail succ'
-  }
-
-(* Like _char but specialized for parsers that just return the character that
- * satisfies [f]. Avoids an allocation. *)
-let _char_pred ~msg f =
-  { run = fun input pos more fail succ ->
-    if pos < Input.length input then
-      let c = Input.get_char input pos in
-      if f c
-      then succ input (pos + 1) more c
-      else fail input pos more [] msg
-    else
-      let succ' input' pos' more' () =
-        let c = Input.get_char input' pos' in
-        if f c
-        then succ input' (pos' + 1) more' c
-        else fail input' pos' more' [] msg
-      in
-      ensure_suspended 1 input pos more fail succ' }
-
 (* This parser is too important to not be optimized. Do a custom job. *)
 let rec peek_char_fail =
   { run = fun input pos more fail succ ->
@@ -307,27 +274,73 @@ let rec peek_char_fail =
       ensure_suspended 1 input pos more fail succ' }
 
 let satisfy f =
-  _char_pred ~msg:"satisfy" f
+  { run = fun input pos more fail succ ->
+    if pos < Input.length input then
+      let c = Input.get_char input pos in
+      if f c
+      then succ input (pos + 1) more c
+      else fail input pos more [] "satisfy"
+    else
+      let succ' input' pos' more' () =
+        let c = Input.get_char input' pos' in
+        if f c
+        then succ input' (pos' + 1) more' c
+        else fail input' pos' more' [] "satisfy"
+      in
+      ensure_suspended 1 input pos more fail succ' }
 
 let char c =
-  satisfy (fun c' -> c = c') <?> (String.make 1 c)
+  let p =
+    { run = fun input pos more fail succ ->
+      if Input.get_char input pos = c
+      then succ input (pos + 1) more c
+      else fail input pos more [] (Printf.sprintf "char %C" c) }
+  in
+  ensure 1 p
 
 let not_char c =
-  satisfy (fun c' -> c <> c') <?> ("not " ^ String.make 1 c)
+  let p =
+    { run = fun input pos more fail succ ->
+      let c' = Input.get_char input pos in
+      if c <> c'
+      then succ input (pos + 1) more c'
+      else fail input pos more [] (Printf.sprintf "not char %C" c) }
+  in
+  ensure 1 p
 
 let any_char =
-  _char_pred ~msg:"any_char" (fun _ -> true)
+  let p =
+    { run = fun input pos more _fail succ ->
+      succ input (pos + 1) more (Input.get_char input pos)  }
+  in
+  ensure 1 p
 
 let any_uint8 =
-  _char ~msg:"any_uint8" (fun c -> Some (Char.code c))
+  let p =
+    { run = fun input pos more _fail succ ->
+      let c = Input.get_char input pos in
+      succ input (pos + 1) more (Char.code c) }
+  in
+  ensure 1 p
 
 let any_int8 =
   (* https://graphics.stanford.edu/~seander/bithacks.html#VariableSignExtendRisky *)
   let s = Sys.int_size - 8 in
-  _char ~msg:"any_int8" (fun c -> Some ((Char.code c lsl s) asr s))
+  let p =
+    { run = fun input pos more _fail succ ->
+      let c = Input.get_char input pos in
+      succ input (pos + 1) more ((Char.code c lsl s) asr s) }
+  in
+  ensure 1 p
 
 let skip f =
-  _char ~msg:"skip" (fun c -> if f c then Some () else None)
+  let p =
+    { run = fun input pos more fail succ ->
+      if f (Input.get_char input pos)
+      then succ input (pos + 1) more ()
+      else fail input pos more [] "skip" }
+  in
+  ensure 1 p
 
 let rec count_while ~init ~f ~with_buffer =
   { run = fun input pos more fail succ ->
