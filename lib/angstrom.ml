@@ -407,8 +407,17 @@ let string_ f s =
     then Ok (Bigstringaf.substring buffer ~off ~len)
     else Error "string"))
 
-let string s    = string_ (fun x -> x) s
 let string_ci s = string_ Char.lowercase_ascii s
+
+let string s =
+  let len = String.length s in
+  let p =
+    { run = fun input pos more fail succ ->
+      if Input.memcmp_string input pos s 0 len = 0
+      then succ input (pos + len) more s
+      else fail input pos more [] "string" }
+  in
+  ensure len p
 
 let skip_while f =
   count_while ~init:0 ~f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())

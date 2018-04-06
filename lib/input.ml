@@ -95,6 +95,10 @@ let get_int64_be t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int64_be t.buffer off
 
+let memcmp_string t pos str off len =
+  let buf_off = offset_in_buffer t pos in
+  Bigstringaf.unsafe_memcmp_string t.buffer buf_off str off len
+
 let count_while t pos ~f =
   let buffer = t.buffer in
   let off    = offset_in_buffer t pos in

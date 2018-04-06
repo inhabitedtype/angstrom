@@ -51,6 +51,8 @@ val get_int16_be : t -> int -> int
 val get_int32_be : t -> int -> int32
 val get_int64_be : t -> int -> int64
 
+val memcmp_string : t -> int -> string -> int -> int -> int
+
 val count_while : t -> int -> f:(char -> bool) -> int
 
 val apply : t -> int -> int -> f:(Bigstringaf.t -> off:int -> len:int -> 'a) -> 'a
