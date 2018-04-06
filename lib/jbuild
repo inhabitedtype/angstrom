@@ -4,12 +4,7 @@
  ((name        angstrom)
   (public_name angstrom)
   (libraries
-    (bigarray
+    (bigstringaf
      result))
-  (c_names (bigstring_stubs))
-  (c_flags (-Wall -Wextra -Wpedantic))
   (flags   (:standard -safe-string))
-  (js_of_ocaml (
-    (javascript_files (runtime.js))
-    ))
   ))
