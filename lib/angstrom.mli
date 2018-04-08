@@ -187,42 +187,66 @@ val any_int8 : int t
 
 (** Big endian parsers *)
 module BE : sig
-  val int16 : int t
-  val int32 : int32 t
-  val int64 : int64 t
-  (** [intN] reads [N] bits and interprets them as big endian signed integers. *)
+  val int16 : int   -> unit t
+  (** [int16 i] accept two bytes that match the two lower order bytes of [i]
+      and returns unit. *)
 
-  val uint16 : int t
-  (** [uint16] reads [16] bits and interprets them as a big endian unsigned
+  val int32 : int32 -> unit t
+  (** [int32 i] accept four bytes that match the four bytes of [i]
+      and returns unit. *)
+
+  val int64 : int64 -> unit t
+  (** [int32 i] accept eight bytes that match the eight bytes of [i] and
+      returns unit. *)
+
+  val any_int16 : int t
+  val any_int32 : int32 t
+  val any_int64 : int64 t
+  (** [any_intN] reads [N] bits and interprets them as big endian signed integers. *)
+
+  val any_uint16 : int t
+  (** [any_uint16] reads [16] bits and interprets them as a big endian unsigned
       integer. *)
 
-  val float : float t
-  (** [float] reads 32 bits and interprets them as a big endian floating
+  val any_float : float t
+  (** [any_float] reads 32 bits and interprets them as a big endian floating
       point value. *)
 
-  val double : float t
-  (** [double] reads 64 bits and interprets them as a big endian floating
+  val any_double : float t
+  (** [any_double] reads 64 bits and interprets them as a big endian floating
       point value. *)
 end
 
 (** Little endian parsers *)
 module LE : sig
-  val int16 : int t
-  val int32 : int32 t
-  val int64 : int64 t
-  (** [intN] reads [N] bits and interprets them as little endian signed
+  val int16 : int   -> unit t
+  (** [int16 i] accept two bytes that match the two lower order bytes of [i]
+      and returns unit. *)
+
+  val int32 : int32 -> unit t
+  (** [int32 i] accept four bytes that match the four bytes of [i]
+      and returns unit. *)
+
+  val int64 : int64 -> unit t
+  (** [int32 i] accept eight bytes that match the eight bytes of [i] and
+      returns unit. *)
+
+  val any_int16 : int t
+  val any_int32 : int32 t
+  val any_int64 : int64 t
+  (** [any_intN] reads [N] bits and interprets them as little endian signed
       integers. *)
 
-  val uint16 : int t
+  val any_uint16 : int t
   (** [uint16] reads [16] bits and interprets them as a little endian unsigned
       integer. *)
 
-  val float : float t
-  (** [float] reads 32 bits and interprets them as a little endian floating
+  val any_float : float t
+  (** [any_float] reads 32 bits and interprets them as a little endian floating
       point value. *)
 
-  val double : float t
-  (** [double] reads 64 bits and interprets them as a little endian floating
+  val any_double : float t
+  (** [any_double] reads 64 bits and interprets them as a little endian floating
       point value. *)
 end
 

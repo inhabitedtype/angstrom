@@ -31,7 +31,7 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-module Bigarray = struct 
+module Bigarray = struct
   (* Do not access Bigarray operations directly. If anything's needed, refer to
    * the internal Bigstring module. *)
 end
@@ -197,15 +197,13 @@ let unsafe_apply_opt len ~f =
     | Ok    x -> succ input (pos + len) more x
   }
 
-let ensure n =
+let ensure n p =
   { run = fun input pos more fail succ ->
-    if pos + n <= Input.length input then
-      succ input pos more ()
+    if pos + n <= Input.length input
+    then p.run input pos more fail succ
     else
-      ensure_suspended n input pos more fail succ }
-
-let ensure_apply     n ~f = ensure n *> unsafe_apply     n ~f
-let ensure_apply_opt n ~f = ensure n *> unsafe_apply_opt n ~f
+      let succ' input' pos' more' () = p.run input' pos' more' fail succ in
+      ensure_suspended n input pos more fail succ' }
 
 (** END: getting input *)
 
@@ -381,7 +379,7 @@ let string_ f s =
   (* XXX(seliopou): Inefficient. Could check prefix equality to short-circuit
    * the io. *)
   let len = String.length s in
-  ensure_apply_opt len ~f:(fun buffer ~off ~len ->
+  ensure  len (unsafe_apply_opt len ~f:(fun buffer ~off ~len ->
     let i = ref 0 in
     while !i < len && Char.equal (f (Bigstringaf.unsafe_get buffer (off + !i)))
                                  (f (String.unsafe_get s !i))
@@ -390,7 +388,7 @@ let string_ f s =
     done;
     if len = !i
     then Ok (Bigstringaf.substring buffer ~off ~len)
-    else Error "string")
+    else Error "string"))
 
 let string s    = string_ (fun x -> x) s
 let string_ci s = string_ Char.lowercase_ascii s
@@ -399,10 +397,12 @@ let skip_while f =
   count_while ~init:0 ~f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())
 
 let take n =
-  ensure_apply (max n 0) ~f:Bigstringaf.substring
+  let n = max n 0 in
+  ensure n (unsafe_apply n ~f:Bigstringaf.substring)
 
 let take_bigstring n =
-  ensure_apply (max n 0) ~f:Bigstringaf.copy
+  let n = max n 0 in
+  ensure n (unsafe_apply n ~f:Bigstringaf.copy)
 
 let take_bigstring_while f =
   count_while ~init:0 ~f ~with_buffer:Bigstringaf.copy
@@ -506,30 +506,123 @@ let scan_string state f =
   scan state f >>| fst
 
 module BE = struct
-  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_be bs off)
-  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_be  bs off)
+  (* XXX(seliopou): The pattern in both this module and [LE] are a compromise
+   * between efficiency and code reuse. By inlining [ensure] you can recover
+   * about 2 nanoseconds on average. That may add up in certain applications.
+   *
+   * This pattern does not allocate in the fast (success) path.
+   * *)
+  let int16 n =
+    let bytes = 2 in
+    let p =
+      { run = fun input pos more fail succ ->
+        if (pos + bytes : int) <= Input.length input
+        && Input.get_int16_be input pos = (n land 0xffff)
+        then succ input (pos + bytes) more ()
+        else fail input pos more [] "BE.int16" }
+    in
+    ensure bytes p
 
-  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_be bs off)
-  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_be bs off)
+  let int32 n =
+    let bytes = 4 in
+    let p =
+      { run = fun input pos more fail succ ->
+        if (pos + bytes : int) <= Input.length input
+        && Int32.equal (Input.get_int32_be input pos) n
+        then succ input (pos + bytes) more ()
+        else fail input pos more [] "BE.int32" }
+    in
+    ensure bytes p
 
-  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_be bs off))
-  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_be bs off))
+  let int64 n =
+    let bytes = 8 in
+    let p =
+      { run = fun input pos more fail succ ->
+        if (pos + bytes : int) <= Input.length input
+        && Int64.equal (Input.get_int64_be input pos) n
+        then succ input (pos + bytes) more ()
+        else fail input pos more [] "BE.int64" }
+    in
+    ensure bytes p
+
+  let any_uint16 =
+    ensure 2 (unsafe_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_be bs off))
+
+  let any_int16  =
+    ensure 2 (unsafe_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_be  bs off))
+
+  let any_int32  =
+    ensure 4 (unsafe_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_be bs off))
+
+  let any_int64 =
+    ensure 8 (unsafe_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_be bs off))
+
+  let any_float =
+    ensure 4 (unsafe_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_be bs off)))
+
+  let any_double =
+    ensure 8 (unsafe_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_be bs off)))
 end
 
 module LE = struct
-  let uint16 = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_le bs off)
-  let int16  = ensure_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_le bs off)
 
-  let int32  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_le bs off)
-  let int64  = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_le bs off)
+  let int16 n =
+    let bytes = 2 in
+    let p =
+      { run = fun input pos more fail succ ->
+        if (pos + bytes : int) <= Input.length input
+        && Input.get_int16_le input pos = (n land 0xffff)
+        then succ input (pos + bytes) more ()
+        else fail input pos more [] "BE.int16" }
+    in
+    ensure bytes p
 
-  let float  = ensure_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_le bs off))
-  let double = ensure_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_le bs off))
+  let int32 n =
+    let bytes = 4 in
+    let p =
+      { run = fun input pos more fail succ ->
+        if (pos + bytes : int) <= Input.length input
+        && Int32.equal (Input.get_int32_le input pos) n
+        then succ input (pos + bytes) more ()
+        else fail input pos more [] "BE.int32" }
+    in
+    ensure bytes p
+
+  let int64 n =
+    let bytes = 8 in
+    let p =
+      { run = fun input pos more fail succ ->
+        if (pos + bytes : int) <= Input.length input
+        && Int64.equal (Input.get_int64_le input pos) n
+        then succ input (pos + bytes) more ()
+        else fail input pos more [] "BE.int64" }
+    in
+    ensure bytes p
+
+
+  let any_uint16 =
+    ensure 2 (unsafe_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_le bs off))
+
+  let any_int16  =
+    ensure 2 (unsafe_apply 2 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int16_sign_extended_le  bs off))
+
+  let any_int32  =
+    ensure 4 (unsafe_apply 4 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int32_le bs off))
+
+  let any_int64 =
+    ensure 8 (unsafe_apply 8 ~f:(fun bs ~off ~len:_ -> Bigstringaf.unsafe_get_int64_le bs off))
+
+  let any_float =
+    ensure 4 (unsafe_apply 4 ~f:(fun bs ~off ~len:_ -> Int32.float_of_bits (Bigstringaf.unsafe_get_int32_le bs off)))
+
+  let any_double =
+    ensure 8 (unsafe_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_le bs off)))
 end
 
 module Unsafe = struct
   let take n f =
-    ensure_apply (max n 0) ~f
+    let n = max n 0 in
+    ensure n (unsafe_apply n ~f)
 
   let peek n f =
     unsafe_lookahead (take n f)
