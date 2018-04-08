@@ -188,8 +188,16 @@ val any_int8 : int t
 (** Big endian parsers *)
 module BE : sig
   val int16 : int   -> unit t
+  (** [int16 i] accept two bytes that match the two lower order bytes of [i]
+      and returns unit. *)
+
   val int32 : int32 -> unit t
+  (** [int32 i] accept four bytes that match the four bytes of [i]
+      and returns unit. *)
+
   val int64 : int64 -> unit t
+  (** [int32 i] accept eight bytes that match the eight bytes of [i] and
+      returns unit. *)
 
   val any_int16 : int t
   val any_int32 : int32 t
@@ -212,8 +220,16 @@ end
 (** Little endian parsers *)
 module LE : sig
   val int16 : int   -> unit t
+  (** [int16 i] accept two bytes that match the two lower order bytes of [i]
+      and returns unit. *)
+
   val int32 : int32 -> unit t
+  (** [int32 i] accept four bytes that match the four bytes of [i]
+      and returns unit. *)
+
   val int64 : int64 -> unit t
+  (** [int32 i] accept eight bytes that match the eight bytes of [i] and
+      returns unit. *)
 
   val any_int16 : int t
   val any_int32 : int32 t
