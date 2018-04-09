@@ -565,7 +565,6 @@ module BE = struct
 end
 
 module LE = struct
-
   let int16 n =
     let bytes = 2 in
     let p =
@@ -573,7 +572,7 @@ module LE = struct
         if (pos + bytes : int) <= Input.length input
         && Input.get_int16_le input pos = (n land 0xffff)
         then succ input (pos + bytes) more ()
-        else fail input pos more [] "BE.int16" }
+        else fail input pos more [] "LE.int16" }
     in
     ensure bytes p
 
@@ -584,7 +583,7 @@ module LE = struct
         if (pos + bytes : int) <= Input.length input
         && Int32.equal (Input.get_int32_le input pos) n
         then succ input (pos + bytes) more ()
-        else fail input pos more [] "BE.int32" }
+        else fail input pos more [] "LE.int32" }
     in
     ensure bytes p
 
@@ -595,7 +594,7 @@ module LE = struct
         if (pos + bytes : int) <= Input.length input
         && Int64.equal (Input.get_int64_le input pos) n
         then succ input (pos + bytes) more ()
-        else fail input pos more [] "BE.int64" }
+        else fail input pos more [] "LE.int64" }
     in
     ensure bytes p
 
