@@ -338,9 +338,11 @@ val (<|>) : 'a t -> 'a t -> 'a t
 (** [p <|> q] runs [p] and returns the result if succeeds. If [p] fails, then
     the input will be reset and [q] will run instead. *)
 
-val choice : 'a t list -> 'a t
-(** [choice ts] runs each parser in [ts] in order until one succeeds and
-    returns that result. *)
+val choice : ?failure_msg:string -> 'a t list -> 'a t
+(** [choice ?message ts] runs each parser in [ts] in order until one succeeds
+    and returns that result. In the case that none of the parser succeeds, then
+    the parser will fail with the message [failure_msg], if provided, or a
+    much less informative message otherwise. *)
 
 val (<?>) : 'a t -> string -> 'a t
 (** [p <?> name] associates [name] with the parser [p], which will be reported

@@ -438,8 +438,8 @@ let take_while1 f =
 let take_till f =
   take_while (fun c -> not (f c))
 
-let choice ps =
-  List.fold_right (<|>) ps (fail "empty")
+let choice ?(failure_msg="no more choices") ps =
+  List.fold_right (<|>) ps (fail failure_msg)
 
 let fix f =
   let rec p = lazy (f r)
