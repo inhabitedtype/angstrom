@@ -128,25 +128,25 @@ val take_till : (char -> bool) -> string t
 
 val take_bigstring : int -> bigstring t
 (** [take_bigstring n] accepts exactly [n] characters of input and returns them
-    as a bigstring. *)
+    as a newly allocated bigstring. *)
 
 val take_bigstring_while : (char -> bool) -> bigstring t
 (** [take_bigstring_while f] accepts input as long as [f] returns [true] and
-    returns the accepted characters as a bigstring.
+    returns the accepted characters as a newly allocated bigstring.
 
     This parser does not fail. If [f] returns [false] on the first character,
     it will return the empty bigstring. *)
 
 val take_bigstring_while1 : (char -> bool) -> bigstring t
 (** [take_bigstring_while f] accepts input as long as [f] returns [true] and
-    returns the accepted characters as a bigstring.
+    returns the accepted characters as a newly allocated bigstring.
 
     This parser requires that [f] return [true] for at least one character of
     input, and will fail otherwise. *)
 
 val take_bigstring_till : (char -> bool) -> bigstring t
 (** [take_bigstring_till f] accepts input as long as [f] returns [false] and
-    returns the accepted characters as a bigstring.
+    returns the accepted characters as a newly allocated bigstring.
 
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty bigstring. *)
