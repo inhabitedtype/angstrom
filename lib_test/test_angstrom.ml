@@ -347,6 +347,19 @@ let count_while_regression =
       (take_while1 (fun _ -> true) <* end_of_input) ["asdf"; ""] "asdf";
   end ]
 
+let choice_commit = 
+  [ "", `Quick, begin fun () ->
+    let p = 
+      choice  [ string "@@" *> commit *> char '*'
+              ; string "@"  *> commit *> char '!' ]
+    in
+    Alcotest.(check (result reject string))
+      "commit to branch"
+      (Error ": char '*'")
+      (parse_string p "@@^");
+  end ]
+
+
 let () =
   Alcotest.run "test suite"
     [ "basic constructors"    , basic_constructors
@@ -358,4 +371,5 @@ let () =
     ; "combinators"           , combinators
     ; "incremental input"     , incremental 
     ; "count_while regression", count_while_regression
+    ; "choice and commit"     , choice_commit
   ]
