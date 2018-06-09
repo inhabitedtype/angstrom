@@ -140,7 +140,7 @@ module Choice = struct
          * of the committed input, then calling the failure continuation will
          * have the effect of unwinding all choices and collecting marks along
          * the way. *)
-        if pos < Input.client_committed_bytes input' then
+        if pos < Input.parser_committed_bytes input' then
           fail input' pos' more marks msg
         else
           q.run input' pos more' fail succ in
