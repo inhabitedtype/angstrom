@@ -523,12 +523,10 @@ module Buffered : sig
     | Fail    of unconsumed * string list * string (** The parser failed. *)
 
   val parse : ?initial_buffer_size:int -> 'a t -> 'a state
-  (** [parse ?initial_buffer_size ?input t] runs [t] on [input], if present,
-      and awaits input if needed. [parse] will allocate a buffer of size
-      [initial_buffer_size] (defaulting to 4k bytes) to do input buffering and
-      automatically grows the buffer as needed. If [input] is a bigstring, its
-      contents will be copied into the parser's internal buffer, leaving
-      ownership with the caller. *)
+  (** [parse ?initial_buffer_size t] runs [t] and awaits input if needed.
+      [parse] will allocate a buffer of size [initial_buffer_size] (defaulting
+      to 4k bytes) to do input buffering and automatically grows the buffer as
+      needed. *)
 
   val feed : 'a state -> [ input | `Eof ] -> 'a state
   (** [feed state input] supplies the parser state with more input. If [state] is
@@ -594,8 +592,7 @@ module Unbuffered : sig
     }
 
   val parse : 'a t -> 'a state
-  (** [parse ?input t] runs [t] on [input], if present, and await input if
-      needed. *)
+  (** [parse t] runs [t] and await input if needed. *)
 
   val state_to_option : 'a state -> 'a option
   (** [state_to_option state] returns [Some (bs, v)] if the parser is in the
