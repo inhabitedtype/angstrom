@@ -113,7 +113,7 @@ val take_while : (char -> bool) -> string t
     it will return the empty string. *)
 
 val take_while1 : (char -> bool) -> string t
-(** [take_while f] accepts input as long as [f] returns [true] and returns the
+(** [take_while1 f] accepts input as long as [f] returns [true] and returns the
     accepted characters as a string.
 
     This parser requires that [f] return [true] for at least one character of
@@ -138,7 +138,7 @@ val take_bigstring_while : (char -> bool) -> bigstring t
     it will return the empty bigstring. *)
 
 val take_bigstring_while1 : (char -> bool) -> bigstring t
-(** [take_bigstring_while f] accepts input as long as [f] returns [true] and
+(** [take_bigstring_while1 f] accepts input as long as [f] returns [true] and
     returns the accepted characters as a newly allocated bigstring.
 
     This parser requires that [f] return [true] for at least one character of
@@ -156,7 +156,7 @@ val advance : int -> unit t
     input is less than [n]. *)
 
 val end_of_line : unit t
-(** [end_of_input] accepts either a line feed [\n], or a carriage return
+(** [end_of_line] accepts either a line feed [\n], or a carriage return
     followed by a line feed [\r\n] and returns unit. *)
 
 val at_end_of_input : bool t
@@ -172,12 +172,12 @@ val scan : 'state -> ('state -> char -> 'state option) -> (string * 'state) t
     before [None] and the accumulated string *)
 
 val scan_state : 'state -> ('state -> char -> 'state option) -> 'state t
-(** [scan init f] Like [scan] but only returns the final state before [None].
-    Much more efficient than [scan]*)
+(** [scan_state init f] Like [scan] but only returns the final state before
+    [None]. Much more efficient than [scan]*)
 
 val scan_string : 'state -> ('state -> char -> 'state option) -> string t
-(** [scan init f] Like [scan] but discards the final state and returns the
-    accumulated string *)
+(** [scan_string init f] Like [scan] but discards the final state and returns
+    the accumulated string *)
 
 val any_uint8 : int t
 (** [any_uint8] accepts any byte and returns it as an unsigned int8. *)
@@ -339,10 +339,10 @@ val (<|>) : 'a t -> 'a t -> 'a t
     the input will be reset and [q] will run instead. *)
 
 val choice : ?failure_msg:string -> 'a t list -> 'a t
-(** [choice ?message ts] runs each parser in [ts] in order until one succeeds
-    and returns that result. In the case that none of the parser succeeds, then
-    the parser will fail with the message [failure_msg], if provided, or a
-    much less informative message otherwise. *)
+(** [choice ?failure_msg ts] runs each parser in [ts] in order until one
+    succeeds and returns that result. In the case that none of the parser
+    succeeds, then the parser will fail with the message [failure_msg], if
+    provided, or a much less informative message otherwise. *)
 
 val (<?>) : 'a t -> string -> 'a t
 (** [p <?> name] associates [name] with the parser [p], which will be reported
@@ -422,11 +422,11 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
     write the input buffer callback functions such that they:
 
     {ul
-    {- do not modify the input buffer {i outside} of the range 
+    {- do not modify the input buffer {i outside} of the range
        [\[off, off + len)];}
-    {- do not modify the input buffer {i inside} of the range 
+    {- do not modify the input buffer {i inside} of the range
        [\[off, off + len)] if the parser might backtrack; and}
-    {- do not return any direct or indirect references to the input buffer.}} 
+    {- do not return any direct or indirect references to the input buffer.}}
 
     If the input buffer callback functions do not do any of these things, then
     the client may consider their use safe. *)
@@ -471,7 +471,7 @@ module Unsafe : sig
 
   val peek : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [peek n ~f] accepts exactly [n] characters and calls [f buffer ~off ~len]
-      with [len = n]. If there is not enough input, it will fail. 
+      with [len = n]. If there is not enough input, it will fail.
 
       This parser does not advance the input. Use it for lookahead. *)
 end
