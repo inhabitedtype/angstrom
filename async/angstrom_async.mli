@@ -39,10 +39,10 @@ val parse :
      ?pushback:(unit -> unit Deferred.t)
   -> 'a t
   -> Reader.t
-  -> ('a, string) Result.result Deferred.t
+  -> ('a, string) result Deferred.t
 
 val parse_many :
      'a t
   -> ('a -> unit Deferred.t)
   -> Reader.t
-  -> (unit, string) Result.result Deferred.t
+  -> (unit, string) result Deferred.t

@@ -481,13 +481,13 @@ end
 
 (** {2 Running} *)
 
-val parse_bigstring : 'a t -> bigstring -> ('a, string) Result.result
+val parse_bigstring : 'a t -> bigstring -> ('a, string) result
 (** [parse_bigstring t bs] runs [t] on [bs]. The parser will receive an [`Eof]
     after all of [bs] has been consumed. For use-cases requiring that the
     parser be fed input incrementally, see the {!module:Buffered} and
     {!module:Unbuffered} modules below. *)
 
-val parse_string : 'a t -> string -> ('a, string) Result.result
+val parse_string : 'a t -> string -> ('a, string) result
 (** [parse_string t bs] runs [t] on [bs]. The parser will receive an [`Eof]
     after all of [bs] has been consumed. For use-cases requiring that the
     parser be fed input incrementally, see the {!module:Buffered} and
@@ -539,7 +539,7 @@ module Buffered : sig
       [Done (bs, v)] state and [None] otherwise. This function has no effect on
       the current state of the parser. *)
 
-  val state_to_result : 'a state -> ('a, string) Result.result
+  val state_to_result : 'a state -> ('a, string) result
   (** [state_to_result state] returns [Ok v] if the parser is in the [Done v]
       state and [Error msg] if it is in the [Fail] or [Partial] state.
 
@@ -599,7 +599,7 @@ module Unbuffered : sig
       [Done (bs, v)] state and [None] otherwise. This function has no effect on the
       current state of the parser. *)
 
-  val state_to_result : 'a state -> ('a, string) Result.result
+  val state_to_result : 'a state -> ('a, string) result
   (** [state_to_result state] returns [Ok v] if the parser is in the [Done v]
       state and [Error msg] if it is in the [Fail] or [Partial] state.
 

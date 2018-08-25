@@ -25,9 +25,9 @@ let state_to_option = function
   | _          -> None
 
 let state_to_result = function
-  | Done(_, v)          -> Result.Ok v
-  | Partial _           -> Result.Error "incomplete input"
-  | Fail(_, marks, err) -> Result.Error (fail_to_string marks err)
+  | Done(_, v)          -> Ok v
+  | Partial _           -> Error "incomplete input"
+  | Fail(_, marks, err) -> Error (fail_to_string marks err)
 
 let parse p =
   let input = Input.create Bigstringaf.empty ~committed_bytes:0 ~off:0 ~len:0 in

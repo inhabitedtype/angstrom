@@ -63,8 +63,8 @@ let expr : int t =
 
 let eval (str:string) : int =
   match parse_string expr str with
-  | Result.Ok v      -> v
-  | Result.Error msg -> failwith msg
+  | Ok v      -> v
+  | Error msg -> failwith msg
 ```
 
 

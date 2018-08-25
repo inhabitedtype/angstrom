@@ -3,8 +3,6 @@
 (library
  ((name        angstrom)
   (public_name angstrom)
-  (libraries
-    (bigstringaf
-     result))
+  (libraries (bigstringaf))
   (flags   (:standard -safe-string))
   ))

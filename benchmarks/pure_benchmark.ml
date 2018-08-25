@@ -1,4 +1,3 @@
-module R = Result
 open Core
 open Core_bench
 
@@ -23,8 +22,8 @@ let zero =
 let make_bench name parser contents =
   Bench.Test.create ~name (fun () ->
     match Angstrom.(parse_bigstring parser contents) with
-    | R.Ok _ -> ()
-    | R.Error err -> failwith err)
+    | Ok _ -> ()
+    | Error err -> failwith err)
 ;;
 
 let make_endian name p        = make_bench name (Angstrom.skip_many p)   zero
