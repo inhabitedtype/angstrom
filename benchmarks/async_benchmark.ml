@@ -10,8 +10,8 @@ let main parser () =
   in
   Angstrom_async.parse_many parser toss reader
   >>| function
-    | Result.Ok () -> ()
-    | Result.Error err -> failwith err
+    | Ok () -> ()
+    | Error err -> failwith err
 ;;
 
 let () =

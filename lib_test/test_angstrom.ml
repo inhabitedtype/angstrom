@@ -19,12 +19,12 @@ let check ?size f p is =
   f (state_to_result (feed state `Eof))
 
 let check_ok ?size ~msg test p is r =
-  let r = Result.Ok r in
+  let r = Ok r in
   check ?size (fun result -> Alcotest.(check (result test string)) msg r result)
     p is
 
 let check_fail ?size ~msg p is =
-  let r = Result.Error "" in
+  let r = Error "" in
   check ?size (fun result -> Alcotest.(check (result reject pass)) msg r result)
     p is
 

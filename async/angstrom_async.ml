@@ -31,7 +31,6 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
-module R = Result
 open Angstrom.Unbuffered
 open Core
 open Async

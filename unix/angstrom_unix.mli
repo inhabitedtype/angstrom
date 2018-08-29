@@ -38,11 +38,11 @@ val parse :
      ?buf_size:int
   -> 'a t
   -> in_channel
-  -> Buffered.unconsumed * ('a, string) Result.result
+  -> Buffered.unconsumed * ('a, string) result
 
 val parse_many :
      ?buf_size:int
   -> 'a t
   -> ('a -> unit)
   -> in_channel
-  -> Buffered.unconsumed * (unit, string) Result.result
+  -> Buffered.unconsumed * (unit, string) result

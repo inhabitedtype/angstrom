@@ -120,9 +120,9 @@ module Buffered = struct
     | _          -> None
 
   let state_to_result = function
-    | Partial _           -> Result.Error "incomplete input"
-    | Done(_, v)          -> Result.Ok v
-    | Fail(_, marks, msg) -> Result.Error (Unbuffered.fail_to_string marks msg)
+    | Partial _           -> Error "incomplete input"
+    | Done(_, v)          -> Ok v
+    | Fail(_, marks, msg) -> Error (Unbuffered.fail_to_string marks msg)
 
   let state_to_unconsumed = function
     | Done(unconsumed, _)

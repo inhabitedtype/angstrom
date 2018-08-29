@@ -38,10 +38,10 @@ val parse :
      ?pushback:(unit -> unit Lwt.t)
   -> 'a t
   -> Lwt_io.input_channel
-  -> (Buffered.unconsumed * ('a, string) Result.result) Lwt.t
+  -> (Buffered.unconsumed * ('a, string) result) Lwt.t
 
 val parse_many :
      'a t
   -> ('a -> unit Lwt.t)
   -> Lwt_io.input_channel
-  -> (Buffered.unconsumed * (unit, string) Result.result) Lwt.t
+  -> (Buffered.unconsumed * (unit, string) result) Lwt.t

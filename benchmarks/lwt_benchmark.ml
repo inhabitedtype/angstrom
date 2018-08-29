@@ -11,8 +11,8 @@ let main () =
   Lwt_io.resize_buffer Lwt_io.stdin 0x10000 >>= fun () ->
   Angstrom_lwt_unix.parse_many parser toss Lwt_io.stdin
   >|= function
-    | _, Result.Ok ()     -> ()
-    | _, Result.Error err -> failwith err
+    | _, Ok ()     -> ()
+    | _, Error err -> failwith err
 ;;
 
 Lwt_main.run (main ())
