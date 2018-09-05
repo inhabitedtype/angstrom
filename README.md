@@ -67,6 +67,19 @@ let eval (str:string) : int =
   | Error msg -> failwith msg
 ```
 
+### Custom Operators Explaination
+
+The custom operators can seem foreign when you're new to them. Here's an
+explaination of the custom operators used in the example above:
+
+- `*>` - "and then" while throwing away the left result
+- `<*` - "and then" while throwing away the right result
+- `>>|` - "map" - maps result result of the parser on the left with function on the right.
+- `>>=` - "Monadic Bind" - "and then" except the right argument is a function
+   that receives the result from the left parser and returns the right parser.
+- `<|>` - OR combinator. parser that parses the left parser OR the right parser
+- `<$>` - `>>|` or "map" with the arguments reversed.
+- `<?>` - "label" - label the parser on the left with the right argument for error msgs.
 
 ## Comparison to Other Libraries
 
