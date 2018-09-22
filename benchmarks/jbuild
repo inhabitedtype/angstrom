@@ -1,17 +1,5 @@
 (jbuild_version 1)
 
-(library
- ((name RFC7159)
-  (wrapped false)
-  (modules RFC7159)
-  (libraries (angstrom))))
-
-(library
- ((name RFC2616)
-  (wrapped false)
-  (modules RFC2616)
-  (libraries (angstrom))))
-
 (executables
  ((libraries (angstrom core_bench threads RFC2616 RFC7159))
   (modules (pure_benchmark))
