@@ -34,14 +34,20 @@
 open Angstrom
 
 
-val parse :
-     ?pushback:(unit -> unit Lwt.t)
+val parse
+  : ?pushback:(unit -> unit Lwt.t)
   -> 'a t
   -> Lwt_io.input_channel
   -> (Buffered.unconsumed * ('a, string) result) Lwt.t
 
-val parse_many :
-     'a t
+val parse_with_buffered_state
+  : ?pushback:(unit -> unit Lwt.t)
+  -> 'a Buffered.state
+  -> Lwt_io.input_channel
+  -> (Buffered.unconsumed * ('a, string) result) Lwt.t
+
+val parse_many
+  : 'a t
   -> ('a -> unit Lwt.t)
   -> Lwt_io.input_channel
   -> (Buffered.unconsumed * (unit, string) result) Lwt.t
