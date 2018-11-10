@@ -1,4 +1,4 @@
-(*----------------------------------------------------------------------------
+(*---------------------------------------------------------------------------
     Copyright (c) 2016 Inhabited Type LLC.
 
     All rights reserved.
@@ -34,14 +34,39 @@
 open Angstrom
 
 
-val parse :
-     ?pushback:(unit -> unit Lwt.t)
+val parse
+  : ?pushback:(unit -> unit Lwt.t)
   -> 'a t
   -> Lwt_io.input_channel
   -> (Buffered.unconsumed * ('a, string) result) Lwt.t
 
-val parse_many :
-     'a t
+val parse_many
+  : 'a t
   -> ('a -> unit Lwt.t)
   -> Lwt_io.input_channel
   -> (Buffered.unconsumed * (unit, string) result) Lwt.t
+
+(** Useful for resuming a {!parse} that returns unconsumed data. Construct a
+    [Buffered.state] by using [Buffered.parse] and provide it into this
+    function. This is essentially what {!parse_many} does, so consider using
+    that if you don't require fine-grained control over how many times you want
+    the parser to succeed.
+
+    Usage example:
+
+    {[
+      parse parser in_channel >>= fun (unconsumed, result) ->
+      match result with
+      | Ok a ->
+        let { buf; off; len } = unconsumed in
+        let state = Buffered.parse parser in
+        let state = Buffered.feed state (`Bigstring (Bigstringaf.sub ~off ~len buf)) in
+        with_buffered_parse_state state in_channel
+      | Error err -> failwith err
+    ]} *)
+val with_buffered_parse_state
+  : ?pushback:(unit -> unit Lwt.t)
+  -> 'a Buffered.state
+  -> Lwt_io.input_channel
+  -> (Buffered.unconsumed * ('a, string) result) Lwt.t
+
