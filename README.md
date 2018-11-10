@@ -67,6 +67,11 @@ let eval (str:string) : int =
   | Error msg -> failwith msg
 ```
 
+For an explanation of the infix operators and other combinators used in the
+implementation of this example, see the documentation in the [`mli`][mli].
+
+[mli]: https://github.com/inhabitedtype/angstrom/blob/master/lib/angstrom.mli
+
 
 ## Comparison to Other Libraries
 
