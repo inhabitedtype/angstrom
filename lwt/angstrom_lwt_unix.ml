@@ -62,7 +62,7 @@ let parse ?(pushback=default_pushback) p in_chan =
   buffered_state_loop pushback (parse ~initial_buffer_size:size p) in_chan bytes
   >|= handle_parse_result
 
-let parse_with_buffered_state ?(pushback=default_pushback) state in_chan =
+let with_buffered_parse_state ?(pushback=default_pushback) state in_chan =
   let size  = Lwt_io.buffer_size in_chan in
   let bytes = Bytes.create size in
   begin match state with

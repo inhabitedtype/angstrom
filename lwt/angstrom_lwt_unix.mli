@@ -61,10 +61,10 @@ val parse_many
         let { buf; off; len } = unconsumed in
         let state = Buffered.parse parser in
         let state = Buffered.feed state (`Bigstring (Bigstringaf.sub ~off ~len buf)) in
-        parse_with_buffered_state state in_channel
+        with_buffered_parse_state state in_channel
       | Error err -> failwith err
     ]} *)
-val parse_with_buffered_state
+val with_buffered_parse_state
   : ?pushback:(unit -> unit Lwt.t)
   -> 'a Buffered.state
   -> Lwt_io.input_channel
