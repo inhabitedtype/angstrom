@@ -557,7 +557,7 @@ end
     Parsers run through this module perform no internal buffering. Instead, the
     user is responsible for managing a buffer containing the entirety of the
     input that has yet to be consumed by the parser. The
-    {Unbuffered.state.Partial} parser state reports to the user how much input
+    {!Unbuffered.state.Partial} parser state reports to the user how much input
     the parser consumed during its last run, via the
     {!Unbuffered.partial.committed} field. This area of input must be discarded
     before parsing can resume. Once additional input has been collected, the
