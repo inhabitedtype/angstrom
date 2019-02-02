@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name        angstrom)
-  (public_name angstrom)
-  (libraries (bigstringaf))
-  (flags   (:standard -safe-string))
-  ))

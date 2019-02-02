@@ -16,5 +16,5 @@ let main parser () =
 
 let () =
   let parser = Command.Arg_type.of_alist_exn ["http", `Http; "json", `Json] in
-  Command.(async ~summary:"async benchmark"
+  Command.(async_spec ~summary:"async benchmark"
     Spec.(empty +> Param.(anon ("PARSER" %: parser))) main |> run)

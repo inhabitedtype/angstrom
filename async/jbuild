@@ -1,8 +1,0 @@
-(jbuild_version 1)
-
-(library
- ((name        angstrom_async)
-  (public_name angstrom-async)
-  (wrapped false)
-  (flags (:standard -safe-string))
-  (libraries (angstrom async))))
