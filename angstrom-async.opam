@@ -12,7 +12,7 @@ build: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
-  "ocaml" {>= "4.03.0"}
+  "ocaml" {>= "4.04.1"}
   "dune" {build & >= "1.0"}
   "angstrom" {>= "0.7.0"}
   "async" {>= "v0.10.0"}
