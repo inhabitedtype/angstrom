@@ -7,10 +7,10 @@ script: bash -ex ./.travis-docker.sh
 env:
   global:
   - DISTRO="ubuntu"
-  - PINS="angstrom-async:. angstrom-lwt:. angstrom-lwt-unix:. angstrom:."
+  - PINS="angstrom-async:. angstrom-lwt-unix:. angstrom:."
   - PACKAGE="angstrom"
   - TESTS=true
-  - POST_INSTALL_HOOK="opam install --with-test angstrom-async angstrom-lwt && opam exec -- make examples"
+  - POST_INSTALL_HOOK="opam install --with-test angstrom-async angstrom-lwt-unix && opam exec -- make examples"
   matrix:
   - OCAML_VERSION="4.07"
   - OCAML_VERSION="4.06"
