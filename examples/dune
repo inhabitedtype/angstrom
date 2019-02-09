@@ -9,3 +9,7 @@
  (wrapped false)
  (modules RFC2616)
  (libraries angstrom))
+
+(alias
+ (name examples)
+ (deps RFC7159.cmxa RFC2616.cmxa))
