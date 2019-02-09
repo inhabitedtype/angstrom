@@ -292,6 +292,14 @@ val skip_many : _ t -> unit t
 val skip_many1 : _ t -> unit t
 (** [skip_many1 p] runs [p] {i one} or more times, discarding the results. *)
 
+val consumed : _ t -> string t
+(** [consumed p] runs [p] and returns the contents that were consumed during the
+    parsing as a string *)
+
+val consumed_bigstring : _ t -> bigstring t
+(** [consumed p] runs [p] and returns the contents that were consumed during the
+    parsing as a bigstring *)
+
 val fix : ('a t -> 'a t) -> 'a t
 (** [fix f] computes the fixpoint of [f] and runs the resultant parser. The
     argument that [f] receives is the result of [fix f], which [f] must use,

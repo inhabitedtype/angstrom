@@ -532,6 +532,20 @@ let scan_state state f =
 let scan_string state f =
   scan state f >>| fst
 
+let consume_with p f =
+  { run = fun input pos more fail succ ->
+    let start = pos in
+    let succ' input' pos' more' _ =
+      let len = pos' - start in
+      let consumed = Input.apply input' start len ~f in
+      succ input' pos' more' consumed
+    in
+    p.run input pos more fail succ'
+  }
+
+let consumed           p = consume_with p Bigstringaf.substring
+let consumed_bigstring p = consume_with p Bigstringaf.copy
+
 module BE = struct
   (* XXX(seliopou): The pattern in both this module and [LE] are a compromise
    * between efficiency and code reuse. By inlining [ensure] you can recover
