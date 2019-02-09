@@ -1,4 +1,4 @@
-.PHONY: all build clean test install uninstall doc
+.PHONY: all build clean test install uninstall doc examples
 
 build:
 	dune build
@@ -7,6 +7,9 @@ all: build
 
 test:
 	dune runtest
+
+examples:
+	dune build @examples
 
 install:
 	dune install

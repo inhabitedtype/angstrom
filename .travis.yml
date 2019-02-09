@@ -6,19 +6,12 @@ install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/ma
 script: bash -ex ./.travis-docker.sh
 env:
   global:
-  - PINS="angstrom-async:. angstrom-lwt-unix:. angstrom-unix:. angstrom:."
+  - DISTRO="ubuntu"
+  - PINS="angstrom-async:. angstrom-lwt-unix:. angstrom:."
+  - PACKAGE="angstrom"
+  - TESTS=true
+  - POST_INSTALL_HOOK="opam install --with-test angstrom-async angstrom-lwt-unix && opam exec -- make examples"
   matrix:
-  - PACKAGE="angstrom"          DISTRO="ubuntu-lts"      OCAML_VERSION="4.07"
-  - PACKAGE="angstrom-async"    DISTRO="ubuntu-lts"      OCAML_VERSION="4.07"
-  - PACKAGE="angstrom-lwt-unix" DISTRO="ubuntu-lts"      OCAML_VERSION="4.07"
-  - PACKAGE="angstrom-unix"     DISTRO="ubuntu-lts"      OCAML_VERSION="4.07"
-  - PACKAGE="angstrom"          DISTRO="ubuntu-lts"      OCAML_VERSION="4.04"
-  - PACKAGE="angstrom-async"    DISTRO="ubuntu-lts"      OCAML_VERSION="4.04"
-  - PACKAGE="angstrom-lwt-unix" DISTRO="ubuntu-lts"      OCAML_VERSION="4.04"
-  - PACKAGE="angstrom-unix"     DISTRO="ubuntu-lts"      OCAML_VERSION="4.04"
-  - PACKAGE="angstrom"          DISTRO="alpine"          OCAML_VERSION="4.03"
-  - PACKAGE="angstrom-lwt-unix" DISTRO="alpine"          OCAML_VERSION="4.03"
-  - PACKAGE="angstrom-unix"     DISTRO="alpine"          OCAML_VERSION="4.03"
-  - PACKAGE="angstrom"          DISTRO="debian-unstable" OCAML_VERSION="4.03"
-  - PACKAGE="angstrom-lwt-unix" DISTRO="debian-unstable" OCAML_VERSION="4.03"
-  - PACKAGE="angstrom-unix"     DISTRO="debian-unstable" OCAML_VERSION="4.03"
+  - OCAML_VERSION="4.07"
+  - OCAML_VERSION="4.06"
+  - OCAML_VERSION="4.05"
