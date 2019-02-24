@@ -535,12 +535,12 @@ module Buffered : sig
       copied into the state's buffer for later use by the caller. *)
 
   val state_to_option : 'a state -> 'a option
-  (** [state_to_option state] returns [Some (bs, v)] if the parser is in the
+  (** [state_to_option state] returns [Some v] if the parser is in the
       [Done (bs, v)] state and [None] otherwise. This function has no effect on
       the current state of the parser. *)
 
   val state_to_result : 'a state -> ('a, string) result
-  (** [state_to_result state] returns [Ok v] if the parser is in the [Done v]
+  (** [state_to_result state] returns [Ok v] if the parser is in the [Done (bs, v)]
       state and [Error msg] if it is in the [Fail] or [Partial] state.
 
       This function has no effect on the current state of the parser. *)
