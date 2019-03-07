@@ -33,6 +33,10 @@ let parse p =
   let input = Input.create Bigstringaf.empty ~committed_bytes:0 ~off:0 ~len:0 in
   p.run input 0 Incomplete fail_k succeed_k
 
+let parse_incomplete_bigstring p input =
+  let input = Input.create input ~committed_bytes:0 ~off:0 ~len:(Bigstringaf.length input) in
+  p.run input 0 Incomplete fail_k succeed_k
+
 let parse_bigstring p input =
   let input = Input.create input ~committed_bytes:0 ~off:0 ~len:(Bigstringaf.length input) in
   state_to_result (p.run input 0 Complete fail_k succeed_k)

@@ -594,6 +594,10 @@ module Unbuffered : sig
   val parse : 'a t -> 'a state
   (** [parse t] runs [t] and await input if needed. *)
 
+  val parse_incomplete_bigstring : 'a t -> bigstring -> 'a state
+  (** [parse_incomplete_bigstring p x] runs [p] with {!Incomplete} input [x] and
+      await input if needed. *)
+
   val state_to_option : 'a state -> 'a option
   (** [state_to_option state] returns [Some (bs, v)] if the parser is in the
       [Done (bs, v)] state and [None] otherwise. This function has no effect on the
