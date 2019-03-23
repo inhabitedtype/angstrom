@@ -107,6 +107,11 @@ let basic_constructors =
       check_fail ~msg:"true, empty input"      (take_while1 (fun _ -> true)) [""];
       check_fail ~msg:"false, empty input"     (take_while1 (fun _ -> false)) [""];
   end
+  ; "advance", `Quick, begin fun () ->
+      check_s ~msg:"non-empty input"                (advance 3 >>= fun () -> take 1) ["asdf"] "f";
+      check_fail ~msg:"advance more than available" (advance 5) ["asdf"];
+      check_fail ~msg:"advance on empty input"      (advance 3) [""];
+  end
   ]
 
 module type EndianBigstring = sig
