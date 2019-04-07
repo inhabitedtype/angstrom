@@ -272,20 +272,20 @@ val many1 : 'a t -> 'a list t
 (** [many1 p] runs [p] {i one} or more times and returns a list of results from
     the runs of [p]. *)
 
-val many_till : 'a t -> 'b t -> 'a list t
+val many_till : 'a t -> _ t -> 'a list t
 (** [many_till p e] runs parser [p] {i zero} or more times until action [e]
     succeeds and returns the list of result from the runs of [p]. *)
 
-val sep_by : 'a t -> 'b t -> 'b list t
+val sep_by : _ t -> 'a t -> 'a list t
 (** [sep_by s p] runs [p] {i zero} or more times, interspersing runs of [s] in between. *)
 
-val sep_by1 : 'a t -> 'b t -> 'b list t
+val sep_by1 : _ t -> 'a t -> 'a list t
 (** [sep_by1 s p] runs [p] {i one} or more times, interspersing runs of [s] in between. *)
 
-val skip_many : 'a t -> unit t
-(** [skip_many p] runs [p] {i zero} or more times, discarding the results.*)
+val skip_many : _ t -> unit t
+(** [skip_many p] runs [p] {i zero} or more times, discarding the results. *)
 
-val skip_many1 : 'a t -> unit t
+val skip_many1 : _ t -> unit t
 (** [skip_many1 p] runs [p] {i one} or more times, discarding the results. *)
 
 val fix : ('a t -> 'a t) -> 'a t
@@ -366,7 +366,7 @@ val commit : unit t
 val return : 'a -> 'a t
 (** [return v] creates a parser that will always succeed and return [v] *)
 
-val fail : string -> 'a t
+val fail : string -> _ t
 (** [fail msg] creates a parser that will always fail with the message [msg] *)
 
 val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
@@ -383,11 +383,11 @@ val (<*>) : ('a -> 'b) t -> 'a t -> 'b t
 val (<$>) : ('a -> 'b) -> 'a t -> 'b t
 (** [f <$> p] is equivalent to [p >>| f] *)
 
-val ( *>) : 'a t -> 'b t -> 'b t
+val ( *>) : _ t -> 'a t -> 'a t
 (** [p *> q] runs [p], discards its result and then runs [q], and returns its
     result. *)
 
-val (<* ) : 'a t -> 'b t -> 'a t
+val (<* ) : 'a t -> _ t -> 'a t
 (** [p <* q] runs [p], then runs [q], discards its result, and returns the
     result of [p]. *)
 
@@ -545,7 +545,7 @@ module Buffered : sig
 
       This function has no effect on the current state of the parser. *)
 
-  val state_to_unconsumed : 'a state -> unconsumed option
+  val state_to_unconsumed : _ state -> unconsumed option
   (** [state_to_unconsumed state] returns [Some bs] if [state = Done(bs, _)] or
       [state = Fail(bs, _, _)] and [None] otherwise. *)
 
