@@ -179,6 +179,10 @@ val scan_string : 'state -> ('state -> char -> 'state option) -> string t
 (** [scan_string init f] Like [scan] but discards the final state and returns
     the accumulated string *)
 
+val int8 : int -> int t
+(** [int8 i] accepts one byte that matches the lower-order byte of [i] and 
+    returns unit. *)
+
 val any_uint8 : int t
 (** [any_uint8] accepts any byte and returns it as an unsigned int8. *)
 
