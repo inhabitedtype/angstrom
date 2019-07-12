@@ -319,6 +319,16 @@ let any_char =
   in
   ensure 1 p
 
+let int8 i =
+  let p =
+    { run = fun input pos more fail succ ->
+      let c = Char.code (Input.get_char input pos) in
+      if c = i land 0xff
+      then succ input (pos + 1) more c
+      else fail input pos more [] (Printf.sprintf "int8 %d" i) }
+  in
+  ensure 1 p
+
 let any_uint8 =
   let p =
     { run = fun input pos more _fail succ ->

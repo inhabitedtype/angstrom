@@ -55,6 +55,12 @@ let basic_constructors =
       check_fail ~msg:"'a' failure"   (char 'a') ["b"];
       check_fail ~msg:"empty buffer"  (char 'a') [""]
   end
+  ; "int8", `Quick, begin fun () ->
+    check_int  ~msg:"singleton 'a'" (int8 0x0061) ["a"]     0x61;
+    check_int  ~msg:"prefix 'a'"    (int8 0xff61) ["asdf"]  0x61;
+    check_fail ~msg:"'a' failure"   (int8 0xff61) ["b"];
+    check_fail ~msg:"empty buffer"  (int8 0xff61) [""];
+  end
   ; "not_char", `Quick, begin fun () ->
       check_c    ~msg:"not 'a' singleton" (not_char 'a') ["b"] 'b';
       check_c    ~msg:"not 'a' prefix"    (not_char 'a') ["baba"] 'b';
