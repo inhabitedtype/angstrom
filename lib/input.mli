@@ -31,6 +31,34 @@
     POSSIBILITY OF SUCH DAMAGE.
   ----------------------------------------------------------------------------*)
 
+(** An [Input.t] represents a series of buffers, of which we only have access
+    to one, and a pointer to how much has been committed, which is in the
+    current buffer.
+
+                               parser commit point
+                                        V
+                      +--------------------------------------+
+                      |#################'####################|        current buffer
+    +-----------------+--------------------------------------+-----
+    |#################|#################'####################|###..   input
+    +-----------------+--------------------------------------+-----
+    '                 '                 '                    '
+    |--------------------------------------------------------|
+    '                 '          length '                    '
+    |-----------------|                 '                    '
+  client_committed_bytes                '                    '
+    '                 '                 |--------------------|
+    '                 '                parser_uncommitted_bytes
+    '                 |-----------------|
+    '             bytes_for_client_to_commit
+    |-----------------------------------|
+           parser_committed_bytes
+
+    Note that a buffer is a subsequence of a [Bigstringaf.t], defined by [off] and [len].
+
+    All [int] position arguments should be relative to the beginning of the
+    whole input. *)
+
 type t
 
 val create : Bigstringaf.t -> off:int -> len:int -> committed_bytes:int -> t
