@@ -43,13 +43,13 @@ val parser_uncommitted_bytes : t -> int
 
 val bytes_for_client_to_commit : t -> int
 
-val get_char     : t -> int -> char
-val get_int16_le : t -> int -> int
-val get_int32_le : t -> int -> int32
-val get_int64_le : t -> int -> int64
-val get_int16_be : t -> int -> int
-val get_int32_be : t -> int -> int32
-val get_int64_be : t -> int -> int64
+val unsafe_get_char     : t -> int -> char
+val unsafe_get_int16_le : t -> int -> int
+val unsafe_get_int32_le : t -> int -> int32
+val unsafe_get_int64_le : t -> int -> int64
+val unsafe_get_int16_be : t -> int -> int
+val unsafe_get_int32_be : t -> int -> int32
+val unsafe_get_int64_be : t -> int -> int64
 
 val count_while : t -> int -> f:(char -> bool) -> int
 

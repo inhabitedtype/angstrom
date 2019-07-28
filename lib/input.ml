@@ -67,31 +67,31 @@ let apply t pos len ~f =
   let off = offset_in_buffer t pos in
   f t.buffer ~off ~len
 
-let get_char t pos =
+let unsafe_get_char t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get t.buffer off
 
-let get_int16_le t pos =
+let unsafe_get_int16_le t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int16_le t.buffer off
 
-let get_int32_le t pos =
+let unsafe_get_int32_le t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int32_le t.buffer off
 
-let get_int64_le t pos =
+let unsafe_get_int64_le t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int64_le t.buffer off
 
-let get_int16_be t pos =
+let unsafe_get_int16_be t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int16_be t.buffer off
 
-let get_int32_be t pos =
+let unsafe_get_int32_be t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int32_be t.buffer off
 
-let get_int64_be t pos =
+let unsafe_get_int64_be t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int64_be t.buffer off
 
