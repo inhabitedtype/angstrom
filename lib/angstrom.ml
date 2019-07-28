@@ -256,12 +256,12 @@ let unsafe_lookahead p =
 let peek_char =
   { run = fun input pos more _fail succ ->
     if pos < Input.length input then
-      succ input pos more (Some (Input.get_char input pos))
+      succ input pos more (Some (Input.unsafe_get_char input pos))
     else if more = Complete then
       succ input pos more None
     else
       let succ' input' pos' more' =
-        succ input' pos' more' (Some (Input.get_char input' pos'))
+        succ input' pos' more' (Some (Input.unsafe_get_char input' pos'))
       and fail' input' pos' more' =
         succ input' pos' more' None in
       prompt input pos fail' succ'
@@ -271,7 +271,7 @@ let peek_char =
 let rec peek_char_fail =
   { run = fun input pos more fail succ ->
     if pos < Input.length input
-    then succ input pos more (Input.get_char input pos)
+    then succ input pos more (Input.unsafe_get_char input pos)
     else
       let succ' input' pos' more' () =
         peek_char_fail.run input' pos' more' fail succ in
@@ -280,13 +280,13 @@ let rec peek_char_fail =
 let satisfy f =
   { run = fun input pos more fail succ ->
     if pos < Input.length input then
-      let c = Input.get_char input pos in
+      let c = Input.unsafe_get_char input pos in
       if f c
       then succ input (pos + 1) more c
       else fail input pos more [] "satisfy"
     else
       let succ' input' pos' more' () =
-        let c = Input.get_char input' pos' in
+        let c = Input.unsafe_get_char input' pos' in
         if f c
         then succ input' (pos' + 1) more' c
         else fail input' pos' more' [] "satisfy"
@@ -296,7 +296,7 @@ let satisfy f =
 let char c =
   let p =
     { run = fun input pos more fail succ ->
-      if Input.get_char input pos = c
+      if Input.unsafe_get_char input pos = c
       then succ input (pos + 1) more c
       else fail input pos more [] (Printf.sprintf "char %C" c) }
   in
@@ -305,7 +305,7 @@ let char c =
 let not_char c =
   let p =
     { run = fun input pos more fail succ ->
-      let c' = Input.get_char input pos in
+      let c' = Input.unsafe_get_char input pos in
       if c <> c'
       then succ input (pos + 1) more c'
       else fail input pos more [] (Printf.sprintf "not char %C" c) }
@@ -315,14 +315,14 @@ let not_char c =
 let any_char =
   let p =
     { run = fun input pos more _fail succ ->
-      succ input (pos + 1) more (Input.get_char input pos)  }
+      succ input (pos + 1) more (Input.unsafe_get_char input pos)  }
   in
   ensure 1 p
 
 let int8 i =
   let p =
     { run = fun input pos more fail succ ->
-      let c = Char.code (Input.get_char input pos) in
+      let c = Char.code (Input.unsafe_get_char input pos) in
       if c = i land 0xff
       then succ input (pos + 1) more c
       else fail input pos more [] (Printf.sprintf "int8 %d" i) }
@@ -332,7 +332,7 @@ let int8 i =
 let any_uint8 =
   let p =
     { run = fun input pos more _fail succ ->
-      let c = Input.get_char input pos in
+      let c = Input.unsafe_get_char input pos in
       succ input (pos + 1) more (Char.code c) }
   in
   ensure 1 p
@@ -342,7 +342,7 @@ let any_int8 =
   let s = Sys.int_size - 8 in
   let p =
     { run = fun input pos more _fail succ ->
-      let c = Input.get_char input pos in
+      let c = Input.unsafe_get_char input pos in
       succ input (pos + 1) more ((Char.code c lsl s) asr s) }
   in
   ensure 1 p
@@ -350,7 +350,7 @@ let any_int8 =
 let skip f =
   let p =
     { run = fun input pos more fail succ ->
-      if f (Input.get_char input pos)
+      if f (Input.unsafe_get_char input pos)
       then succ input (pos + 1) more ()
       else fail input pos more [] "skip" }
   in
@@ -544,7 +544,7 @@ module BE = struct
     let p =
       { run = fun input pos more fail succ ->
         if (pos + bytes : int) <= Input.length input
-        && Input.get_int16_be input pos = (n land 0xffff)
+        && Input.unsafe_get_int16_be input pos = (n land 0xffff)
         then succ input (pos + bytes) more ()
         else fail input pos more [] "BE.int16" }
     in
@@ -555,7 +555,7 @@ module BE = struct
     let p =
       { run = fun input pos more fail succ ->
         if (pos + bytes : int) <= Input.length input
-        && Int32.equal (Input.get_int32_be input pos) n
+        && Int32.equal (Input.unsafe_get_int32_be input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "BE.int32" }
     in
@@ -566,7 +566,7 @@ module BE = struct
     let p =
       { run = fun input pos more fail succ ->
         if (pos + bytes : int) <= Input.length input
-        && Int64.equal (Input.get_int64_be input pos) n
+        && Int64.equal (Input.unsafe_get_int64_be input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "BE.int64" }
     in
@@ -597,7 +597,7 @@ module LE = struct
     let p =
       { run = fun input pos more fail succ ->
         if (pos + bytes : int) <= Input.length input
-        && Input.get_int16_le input pos = (n land 0xffff)
+        && Input.unsafe_get_int16_le input pos = (n land 0xffff)
         then succ input (pos + bytes) more ()
         else fail input pos more [] "LE.int16" }
     in
@@ -608,7 +608,7 @@ module LE = struct
     let p =
       { run = fun input pos more fail succ ->
         if (pos + bytes : int) <= Input.length input
-        && Int32.equal (Input.get_int32_le input pos) n
+        && Int32.equal (Input.unsafe_get_int32_le input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "LE.int32" }
     in
@@ -619,7 +619,7 @@ module LE = struct
     let p =
       { run = fun input pos more fail succ ->
         if (pos + bytes : int) <= Input.length input
-        && Int64.equal (Input.get_int64_le input pos) n
+        && Int64.equal (Input.unsafe_get_int64_le input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "LE.int64" }
     in
