@@ -543,8 +543,7 @@ module BE = struct
     let bytes = 2 in
     let p =
       { run = fun input pos more fail succ ->
-        if (pos + bytes : int) <= Input.length input
-        && Input.unsafe_get_int16_be input pos = (n land 0xffff)
+        if Input.unsafe_get_int16_be input pos = (n land 0xffff)
         then succ input (pos + bytes) more ()
         else fail input pos more [] "BE.int16" }
     in
@@ -554,8 +553,7 @@ module BE = struct
     let bytes = 4 in
     let p =
       { run = fun input pos more fail succ ->
-        if (pos + bytes : int) <= Input.length input
-        && Int32.equal (Input.unsafe_get_int32_be input pos) n
+        if Int32.equal (Input.unsafe_get_int32_be input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "BE.int32" }
     in
@@ -565,8 +563,7 @@ module BE = struct
     let bytes = 8 in
     let p =
       { run = fun input pos more fail succ ->
-        if (pos + bytes : int) <= Input.length input
-        && Int64.equal (Input.unsafe_get_int64_be input pos) n
+        if Int64.equal (Input.unsafe_get_int64_be input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "BE.int64" }
     in
@@ -596,8 +593,7 @@ module LE = struct
     let bytes = 2 in
     let p =
       { run = fun input pos more fail succ ->
-        if (pos + bytes : int) <= Input.length input
-        && Input.unsafe_get_int16_le input pos = (n land 0xffff)
+        if Input.unsafe_get_int16_le input pos = (n land 0xffff)
         then succ input (pos + bytes) more ()
         else fail input pos more [] "LE.int16" }
     in
@@ -607,8 +603,7 @@ module LE = struct
     let bytes = 4 in
     let p =
       { run = fun input pos more fail succ ->
-        if (pos + bytes : int) <= Input.length input
-        && Int32.equal (Input.unsafe_get_int32_le input pos) n
+        if Int32.equal (Input.unsafe_get_int32_le input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "LE.int32" }
     in
@@ -618,8 +613,7 @@ module LE = struct
     let bytes = 8 in
     let p =
       { run = fun input pos more fail succ ->
-        if (pos + bytes : int) <= Input.length input
-        && Int64.equal (Input.unsafe_get_int64_le input pos) n
+        if Int64.equal (Input.unsafe_get_int64_le input pos) n
         then succ input (pos + bytes) more ()
         else fail input pos more [] "LE.int64" }
     in
