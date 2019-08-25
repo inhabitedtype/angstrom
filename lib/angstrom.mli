@@ -172,15 +172,15 @@ val scan : 'state -> ('state -> char -> 'state option) -> (string * 'state) t
     before [None] and the accumulated string *)
 
 val scan_state : 'state -> ('state -> char -> 'state option) -> 'state t
-(** [scan_state init f] Like [scan] but only returns the final state before
-    [None]. Much more efficient than [scan]*)
+(** [scan_state init f] is like {!scan} but only returns the final state before
+    [None]. Much more efficient than {!scan}. *)
 
 val scan_string : 'state -> ('state -> char -> 'state option) -> string t
-(** [scan_string init f] Like [scan] but discards the final state and returns
-    the accumulated string *)
+(** [scan_string init f] is like {!scan} but discards the final state and returns
+    the accumulated string. *)
 
 val int8 : int -> int t
-(** [int8 i] accepts one byte that matches the lower-order byte of [i] and 
+(** [int8 i] accepts one byte that matches the lower-order byte of [i] and
     returns unit. *)
 
 val any_uint8 : int t
@@ -481,8 +481,6 @@ module Unsafe : sig
 end
 
 
-
-
 (** {2 Running} *)
 
 val parse_bigstring : 'a t -> bigstring -> ('a, string) result
@@ -522,7 +520,7 @@ module Buffered : sig
     | `String    of string ]
 
   type 'a state =
-    | Partial of ([ input | `Eof ]-> 'a state) (** The parser requires more input. *)
+    | Partial of ([ input | `Eof ] -> 'a state) (** The parser requires more input. *)
     | Done    of unconsumed * 'a (** The parser succeeded. *)
     | Fail    of unconsumed * string list * string (** The parser failed. *)
 
@@ -599,16 +597,17 @@ module Unbuffered : sig
   (** [parse t] runs [t] and await input if needed. *)
 
   val state_to_option : 'a state -> 'a option
-  (** [state_to_option state] returns [Some (bs, v)] if the parser is in the
+
+  (** [state_to_option state] returns [Some v] if the parser is in the
       [Done (bs, v)] state and [None] otherwise. This function has no effect on the
       current state of the parser. *)
 
   val state_to_result : 'a state -> ('a, string) result
-  (** [state_to_result state] returns [Ok v] if the parser is in the [Done v]
-      state and [Error msg] if it is in the [Fail] or [Partial] state.
+  (** [state_to_result state] returns [Ok v] if the parser is in the
+      [Done (bs, v)] state and [Error msg] if it is in the [Fail] or [Partial]
+      state.
 
       This function has no effect on the current state of the parser. *)
-
 end
 
 (**/**)
