@@ -200,7 +200,7 @@ module BE : sig
       and returns unit. *)
 
   val int64 : int64 -> unit t
-  (** [int32 i] accept eight bytes that match the eight bytes of [i] and
+  (** [int64 i] accept eight bytes that match the eight bytes of [i] and
       returns unit. *)
 
   val any_int16 : int t
