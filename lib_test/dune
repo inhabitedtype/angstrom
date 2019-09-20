@@ -1,12 +1,3 @@
-(executables
- (libraries alcotest angstrom)
- (modules test_angstrom)
- (names test_angstrom))
-
-(alias
- (name runtest)
- (package angstrom)
- (deps
-  (:< test_angstrom.exe))
- (action
-  (run %{<})))
+(tests
+ (names test_async test_angstrom)
+ (libraries hex alcotest-async angstrom-async))
