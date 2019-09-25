@@ -370,6 +370,22 @@ let choice_commit =
       (parse_string p "@@^");
   end ]
 
+let input = 
+  [ "non-zero offset", `Quick, begin fun () ->
+    let parser = take_while (fun _ -> true) in
+    match Angstrom.Unbuffered.parse parser with
+    | Done _ | Fail _ -> assert false
+    | Partial { continue; committed } ->
+      Alcotest.(check int) "committed is zero" 0 committed;
+      let state = continue (Bigstringaf.of_string "abcd" ~off:0 ~len:4) ~off:1 ~len:2 Complete in
+      Alcotest.(check (result string string))
+        "offset and length respected"
+        (Ok "bc")
+        (Angstrom.Unbuffered.state_to_result state);
+  end ]
+;;
+
+
 
 let () =
   Alcotest.run "test suite"
@@ -383,4 +399,5 @@ let () =
     ; "incremental input"     , incremental 
     ; "count_while regression", count_while_regression
     ; "choice and commit"     , choice_commit
+    ; "input"                 , input
   ]
