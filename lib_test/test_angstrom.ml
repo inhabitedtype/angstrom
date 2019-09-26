@@ -371,17 +371,24 @@ let choice_commit =
   end ]
 
 let input = 
-  [ "non-zero offset", `Quick, begin fun () ->
-    let parser = take_while (fun _ -> true) in
-    match Angstrom.Unbuffered.parse parser with
+  let test p input ~off ~len expect =
+    match Angstrom.Unbuffered.parse p with
     | Done _ | Fail _ -> assert false
     | Partial { continue; committed } ->
       Alcotest.(check int) "committed is zero" 0 committed;
-      let state = continue (Bigstringaf.of_string "abcd" ~off:0 ~len:4) ~off:1 ~len:2 Complete in
+      let bs = Bigstringaf.of_string input ~off:0 ~len:(String.length input) in
+      let state = continue bs ~off ~len Complete in
       Alcotest.(check (result string string))
         "offset and length respected"
-        (Ok "bc")
+        (Ok expect)
         (Angstrom.Unbuffered.state_to_result state);
+  in
+
+  [ "offset and length respected", `Quick, begin fun () ->
+    let open Angstrom in
+    let take_all = take_while (fun _ -> true) in
+    test take_all             "abcd"    ~off:1 ~len:2 "bc";
+    test (take 4 *> take_all) "abcdefg" ~off:0 ~len:7 "efg";
   end ]
 ;;
 
