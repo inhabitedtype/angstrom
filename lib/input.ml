@@ -99,8 +99,8 @@ let count_while t pos ~f =
   let buffer = t.buffer in
   let off    = offset_in_buffer t pos in
   let i      = ref off in
-  let len    = t.len in
-  while !i < off + len && f (Bigstringaf.unsafe_get buffer !i) do
+  let limit  = t.off + t.len in
+  while !i < limit && f (Bigstringaf.unsafe_get buffer !i) do
     incr i
   done;
   !i - off
