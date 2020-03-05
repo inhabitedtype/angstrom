@@ -42,7 +42,7 @@ type bigstring = Bigstringaf.t
 module Unbuffered = struct
   include Parser
 
-  type more = More.t = 
+  type more = More.t =
     | Complete
     | Incomplete
 end
@@ -63,11 +63,13 @@ module Buffered = struct
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state)
+    | Lazy    of 'a state Lazy.t
     | Done    of unconsumed * 'a
     | Fail    of unconsumed * string list * string
 
-  let from_unbuffered_state ~f buffering = function
+  let rec from_unbuffered_state ~f buffering = function
     | Unbuffered.Partial p         -> Partial (f p)
+    | Unbuffered.Lazy x            -> from_unbuffered_state ~f buffering (Lazy.force x)
     | Unbuffered.Done(consumed, v) ->
       let unconsumed = Buffering.unconsumed ~shift:consumed buffering in
       Done(unconsumed, v)
@@ -95,9 +97,10 @@ module Buffered = struct
     Unbuffered.parse p
     |> from_unbuffered_state buffering ~f
 
-  let feed state input =
+  let rec feed state input =
     match state with
     | Partial k -> k input
+    | Lazy x -> feed (Lazy.force x) input
     | Fail(unconsumed, marks, msg) ->
       begin match input with
       | `Eof   -> state
@@ -115,19 +118,23 @@ module Buffered = struct
         Done(Buffering.unconsumed buffering, v)
       end
 
-  let state_to_option = function
+  let rec state_to_option = function
     | Done(_, v) -> Some v
-    | _          -> None
+    | Lazy x     -> state_to_option (Lazy.force x)
+    | Partial _  -> None
+    | Fail _     -> None
 
-  let state_to_result = function
+  let rec state_to_result = function
     | Partial _           -> Error "incomplete input"
+    | Lazy x              -> state_to_result (Lazy.force x)
     | Done(_, v)          -> Ok v
     | Fail(_, marks, msg) -> Error (Unbuffered.fail_to_string marks msg)
 
-  let state_to_unconsumed = function
+  let rec state_to_unconsumed = function
     | Done(unconsumed, _)
     | Fail(unconsumed, _, _) -> Some unconsumed
-    | _                      -> None
+    | Lazy x                 -> state_to_unconsumed (Lazy.force x)
+    | Partial _              -> None
 
 end
 
@@ -149,7 +156,7 @@ let rec prompt input pos fail succ =
    * [prompt] should call [fail]. Otherwise (in the case where the input
    * hasn't grown but [more = Incomplete] just prompt again. *)
   let parser_uncommitted_bytes = Input.parser_uncommitted_bytes input in
-  let parser_committed_bytes   = Input.parser_committed_bytes   input in 
+  let parser_committed_bytes   = Input.parser_committed_bytes   input in
   (* The continuation should not hold any references to input above. *)
   let continue input ~off ~len more =
     if len < parser_uncommitted_bytes then
@@ -381,7 +388,7 @@ let rec count_while1 ~f ~with_buffer =
     (* Check if the loop terminated because it reached the end of the input
      * buffer. If so, then prompt for additional input and continue. *)
     if len < 1
-    then 
+    then
       if pos < input_len || more = Complete
       then fail input pos more [] "count_while1"
       else
@@ -455,12 +462,33 @@ let take_till f =
 let choice ?(failure_msg="no more choices") ps =
   List.fold_right (<|>) ps (fail failure_msg)
 
-let fix f =
+let fix_direct f =
   let rec p = lazy (f r)
   and r = { run = fun buf pos more fail succ ->
-    Lazy.(force p).run buf pos more fail succ }
+    (Lazy.force p).run buf pos more fail succ }
   in
   r
+
+let fix_lazy f =
+  let max_steps = 20 in
+  let steps = ref max_steps in
+  let rec p = lazy (f r)
+  and r = { run = fun buf pos more fail succ ->
+    decr steps;
+    if !steps < 0
+    then (
+      steps := max_steps;
+      Lazy (lazy ((Lazy.force p).run buf pos more fail succ)))
+    else
+      (Lazy.force p).run buf pos more fail succ
+          }
+  in
+  r
+
+let fix = match Sys.backend_type with
+  | Native -> fix_direct
+  | Bytecode -> fix_direct
+  | Other _ -> fix_lazy
 
 let option x p =
   p <|> return x

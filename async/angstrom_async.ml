@@ -53,27 +53,37 @@ let rec finalize state result =
   | Partial p, `Eof                        ->
     finalize (p.continue empty_bigstring ~off:0 ~len:0 Complete) `Eof
   | Partial _, `Stopped () -> assert false
-  | state    , _           -> state_to_result state
+  | Lazy x   , _           -> finalize (Lazy.force x) result
+  | (Done _ | Fail _) , _  -> state_to_result state
 
-let response = function
+let rec response = function
   | Partial p  -> `Consumed(p.committed, `Need_unknown)
   | Done(c, _) -> `Stop_consumed((), c)
+  | Lazy x     -> response (Lazy.force x)
   | Fail _     -> `Stop ()
 
 let default_pushback () = Deferred.unit
 
 let parse ?(pushback=default_pushback) p reader =
   let state = ref (parse p) in
+  let rec get_state () =
+    match !state with
+    | Lazy x ->
+       state := (Lazy.force x);
+       get_state ()
+    | Done _ | Partial _ | Fail _ as state -> state
+  in
   let handle_chunk buf ~pos ~len =
-    begin match !state with
+    begin match get_state () with
     | Partial p ->
-      state := p.continue buf ~off:pos ~len Incomplete;
-    | _         -> ()
+       state := p.continue buf ~off:pos ~len Incomplete;
+    | Lazy _ -> assert false
+    | Done _ | Fail _ -> ()
     end;
-    pushback () >>| fun () -> response !state
+    pushback () >>| fun () -> response (get_state ())
   in
   Reader.read_one_chunk_at_a_time reader ~handle_chunk >>| fun result ->
-    finalize !state result
+    finalize (get_state ()) result
 
 let async_many e k =
   Angstrom.(skip_many (e <* commit >>| k) <?> "async_many")

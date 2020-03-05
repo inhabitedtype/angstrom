@@ -1,5 +1,6 @@
 type 'a state =
   | Partial of 'a partial
+  | Lazy    of 'a state Lazy.t
   | Done    of int * 'a
   | Fail    of int * string list * string
 and 'a partial =
@@ -20,12 +21,15 @@ let succeed_k input pos _       v   = Done(pos - Input.client_committed_bytes in
 let fail_to_string marks err =
   String.concat " > " marks ^ ": " ^ err
 
-let state_to_option = function
+let rec state_to_option = function
   | Done(_, v) -> Some v
-  | _          -> None
+  | Lazy x     -> state_to_option (Lazy.force x)
+  | Fail _     -> None
+  | Partial _  -> None
 
-let state_to_result = function
+let rec state_to_result = function
   | Done(_, v)          -> Ok v
+  | Lazy x              -> state_to_result (Lazy.force x)
   | Partial _           -> Error "incomplete input"
   | Fail(_, marks, err) -> Error (fail_to_string marks err)
 

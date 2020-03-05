@@ -521,6 +521,7 @@ module Buffered : sig
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state) (** The parser requires more input. *)
+    | Lazy    of 'a state Lazy.t
     | Done    of unconsumed * 'a (** The parser succeeded. *)
     | Fail    of unconsumed * string list * string (** The parser failed. *)
 
@@ -579,6 +580,7 @@ module Unbuffered : sig
 
   type 'a state =
     | Partial of 'a partial (** The parser requires more input. *)
+    | Lazy    of 'a state Lazy.t
     | Done    of int * 'a (** The parser succeeded, consuming specified bytes. *)
     | Fail    of int * string list * string (** The parser failed, consuming specified bytes. *)
   and 'a partial =
