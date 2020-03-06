@@ -1,45 +1,46 @@
-type 'a state =
-  | Partial of 'a partial
-  | Lazy    of 'a state Lazy.t
-  | Done    of int * 'a
-  | Fail    of int * string list * string
-and 'a partial =
-  { committed : int
-  ; continue  : Bigstringaf.t -> off:int -> len:int -> More.t -> 'a state }
+module State = struct
+  type 'a t =
+    | Partial of 'a partial
+    | Lazy    of 'a t Lazy.t
+    | Done    of int * 'a
+    | Fail    of int * string list * string
 
+  and 'a partial =
+    { committed : int
+    ; continue  : Bigstringaf.t -> off:int -> len:int -> More.t -> 'a t }
+
+end
 type 'a with_state = Input.t ->  int -> More.t -> 'a
 
-type 'a failure = (string list -> string -> 'a state) with_state
-type ('a, 'r) success = ('a -> 'r state) with_state
+type 'a failure = (string list -> string -> 'a State.t) with_state
+type ('a, 'r) success = ('a -> 'r State.t) with_state
 
 type 'a t =
-  { run : 'r. ('r failure -> ('a, 'r) success -> 'r state) with_state }
+  { run : 'r. ('r failure -> ('a, 'r) success -> 'r State.t) with_state }
 
-let fail_k    input pos _ marks msg = Fail(pos - Input.client_committed_bytes input, marks, msg)
-let succeed_k input pos _       v   = Done(pos - Input.client_committed_bytes input, v)
+let fail_k    input pos _ marks msg =
+  State.Fail(pos - Input.client_committed_bytes input, marks, msg)
+let succeed_k input pos _       v   =
+  State.Done(pos - Input.client_committed_bytes input, v)
 
-let fail_to_string marks err =
-  String.concat " > " marks ^ ": " ^ err
-
-let rec state_to_option = function
-  | Done(_, v) -> Some v
-  | Lazy x     -> state_to_option (Lazy.force x)
-  | Fail _     -> None
-  | Partial _  -> None
-
-let rec state_to_result = function
-  | Done(_, v)          -> Ok v
-  | Lazy x              -> state_to_result (Lazy.force x)
-  | Partial _           -> Error "incomplete input"
-  | Fail(_, marks, err) -> Error (fail_to_string marks err)
+let rec to_exported_state = function
+  | State.Partial {committed;continue} ->
+     Exported_state.Partial
+       { committed
+       ; continue =
+           fun bs ~off ~len more ->
+           to_exported_state (continue bs ~off ~len more)}
+  | State.Done (i,x) -> Exported_state.Done (i,x)
+  | State.Fail (i, sl, s) -> Exported_state.Fail (i, sl, s)
+  | State.Lazy x -> to_exported_state (Lazy.force x)
 
 let parse p =
   let input = Input.create Bigstringaf.empty ~committed_bytes:0 ~off:0 ~len:0 in
-  p.run input 0 Incomplete fail_k succeed_k
+  to_exported_state (p.run input 0 Incomplete fail_k succeed_k)
 
 let parse_bigstring p input =
   let input = Input.create input ~committed_bytes:0 ~off:0 ~len:(Bigstringaf.length input) in
-  state_to_result (p.run input 0 Complete fail_k succeed_k)
+  Exported_state.state_to_result (to_exported_state (p.run input 0 Complete fail_k succeed_k))
 
 module Monad = struct
   let return v =

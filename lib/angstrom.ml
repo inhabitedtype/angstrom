@@ -42,6 +42,8 @@ type bigstring = Bigstringaf.t
 module Unbuffered = struct
   include Parser
 
+  include Exported_state
+
   type more = More.t =
     | Complete
     | Incomplete
@@ -63,13 +65,11 @@ module Buffered = struct
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state)
-    | Lazy    of 'a state Lazy.t
     | Done    of unconsumed * 'a
     | Fail    of unconsumed * string list * string
 
-  let rec from_unbuffered_state ~f buffering = function
+  let from_unbuffered_state ~f buffering = function
     | Unbuffered.Partial p         -> Partial (f p)
-    | Unbuffered.Lazy x            -> from_unbuffered_state ~f buffering (Lazy.force x)
     | Unbuffered.Done(consumed, v) ->
       let unconsumed = Buffering.unconsumed ~shift:consumed buffering in
       Done(unconsumed, v)
@@ -97,10 +97,9 @@ module Buffered = struct
     Unbuffered.parse p
     |> from_unbuffered_state buffering ~f
 
-  let rec feed state input =
+  let feed state input =
     match state with
     | Partial k -> k input
-    | Lazy x -> feed (Lazy.force x) input
     | Fail(unconsumed, marks, msg) ->
       begin match input with
       | `Eof   -> state
@@ -118,22 +117,19 @@ module Buffered = struct
         Done(Buffering.unconsumed buffering, v)
       end
 
-  let rec state_to_option = function
+  let state_to_option = function
     | Done(_, v) -> Some v
-    | Lazy x     -> state_to_option (Lazy.force x)
     | Partial _  -> None
     | Fail _     -> None
 
-  let rec state_to_result = function
+  let state_to_result = function
     | Partial _           -> Error "incomplete input"
-    | Lazy x              -> state_to_result (Lazy.force x)
     | Done(_, v)          -> Ok v
     | Fail(_, marks, msg) -> Error (Unbuffered.fail_to_string marks msg)
 
-  let rec state_to_unconsumed = function
+  let state_to_unconsumed = function
     | Done(unconsumed, _)
     | Fail(unconsumed, _, _) -> Some unconsumed
-    | Lazy x                 -> state_to_unconsumed (Lazy.force x)
     | Partial _              -> None
 
 end
@@ -169,7 +165,7 @@ let rec prompt input pos fail succ =
     else
       succ input pos more
   in
-  Partial { committed = Input.bytes_for_client_to_commit input; continue }
+  State.Partial { committed = Input.bytes_for_client_to_commit input; continue }
 
 let demand_input =
   { run = fun input pos more fail succ ->
@@ -478,7 +474,7 @@ let fix_lazy f =
     if !steps < 0
     then (
       steps := max_steps;
-      Lazy (lazy ((Lazy.force p).run buf pos more fail succ)))
+      State.Lazy (lazy ((Lazy.force p).run buf pos more fail succ)))
     else
       (Lazy.force p).run buf pos more fail succ
           }

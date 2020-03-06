@@ -374,7 +374,6 @@ let input =
   let test p input ~off ~len expect =
     match Angstrom.Unbuffered.parse p with
     | Done _ | Fail _ -> assert false
-    | Lazy _ -> assert false
     | Partial { continue; committed } ->
       Alcotest.(check int) "committed is zero" 0 committed;
       let bs = Bigstringaf.of_string input ~off:0 ~len:(String.length input) in
