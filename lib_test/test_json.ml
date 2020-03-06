@@ -13,7 +13,7 @@ let read f =
 ;;
 
 let () =
-  let twitter_big = read "benchmarks/data/twitter.json" in
+  let twitter_big = read Sys.argv.(1) in
   match Angstrom.(parse_bigstring RFC7159.json twitter_big) with
   | Ok _ -> ()
   | Error err -> failwith err
