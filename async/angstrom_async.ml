@@ -50,36 +50,36 @@ let rec finalize state result =
   | Partial p, `Eof_with_unconsumed_data s ->
     let bigstring = Bigstring.of_string s in
     finalize (p.continue bigstring ~off:0 ~len:(String.length s) Complete) `Eof
-  | Partial p, `Eof                        ->
-    finalize (p.continue empty_bigstring ~off:0 ~len:0 Complete) `Eof
+  | Partial p, `Eof -> finalize (p.continue empty_bigstring ~off:0 ~len:0 Complete) `Eof
   | Partial _, `Stopped () -> assert false
-  | state    , _           -> state_to_result state
+  | state, _ -> state_to_result state
+;;
 
 let response = function
-  | Partial p  -> `Consumed(p.committed, `Need_unknown)
-  | Done(c, _) -> `Stop_consumed((), c)
-  | Fail _     -> `Stop ()
+  | Partial p -> `Consumed (p.committed, `Need_unknown)
+  | Done (c, _) -> `Stop_consumed ((), c)
+  | Fail _ -> `Stop ()
+;;
 
 let default_pushback () = Deferred.unit
 
-let parse ?(pushback=default_pushback) p reader =
+let parse ?(pushback = default_pushback) p reader =
   let state = ref (parse p) in
   let handle_chunk buf ~pos ~len =
-    begin match !state with
-    | Partial p ->
-      state := p.continue buf ~off:pos ~len Incomplete;
-    | _         -> ()
-    end;
+    (match !state with
+    | Partial p -> state := p.continue buf ~off:pos ~len Incomplete
+    | _ -> ());
     pushback () >>| fun () -> response !state
   in
-  Reader.read_one_chunk_at_a_time reader ~handle_chunk >>| fun result ->
-    finalize !state result
+  Reader.read_one_chunk_at_a_time reader ~handle_chunk
+  >>| fun result -> finalize !state result
+;;
 
-let async_many e k =
-  Angstrom.(skip_many (e <* commit >>| k) <?> "async_many")
+let async_many e k = Angstrom.(skip_many (e <* commit >>| k) <?> "async_many")
 
 let parse_many p write reader =
   let wait = ref (default_pushback ()) in
   let k x = wait := write x in
   let pushback () = !wait in
   parse ~pushback (async_many p k) reader
+;;

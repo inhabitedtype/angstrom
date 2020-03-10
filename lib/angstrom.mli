@@ -43,256 +43,253 @@
     {!skip_while}, Angstrom makes it easy to write efficient, expressive, and
     reusable parsers suitable for high-performance applications. *)
 
-
-type +'a t
 (** A parser for values of type ['a]. *)
+type +'a t
 
-
-type bigstring =
-  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type bigstring = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
 (** {2 Basic parsers} *)
 
-val peek_char : char option t
 (** [peek_char] accepts any char and returns it, or returns [None] if the end
     of input has been reached.
 
     This parser does not advance the input. Use it for lookahead. *)
+val peek_char : char option t
 
-val peek_char_fail : char t
 (** [peek_char_fail] accepts any char and returns it. If end of input has been
     reached, it will fail.
 
     This parser does not advance the input. Use it for lookahead. *)
+val peek_char_fail : char t
 
-val peek_string : int -> string t
 (** [peek_string n] accepts exactly [n] characters and returns them as a
     string. If there is not enough input, it will fail.
 
     This parser does not advance the input. Use it for lookahead. *)
+val peek_string : int -> string t
 
-val char : char -> char t
 (** [char c] accepts [c] and returns it. *)
+val char : char -> char t
 
-val not_char : char -> char t
 (** [not_char] accepts any character that is not [c] and returns the matched
     character. *)
+val not_char : char -> char t
 
-val any_char : char t
 (** [any_char] accepts any character and returns it. *)
+val any_char : char t
 
-val satisfy : (char -> bool) -> char t
 (** [satisfy f] accepts any character for which [f] returns [true] and returns
     the accepted character. *)
+val satisfy : (char -> bool) -> char t
 
-val string : string -> string t
 (** [string s] accepts [s] exactly and returns it. *)
+val string : string -> string t
 
-val string_ci : string -> string t
 (** [string_ci s] accepts [s], ignoring case, and returns the matched string,
     preserving the case of the original input. *)
+val string_ci : string -> string t
 
-val skip : (char -> bool) -> unit t
 (** [skip f] accepts any character for which [f] returns [true] and discards
     the accepted character. [skip f] is equivalent to [satisfy f] but discards
     the accepted character. *)
+val skip : (char -> bool) -> unit t
 
-val skip_while : (char -> bool) -> unit t
 (** [skip_while f] accepts input as long as [f] returns [true] and discards
     the accepted characters. *)
+val skip_while : (char -> bool) -> unit t
 
-val take : int -> string t
 (** [take n] accepts exactly [n] characters of input and returns them as a
     string. *)
+val take : int -> string t
 
-val take_while : (char -> bool) -> string t
 (** [take_while f] accepts input as long as [f] returns [true] and returns the
     accepted characters as a string.
 
     This parser does not fail. If [f] returns [false] on the first character,
     it will return the empty string. *)
+val take_while : (char -> bool) -> string t
 
-val take_while1 : (char -> bool) -> string t
 (** [take_while1 f] accepts input as long as [f] returns [true] and returns the
     accepted characters as a string.
 
     This parser requires that [f] return [true] for at least one character of
     input, and will fail otherwise. *)
+val take_while1 : (char -> bool) -> string t
 
-val take_till : (char -> bool) -> string t
 (** [take_till f] accepts input as long as [f] returns [false] and returns the
     accepted characters as a string.
 
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty string. *)
+val take_till : (char -> bool) -> string t
 
-val take_bigstring : int -> bigstring t
 (** [take_bigstring n] accepts exactly [n] characters of input and returns them
     as a newly allocated bigstring. *)
+val take_bigstring : int -> bigstring t
 
-val take_bigstring_while : (char -> bool) -> bigstring t
 (** [take_bigstring_while f] accepts input as long as [f] returns [true] and
     returns the accepted characters as a newly allocated bigstring.
 
     This parser does not fail. If [f] returns [false] on the first character,
     it will return the empty bigstring. *)
+val take_bigstring_while : (char -> bool) -> bigstring t
 
-val take_bigstring_while1 : (char -> bool) -> bigstring t
 (** [take_bigstring_while1 f] accepts input as long as [f] returns [true] and
     returns the accepted characters as a newly allocated bigstring.
 
     This parser requires that [f] return [true] for at least one character of
     input, and will fail otherwise. *)
+val take_bigstring_while1 : (char -> bool) -> bigstring t
 
-val take_bigstring_till : (char -> bool) -> bigstring t
 (** [take_bigstring_till f] accepts input as long as [f] returns [false] and
     returns the accepted characters as a newly allocated bigstring.
 
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty bigstring. *)
+val take_bigstring_till : (char -> bool) -> bigstring t
 
-val advance : int -> unit t
 (** [advance n] advances the input [n] characters, failing if the remaining
     input is less than [n]. *)
+val advance : int -> unit t
 
-val end_of_line : unit t
 (** [end_of_line] accepts either a line feed [\n], or a carriage return
     followed by a line feed [\r\n] and returns unit. *)
+val end_of_line : unit t
 
-val at_end_of_input : bool t
 (** [at_end_of_input] returns whether the end of the end of input has been
     reached. This parser always succeeds. *)
+val at_end_of_input : bool t
 
-val end_of_input : unit t
 (** [end_of_input] succeeds if all the input has been consumed, and fails
     otherwise. *)
+val end_of_input : unit t
 
-val scan : 'state -> ('state -> char -> 'state option) -> (string * 'state) t
 (** [scan init f] consumes until [f] returns [None]. Returns the final state
     before [None] and the accumulated string *)
+val scan : 'state -> ('state -> char -> 'state option) -> (string * 'state) t
 
-val scan_state : 'state -> ('state -> char -> 'state option) -> 'state t
 (** [scan_state init f] is like {!scan} but only returns the final state before
     [None]. Much more efficient than {!scan}. *)
+val scan_state : 'state -> ('state -> char -> 'state option) -> 'state t
 
-val scan_string : 'state -> ('state -> char -> 'state option) -> string t
 (** [scan_string init f] is like {!scan} but discards the final state and returns
     the accumulated string. *)
+val scan_string : 'state -> ('state -> char -> 'state option) -> string t
 
-val int8 : int -> int t
 (** [int8 i] accepts one byte that matches the lower-order byte of [i] and
     returns unit. *)
+val int8 : int -> int t
 
-val any_uint8 : int t
 (** [any_uint8] accepts any byte and returns it as an unsigned int8. *)
+val any_uint8 : int t
 
-val any_int8 : int t
 (** [any_int8] accepts any byte and returns it as a signed int8. *)
+val any_int8 : int t
 
 (** Big endian parsers *)
 module BE : sig
-  val int16 : int   -> unit t
   (** [int16 i] accept two bytes that match the two lower order bytes of [i]
       and returns unit. *)
+  val int16 : int -> unit t
 
-  val int32 : int32 -> unit t
   (** [int32 i] accept four bytes that match the four bytes of [i]
       and returns unit. *)
+  val int32 : int32 -> unit t
 
-  val int64 : int64 -> unit t
   (** [int64 i] accept eight bytes that match the eight bytes of [i] and
       returns unit. *)
+  val int64 : int64 -> unit t
 
   val any_int16 : int t
   val any_int32 : int32 t
-  val any_int64 : int64 t
-  (** [any_intN] reads [N] bits and interprets them as big endian signed integers. *)
 
-  val any_uint16 : int t
+  (** [any_intN] reads [N] bits and interprets them as big endian signed integers. *)
+  val any_int64 : int64 t
+
   (** [any_uint16] reads [16] bits and interprets them as a big endian unsigned
       integer. *)
+  val any_uint16 : int t
 
-  val any_float : float t
   (** [any_float] reads 32 bits and interprets them as a big endian floating
       point value. *)
+  val any_float : float t
 
-  val any_double : float t
   (** [any_double] reads 64 bits and interprets them as a big endian floating
       point value. *)
+  val any_double : float t
 end
 
 (** Little endian parsers *)
 module LE : sig
-  val int16 : int   -> unit t
   (** [int16 i] accept two bytes that match the two lower order bytes of [i]
       and returns unit. *)
+  val int16 : int -> unit t
 
-  val int32 : int32 -> unit t
   (** [int32 i] accept four bytes that match the four bytes of [i]
       and returns unit. *)
+  val int32 : int32 -> unit t
 
-  val int64 : int64 -> unit t
   (** [int32 i] accept eight bytes that match the eight bytes of [i] and
       returns unit. *)
+  val int64 : int64 -> unit t
 
   val any_int16 : int t
   val any_int32 : int32 t
-  val any_int64 : int64 t
+
   (** [any_intN] reads [N] bits and interprets them as little endian signed
       integers. *)
+  val any_int64 : int64 t
 
-  val any_uint16 : int t
   (** [uint16] reads [16] bits and interprets them as a little endian unsigned
       integer. *)
+  val any_uint16 : int t
 
-  val any_float : float t
   (** [any_float] reads 32 bits and interprets them as a little endian floating
       point value. *)
+  val any_float : float t
 
-  val any_double : float t
   (** [any_double] reads 64 bits and interprets them as a little endian floating
       point value. *)
+  val any_double : float t
 end
-
 
 (** {2 Combinators} *)
 
-val option : 'a -> 'a t -> 'a t
 (** [option v p] runs [p], returning the result of [p] if it succeeds and [v]
     if it fails. *)
+val option : 'a -> 'a t -> 'a t
 
-val list : 'a t list -> 'a list t
 (** [list ps] runs each [p] in [ps] in sequence, returning a list of results of
     each [p]. *)
+val list : 'a t list -> 'a list t
 
-val count : int -> 'a t -> 'a list t
 (** [count n p] runs [p] [n] times, returning a list of the results. *)
+val count : int -> 'a t -> 'a list t
 
-val many : 'a t -> 'a list t
 (** [many p] runs [p] {i zero} or more times and returns a list of results from
     the runs of [p]. *)
+val many : 'a t -> 'a list t
 
-val many1 : 'a t -> 'a list t
 (** [many1 p] runs [p] {i one} or more times and returns a list of results from
     the runs of [p]. *)
+val many1 : 'a t -> 'a list t
 
-val many_till : 'a t -> _ t -> 'a list t
 (** [many_till p e] runs parser [p] {i zero} or more times until action [e]
     succeeds and returns the list of result from the runs of [p]. *)
+val many_till : 'a t -> _ t -> 'a list t
 
-val sep_by : _ t -> 'a t -> 'a list t
 (** [sep_by s p] runs [p] {i zero} or more times, interspersing runs of [s] in between. *)
+val sep_by : _ t -> 'a t -> 'a list t
 
-val sep_by1 : _ t -> 'a t -> 'a list t
 (** [sep_by1 s p] runs [p] {i one} or more times, interspersing runs of [s] in between. *)
+val sep_by1 : _ t -> 'a t -> 'a list t
 
-val skip_many : _ t -> unit t
 (** [skip_many p] runs [p] {i zero} or more times, discarding the results. *)
+val skip_many : _ t -> unit t
 
-val skip_many1 : _ t -> unit t
 (** [skip_many1 p] runs [p] {i one} or more times, discarding the results. *)
+val skip_many1 : _ t -> unit t
 
-val fix : ('a t -> 'a t) -> 'a t
 (** [fix f] computes the fixpoint of [f] and runs the resultant parser. The
     argument that [f] receives is the result of [fix f], which [f] must use,
     paradoxically, to define [fix f].
@@ -334,25 +331,24 @@ val fix : ('a t -> 'a t) -> 'a t
     let arr = char '[' *> sep_by (char ',') json <* char ']' in
     let obj = char '{' *> ... json ... <* char '}' in
     choice [str; num; arr json, ...])]} *)
-
+val fix : ('a t -> 'a t) -> 'a t
 
 (** {2 Alternatives} *)
 
-val (<|>) : 'a t -> 'a t -> 'a t
 (** [p <|> q] runs [p] and returns the result if succeeds. If [p] fails, then
     the input will be reset and [q] will run instead. *)
+val ( <|> ) : 'a t -> 'a t -> 'a t
 
-val choice : ?failure_msg:string -> 'a t list -> 'a t
 (** [choice ?failure_msg ts] runs each parser in [ts] in order until one
     succeeds and returns that result. In the case that none of the parser
     succeeds, then the parser will fail with the message [failure_msg], if
     provided, or a much less informative message otherwise. *)
+val choice : ?failure_msg:string -> 'a t list -> 'a t
 
-val (<?>) : 'a t -> string -> 'a t
 (** [p <?> name] associates [name] with the parser [p], which will be reported
     in the case of failure. *)
+val ( <?> ) : 'a t -> string -> 'a t
 
-val commit : unit t
 (** [commit] prevents backtracking beyond the current position of the input,
     allowing the manager of the input buffer to reuse the preceding bytes for
     other purposes.
@@ -363,42 +359,42 @@ val commit : unit t
     for any purpose. The {!module:Buffered} will keep track of the region of
     committed bytes in its internal buffer and reuse that region to store
     additional input when necessary. *)
-
+val commit : unit t
 
 (** {2 Monadic/Applicative interface} *)
 
-val return : 'a -> 'a t
 (** [return v] creates a parser that will always succeed and return [v] *)
+val return : 'a -> 'a t
 
-val fail : string -> _ t
 (** [fail msg] creates a parser that will always fail with the message [msg] *)
+val fail : string -> _ t
 
-val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
 (** [p >>= f] creates a parser that will run [p], pass its result to [f], run
     the parser that [f] produces, and return its result. *)
+val ( >>= ) : 'a t -> ('a -> 'b t) -> 'b t
 
-val (>>|) : 'a t -> ('a -> 'b) -> 'b t
 (** [p >>| f] creates a parser that will run [p], and if it succeeds with
     result [v], will return [f v] *)
+val ( >>| ) : 'a t -> ('a -> 'b) -> 'b t
 
-val (<*>) : ('a -> 'b) t -> 'a t -> 'b t
 (** [f <*> p] is equivalent to [f >>= fun f -> p >>| f]. *)
+val ( <*> ) : ('a -> 'b) t -> 'a t -> 'b t
 
-val (<$>) : ('a -> 'b) -> 'a t -> 'b t
 (** [f <$> p] is equivalent to [p >>| f] *)
+val ( <$> ) : ('a -> 'b) -> 'a t -> 'b t
 
-val ( *>) : _ t -> 'a t -> 'a t
 (** [p *> q] runs [p], discards its result and then runs [q], and returns its
     result. *)
+val ( *> ) : _ t -> 'a t -> 'a t
 
-val (<* ) : 'a t -> _ t -> 'a t
 (** [p <* q] runs [p], then runs [q], discards its result, and returns the
     result of [p]. *)
+val ( <* ) : 'a t -> _ t -> 'a t
 
 val lift : ('a -> 'b) -> 'a t -> 'b t
 val lift2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
 val lift3 : ('a -> 'b -> 'c -> 'd) -> 'a t -> 'b t -> 'c t -> 'd t
-val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
+
 (** The [liftn] family of functions promote functions to the parser monad.
     For any of these functions, the following equivalence holds:
 
@@ -415,7 +411,7 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 
     Even with the partial application, it will be more efficient than the
     applicative implementation. *)
-
+val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 
 (** Unsafe Operations on Angstrom's Internal Buffer
 
@@ -435,15 +431,13 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
     If the input buffer callback functions do not do any of these things, then
     the client may consider their use safe. *)
 module Unsafe : sig
-
-  val take : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [take n f] accepts exactly [n] characters of input into the parser's
       internal buffer then calls [f buffer ~off ~len].  [buffer] is the
       parser's internal buffer.  [off] is the offset from the start of [buffer]
       containing the requested content.  [len] is the length of the requested
       content.  [len] is guaranteed to be equal to [n]. *)
+  val take : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
 
-  val take_while : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [take_while check f] accepts input into the parser's interal buffer as
       long as [check] returns [true] then calls [f buffer ~off ~len].  [buffer]
       is the parser's internal buffer.  [off] is the offset from the start of
@@ -452,8 +446,8 @@ module Unsafe : sig
 
       This parser does not fail. If [check] returns [false] on the first
       character, [len] will be [0]. *)
+  val take_while : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
 
-  val take_while1 : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [take_while1 check f] accepts input into the parser's interal buffer as
       long as [check] returns [true] then calls [f buffer ~off ~len].  [buffer]
       is the parser's internal buffer.  [off] is the offset from the start of
@@ -462,8 +456,8 @@ module Unsafe : sig
 
       This parser requires that [f] return [true] for at least one character of
       input, and will fail otherwise. *)
+  val take_while1 : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
 
-  val take_till : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [take_till check f] accepts input into the parser's interal buffer as
       long as [check] returns [false] then calls [f buffer ~off ~len].  [buffer]
       is the parser's internal buffer.  [off] is the offset from the start of
@@ -472,29 +466,28 @@ module Unsafe : sig
 
       This parser does not fail. If [check] returns [true] on the first
       character, [len] will be [0]. *)
+  val take_till : (char -> bool) -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
 
-  val peek : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
   (** [peek n ~f] accepts exactly [n] characters and calls [f buffer ~off ~len]
       with [len = n]. If there is not enough input, it will fail.
 
       This parser does not advance the input. Use it for lookahead. *)
+  val peek : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t
 end
-
 
 (** {2 Running} *)
 
-val parse_bigstring : 'a t -> bigstring -> ('a, string) result
 (** [parse_bigstring t bs] runs [t] on [bs]. The parser will receive an [`Eof]
     after all of [bs] has been consumed. For use-cases requiring that the
     parser be fed input incrementally, see the {!module:Buffered} and
     {!module:Unbuffered} modules below. *)
+val parse_bigstring : 'a t -> bigstring -> ('a, string) result
 
-val parse_string : 'a t -> string -> ('a, string) result
 (** [parse_string t bs] runs [t] on [bs]. The parser will receive an [`Eof]
     after all of [bs] has been consumed. For use-cases requiring that the
     parser be fed input incrementally, see the {!module:Buffered} and
     {!module:Unbuffered} modules below. *)
-
+val parse_string : 'a t -> string -> ('a, string) result
 
 (** Buffered parsing interface.
 
@@ -513,44 +506,45 @@ module Buffered : sig
   type unconsumed =
     { buf : bigstring
     ; off : int
-    ; len : int }
+    ; len : int
+    }
 
   type input =
     [ `Bigstring of bigstring
-    | `String    of string ]
+    | `String of string
+    ]
 
   type 'a state =
     | Partial of ([ input | `Eof ] -> 'a state) (** The parser requires more input. *)
-    | Done    of unconsumed * 'a (** The parser succeeded. *)
-    | Fail    of unconsumed * string list * string (** The parser failed. *)
+    | Done of unconsumed * 'a (** The parser succeeded. *)
+    | Fail of unconsumed * string list * string (** The parser failed. *)
 
-  val parse : ?initial_buffer_size:int -> 'a t -> 'a state
   (** [parse ?initial_buffer_size t] runs [t] and awaits input if needed.
       [parse] will allocate a buffer of size [initial_buffer_size] (defaulting
       to 4k bytes) to do input buffering and automatically grows the buffer as
       needed. *)
+  val parse : ?initial_buffer_size:int -> 'a t -> 'a state
 
-  val feed : 'a state -> [ input | `Eof ] -> 'a state
   (** [feed state input] supplies the parser state with more input. If [state] is
       [Partial], then parsing will continue where it left off. Otherwise, the
       parser is in a [Fail] or [Done] state, in which case the [input] will be
       copied into the state's buffer for later use by the caller. *)
+  val feed : 'a state -> [ input | `Eof ] -> 'a state
 
-  val state_to_option : 'a state -> 'a option
   (** [state_to_option state] returns [Some v] if the parser is in the
       [Done (bs, v)] state and [None] otherwise. This function has no effect on
       the current state of the parser. *)
+  val state_to_option : 'a state -> 'a option
 
-  val state_to_result : 'a state -> ('a, string) result
   (** [state_to_result state] returns [Ok v] if the parser is in the [Done (bs, v)]
       state and [Error msg] if it is in the [Fail] or [Partial] state.
 
       This function has no effect on the current state of the parser. *)
+  val state_to_result : 'a state -> ('a, string) result
 
-  val state_to_unconsumed : _ state -> unconsumed option
   (** [state_to_unconsumed state] returns [Some bs] if [state = Done(bs, _)] or
       [state = Fail(bs, _, _)] and [None] otherwise. *)
-
+  val state_to_unconsumed : _ state -> unconsumed option
 end
 
 (** Unbuffered parsing interface.
@@ -579,22 +573,24 @@ module Unbuffered : sig
 
   type 'a state =
     | Partial of 'a partial (** The parser requires more input. *)
-    | Done    of int * 'a (** The parser succeeded, consuming specified bytes. *)
-    | Fail    of int * string list * string (** The parser failed, consuming specified bytes. *)
+    | Done of int * 'a (** The parser succeeded, consuming specified bytes. *)
+    | Fail of int * string list * string
+        (** The parser failed, consuming specified bytes. *)
+
   and 'a partial =
     { committed : int
-      (** The number of bytes committed during the last input feeding.
+          (** The number of bytes committed during the last input feeding.
           Callers must drop this number of bytes from the beginning of the
           input on subsequent calls. See {!commit} for additional details. *)
     ; continue : bigstring -> off:int -> len:int -> more -> 'a state
-      (** A continuation of a parse that requires additional input. The input
+          (** A continuation of a parse that requires additional input. The input
           should include all uncommitted input (as reported by previous partial
           states) in addition to any new input that has become available, as
           well as an indication of whether there is {!more} input to come.  *)
     }
 
-  val parse : 'a t -> 'a state
   (** [parse t] runs [t] and await input if needed. *)
+  val parse : 'a t -> 'a state
 
   val state_to_option : 'a state -> 'a option
 
@@ -602,12 +598,12 @@ module Unbuffered : sig
       [Done (bs, v)] state and [None] otherwise. This function has no effect on the
       current state of the parser. *)
 
-  val state_to_result : 'a state -> ('a, string) result
   (** [state_to_result state] returns [Ok v] if the parser is in the
       [Done (bs, v)] state and [Error msg] if it is in the [Fail] or [Partial]
       state.
 
       This function has no effect on the current state of the parser. *)
+  val state_to_result : 'a state -> ('a, string) result
 end
 
 (**/**)

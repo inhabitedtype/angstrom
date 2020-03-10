@@ -62,27 +62,19 @@
 type t
 
 val create : Bigstringaf.t -> off:int -> len:int -> committed_bytes:int -> t
-
 val length : t -> int
-
-val client_committed_bytes   : t -> int
-val parser_committed_bytes   : t -> int
+val client_committed_bytes : t -> int
+val parser_committed_bytes : t -> int
 val parser_uncommitted_bytes : t -> int
-
 val bytes_for_client_to_commit : t -> int
-
-val unsafe_get_char     : t -> int -> char
+val unsafe_get_char : t -> int -> char
 val unsafe_get_int16_le : t -> int -> int
 val unsafe_get_int32_le : t -> int -> int32
 val unsafe_get_int64_le : t -> int -> int64
 val unsafe_get_int16_be : t -> int -> int
 val unsafe_get_int32_be : t -> int -> int32
 val unsafe_get_int64_be : t -> int -> int64
-
 val count_while : t -> int -> f:(char -> bool) -> int
-
 val apply : t -> int -> int -> f:(Bigstringaf.t -> off:int -> len:int -> 'a) -> 'a
-
 val commit : t -> int -> unit
-
 val invariant : t -> unit

@@ -1,3 +1,3 @@
-type t = 
+type t =
   | Complete
   | Incomplete

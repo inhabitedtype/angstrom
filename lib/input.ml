@@ -33,10 +33,10 @@
 
 type t =
   { mutable parser_committed_bytes : int
-  ; client_committed_bytes         : int
-  ; off                            : int
-  ; len                            : int
-  ; buffer                         : Bigstringaf.t
+  ; client_committed_bytes : int
+  ; off : int
+  ; len : int
+  ; buffer : Bigstringaf.t
   }
 
 let create buffer ~off ~len ~committed_bytes =
@@ -44,68 +44,74 @@ let create buffer ~off ~len ~committed_bytes =
   ; client_committed_bytes = committed_bytes
   ; off
   ; len
-  ; buffer }
+  ; buffer
+  }
+;;
 
-let length                 t = t.client_committed_bytes + t.len
+let length t = t.client_committed_bytes + t.len
 let client_committed_bytes t = t.client_committed_bytes
 let parser_committed_bytes t = t.parser_committed_bytes
-
 let committed_bytes_discrepancy t = t.parser_committed_bytes - t.client_committed_bytes
-let bytes_for_client_to_commit  t = committed_bytes_discrepancy t
-
+let bytes_for_client_to_commit t = committed_bytes_discrepancy t
 let parser_uncommitted_bytes t = t.len - bytes_for_client_to_commit t
 
 let invariant t =
   assert (parser_committed_bytes t + parser_uncommitted_bytes t = length t);
-  assert (parser_committed_bytes t - client_committed_bytes   t = bytes_for_client_to_commit t);
+  assert (
+    parser_committed_bytes t - client_committed_bytes t = bytes_for_client_to_commit t)
 ;;
 
-let offset_in_buffer t pos =
-  t.off + pos - t.client_committed_bytes
+let offset_in_buffer t pos = t.off + pos - t.client_committed_bytes
 
 let apply t pos len ~f =
   let off = offset_in_buffer t pos in
   f t.buffer ~off ~len
+;;
 
 let unsafe_get_char t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get t.buffer off
+;;
 
 let unsafe_get_int16_le t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int16_le t.buffer off
+;;
 
 let unsafe_get_int32_le t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int32_le t.buffer off
+;;
 
 let unsafe_get_int64_le t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int64_le t.buffer off
+;;
 
 let unsafe_get_int16_be t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int16_be t.buffer off
+;;
 
 let unsafe_get_int32_be t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int32_be t.buffer off
+;;
 
 let unsafe_get_int64_be t pos =
   let off = offset_in_buffer t pos in
   Bigstringaf.unsafe_get_int64_be t.buffer off
+;;
 
 let count_while t pos ~f =
   let buffer = t.buffer in
-  let off    = offset_in_buffer t pos in
-  let i      = ref off in
-  let limit  = t.off + t.len in
+  let off = offset_in_buffer t pos in
+  let i = ref off in
+  let limit = t.off + t.len in
   while !i < limit && f (Bigstringaf.unsafe_get buffer !i) do
     incr i
   done;
   !i - off
 ;;
 
-let commit t pos =
-  t.parser_committed_bytes <- pos
-;;
+let commit t pos = t.parser_committed_bytes <- pos

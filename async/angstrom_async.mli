@@ -34,15 +34,14 @@
 open Angstrom
 open Async
 
-
-val parse :
-     ?pushback:(unit -> unit Deferred.t)
+val parse
+  :  ?pushback:(unit -> unit Deferred.t)
   -> 'a t
   -> Reader.t
   -> ('a, string) result Deferred.t
 
-val parse_many :
-     'a t
+val parse_many
+  :  'a t
   -> ('a -> unit Deferred.t)
   -> Reader.t
   -> (unit, string) result Deferred.t
