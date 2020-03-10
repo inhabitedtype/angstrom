@@ -22,3 +22,7 @@ doc:
 
 clean:
 	rm -rf _build *.install
+
+fmt:
+	dune build @fmt --auto-promote 2> /dev/null || true
+	git diff --exit-code
