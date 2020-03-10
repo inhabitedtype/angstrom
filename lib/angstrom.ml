@@ -149,7 +149,7 @@ let rec prompt input pos fail succ =
    * [prompt] should call [fail]. Otherwise (in the case where the input
    * hasn't grown but [more = Incomplete] just prompt again. *)
   let parser_uncommitted_bytes = Input.parser_uncommitted_bytes input in
-  let parser_committed_bytes   = Input.parser_committed_bytes   input in 
+  let parser_committed_bytes   = Input.parser_committed_bytes   input in
   (* The continuation should not hold any references to input above. *)
   let continue input ~off ~len more =
     if len < parser_uncommitted_bytes then
@@ -424,12 +424,18 @@ let skip_while f =
   count_while ~init:0 ~f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())
 
 let take n =
-  let n = max n 0 in
-  ensure n (unsafe_apply n ~f:Bigstringaf.substring)
+  if n < 0
+  then fail "take: n < 0"
+  else
+    let n = max n 0 in
+    ensure n (unsafe_apply n ~f:Bigstringaf.substring)
 
 let take_bigstring n =
-  let n = max n 0 in
-  ensure n (unsafe_apply n ~f:Bigstringaf.copy)
+  if n < 0
+  then fail "take_bigstring: n < 0"
+  else
+    let n = max n 0 in
+    ensure n (unsafe_apply n ~f:Bigstringaf.copy)
 
 let take_bigstring_while f =
   count_while ~init:0 ~f ~with_buffer:Bigstringaf.copy
