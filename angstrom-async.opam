@@ -13,7 +13,7 @@ build: [
 ]
 depends: [
   "ocaml" {>= "4.04.1"}
-  "dune" {build & >= "1.0"}
+  "dune" {>= "1.0"}
   "angstrom" {>= "0.7.0"}
   "async" {>= "v0.10.0"}
 ]
