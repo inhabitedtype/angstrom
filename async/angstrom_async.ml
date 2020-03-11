@@ -53,7 +53,7 @@ let rec finalize state result =
   | Partial p, `Eof                        ->
     finalize (p.continue empty_bigstring ~off:0 ~len:0 Complete) `Eof
   | Partial _, `Stopped () -> assert false
-  | state    , _           -> state_to_result state
+  | (Done _ | Fail _) , _  -> state_to_result state
 
 let response = function
   | Partial p  -> `Consumed(p.committed, `Need_unknown)
@@ -68,7 +68,7 @@ let parse ?(pushback=default_pushback) p reader =
     begin match !state with
     | Partial p ->
       state := p.continue buf ~off:pos ~len Incomplete;
-    | _         -> ()
+    | Done _ | Fail _ -> ()
     end;
     pushback () >>| fun () -> response !state
   in

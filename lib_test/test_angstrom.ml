@@ -358,9 +358,9 @@ let count_while_regression =
       (take_while1 (fun _ -> true) <* end_of_input) ["asdf"; ""] "asdf";
   end ]
 
-let choice_commit = 
+let choice_commit =
   [ "", `Quick, begin fun () ->
-    let p = 
+    let p =
       choice  [ string "@@" *> commit *> char '*'
               ; string "@"  *> commit *> char '!' ]
     in
@@ -370,7 +370,7 @@ let choice_commit =
       (parse_string p "@@^");
   end ]
 
-let input = 
+let input =
   let test p input ~off ~len expect =
     match Angstrom.Unbuffered.parse p with
     | Done _ | Fail _ -> assert false
@@ -403,7 +403,7 @@ let () =
     ; "applicative interface" , applicative
     ; "alternative"           , alternative
     ; "combinators"           , combinators
-    ; "incremental input"     , incremental 
+    ; "incremental input"     , incremental
     ; "count_while regression", count_while_regression
     ; "choice and commit"     , choice_commit
     ; "input"                 , input

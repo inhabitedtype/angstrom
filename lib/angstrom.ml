@@ -42,7 +42,9 @@ type bigstring = Bigstringaf.t
 module Unbuffered = struct
   include Parser
 
-  type more = More.t = 
+  include Exported_state
+
+  type more = More.t =
     | Complete
     | Incomplete
 end
@@ -117,7 +119,8 @@ module Buffered = struct
 
   let state_to_option = function
     | Done(_, v) -> Some v
-    | _          -> None
+    | Partial _  -> None
+    | Fail _     -> None
 
   let state_to_result = function
     | Partial _           -> Error "incomplete input"
@@ -127,7 +130,7 @@ module Buffered = struct
   let state_to_unconsumed = function
     | Done(unconsumed, _)
     | Fail(unconsumed, _, _) -> Some unconsumed
-    | _                      -> None
+    | Partial _              -> None
 
 end
 
@@ -162,7 +165,7 @@ let rec prompt input pos fail succ =
     else
       succ input pos more
   in
-  Partial { committed = Input.bytes_for_client_to_commit input; continue }
+  State.Partial { committed = Input.bytes_for_client_to_commit input; continue }
 
 let demand_input =
   { run = fun input pos more fail succ ->
@@ -381,7 +384,7 @@ let rec count_while1 ~f ~with_buffer =
     (* Check if the loop terminated because it reached the end of the input
      * buffer. If so, then prompt for additional input and continue. *)
     if len < 1
-    then 
+    then
       if pos < input_len || more = Complete
       then fail input pos more [] "count_while1"
       else
@@ -461,12 +464,33 @@ let take_till f =
 let choice ?(failure_msg="no more choices") ps =
   List.fold_right (<|>) ps (fail failure_msg)
 
-let fix f =
+let fix_direct f =
   let rec p = lazy (f r)
   and r = { run = fun buf pos more fail succ ->
-    Lazy.(force p).run buf pos more fail succ }
+    (Lazy.force p).run buf pos more fail succ }
   in
   r
+
+let fix_lazy f =
+  let max_steps = 20 in
+  let steps = ref max_steps in
+  let rec p = lazy (f r)
+  and r = { run = fun buf pos more fail succ ->
+    decr steps;
+    if !steps < 0
+    then (
+      steps := max_steps;
+      State.Lazy (lazy ((Lazy.force p).run buf pos more fail succ)))
+    else
+      (Lazy.force p).run buf pos more fail succ
+          }
+  in
+  r
+
+let fix = match Sys.backend_type with
+  | Native -> fix_direct
+  | Bytecode -> fix_direct
+  | Other _ -> fix_lazy
 
 let option x p =
   p <|> return x
