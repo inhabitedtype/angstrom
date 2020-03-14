@@ -300,6 +300,25 @@ let combinators =
         >>| String.concat "" in
       check_s ~msg:"state reset between runs" p ["bcd."] "bcd";
     end
+  ; "consumed", `Quick, begin fun () ->
+      check_s ~msg:"from beginning" (consumed any_char)
+        ["abc"] "a";
+      check_s ~msg:"from middle" (any_char *> consumed any_char)
+        ["abc"] "b";
+      check_c ~msg:"advances input" (any_char *> consumed any_char *> any_char)
+        ["abc"] 'c';
+      check_s ~msg:"with backtracking" (consumed (char 'a' *> (char 'c' <|> char 'b')))
+        ["abc"] "ab";
+      check_s ~msg:"with more input" (consumed (string "abc"))
+        ["a"; "bc"] "abc";
+      let integer =
+        option '+' (char '-') *> take_while (function '0'..'9' -> true | _ -> false)
+      in
+      check_int ~msg:"parsing an integer" (consumed integer >>| int_of_string)
+        ["-12345"] (-12345);
+      check_bs ~msg:"bigstring variant" (consumed_bigstring (string "ab"))
+        ["abc"] (bigstring_of_string "ab");
+    end
   ]
 
 let incremental =

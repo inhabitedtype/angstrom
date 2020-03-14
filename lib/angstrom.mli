@@ -126,6 +126,10 @@ val take_till : (char -> bool) -> string t
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty string. *)
 
+val consumed : _ t -> string t
+(** [consumed p] runs [p] and returns the contents that were consumed during the
+    parsing as a string *)
+
 val take_bigstring : int -> bigstring t
 (** [take_bigstring n] accepts exactly [n] characters of input and returns them
     as a newly allocated bigstring. *)
@@ -150,6 +154,10 @@ val take_bigstring_till : (char -> bool) -> bigstring t
 
     This parser does not fail. If [f] returns [true] on the first character, it
     will return the empty bigstring. *)
+
+val consumed_bigstring : _ t -> bigstring t
+(** [consumed p] runs [p] and returns the contents that were consumed during the
+    parsing as a bigstring *)
 
 val advance : int -> unit t
 (** [advance n] advances the input [n] characters, failing if the remaining
