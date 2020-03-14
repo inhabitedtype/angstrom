@@ -11,7 +11,7 @@ build: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
-  "ocaml" {>= "4.03.0"}
+  "ocaml" {>= "4.04.0"}
   "dune" {>= "1.0"}
   "alcotest" {with-test & >= "0.8.1"}
   "bigstringaf"
