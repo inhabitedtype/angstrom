@@ -286,13 +286,13 @@ let satisfy f =
       let c = Input.unsafe_get_char input pos in
       if f c
       then succ input (pos + 1) more c
-      else fail input pos more [] "satisfy"
+      else Printf.ksprintf (fail input pos more []) "satisfy: %C" c
     else
       let succ' input' pos' more' () =
         let c = Input.unsafe_get_char input' pos' in
         if f c
         then succ input' (pos' + 1) more' c
-        else fail input' pos' more' [] "satisfy"
+        else Printf.ksprintf (fail input' pos' more' []) "satisfy: %C" c
       in
       ensure_suspended 1 input pos more fail succ' }
 

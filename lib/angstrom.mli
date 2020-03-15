@@ -82,8 +82,10 @@ val any_char : char t
 (** [any_char] accepts any character and returns it. *)
 
 val satisfy : (char -> bool) -> char t
-(** [satisfy f] accepts any character for which [f] returns [true] and returns
-    the accepted character. *)
+(** [satisfy f] accepts any character for which [f] returns [true] and
+    returns the accepted character. In the case that none of the parser
+    succeeds, then the parser will fail indicating the offending
+    character. *)
 
 val string : string -> string t
 (** [string s] accepts [s] exactly and returns it. *)
