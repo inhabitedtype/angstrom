@@ -620,9 +620,10 @@ module Unbuffered : sig
       This function has no effect on the current state of the parser. *)
 end
 
-(**/**)
+(** {2 Expert Parsers}
 
-(* These values are not part of the public API. *)
+    For people that know what they're doing. If you want to use them, read the
+    code. No further documentation will be provided. *)
 
 val pos : int t
 val available : int t
