@@ -134,16 +134,6 @@ module Buffered = struct
 
 end
 
-let parse_bigstring p bs =
-  Unbuffered.parse_bigstring p bs
-
-let parse_string p s =
-  let len = String.length s in
-  let bs  = Bigstringaf.create len in
-  Bigstringaf.unsafe_blit_from_string s ~src_off:0 bs ~dst_off:0 ~len;
-  parse_bigstring p bs
-
-
 (** BEGIN: getting input *)
 
 let rec prompt input pos fail succ =
@@ -701,3 +691,23 @@ module Unsafe = struct
   let take_till check f =
     take_while (fun c -> not (check c)) f
 end
+
+module Consume = struct
+  type t =
+    | Prefix
+    | All
+end
+
+let parse_bigstring ~consume p bs =
+  let p =
+    match (consume : Consume.t) with
+    | Prefix -> p
+    | All -> p <* end_of_input
+  in
+  Unbuffered.parse_bigstring p bs
+
+let parse_string ~consume p s =
+  let len = String.length s in
+  let bs  = Bigstringaf.create len in
+  Bigstringaf.unsafe_blit_from_string s ~src_off:0 bs ~dst_off:0 ~len;
+  parse_bigstring ~consume p bs

@@ -62,7 +62,7 @@ let expr : int t =
     chainl1 term (add <|> sub))
 
 let eval (str:string) : int =
-  match parse_string expr str with
+  match parse_string ~consume:All expr str with
   | Ok v      -> v
   | Error msg -> failwith msg
 ```
