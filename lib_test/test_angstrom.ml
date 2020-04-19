@@ -386,7 +386,7 @@ let choice_commit =
     Alcotest.(check (result reject string))
       "commit to branch"
       (Error ": char '*'")
-      (parse_string p "@@^");
+      (parse_string ~consume:All p "@@^");
   end ]
 
 let input =
@@ -411,7 +411,24 @@ let input =
   end ]
 ;;
 
-
+let consume =
+  [ "consume with choice matching prefix", `Quick, begin fun () ->
+    let open Angstrom in
+    let parse ~consume =
+      parse_string ~consume (many (char 'a')) "aaabbb"
+    in
+    Alcotest.(check (result (list char) string))
+      "consume prefix passes"
+      (parse ~consume:Prefix)
+      (Ok [ 'a'; 'a'; 'a' ])
+      ;
+    Alcotest.(check (result (list char) string))
+      "consume all fails"
+      (parse ~consume:All)
+      (Error ": end_of_input");
+  end
+  ]
+;;
 
 let () =
   Alcotest.run "test suite"
@@ -426,4 +443,5 @@ let () =
     ; "count_while regression", count_while_regression
     ; "choice and commit"     , choice_commit
     ; "input"                 , input
+    ; "consume"               , consume
   ]

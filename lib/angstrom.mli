@@ -493,17 +493,33 @@ end
 
 (** {2 Running} *)
 
-val parse_bigstring : 'a t -> bigstring -> ('a, string) result
-(** [parse_bigstring t bs] runs [t] on [bs]. The parser will receive an [`Eof]
-    after all of [bs] has been consumed. For use-cases requiring that the
-    parser be fed input incrementally, see the {!module:Buffered} and
-    {!module:Unbuffered} modules below. *)
+module Consume : sig
+  type t =
+    | Prefix
+    | All
+end
 
-val parse_string : 'a t -> string -> ('a, string) result
-(** [parse_string t bs] runs [t] on [bs]. The parser will receive an [`Eof]
-    after all of [bs] has been consumed. For use-cases requiring that the
-    parser be fed input incrementally, see the {!module:Buffered} and
-    {!module:Unbuffered} modules below. *)
+val parse_bigstring : consume:Consume.t -> 'a t -> bigstring -> ('a, string) result
+
+(** [parse_bigstring ~consume t bs] runs [t] on [bs]. The parser will receive
+    an [`Eof] after all of [bs] has been consumed. Passing {!Prefix} in the
+    [consume] argument allows the parse to successfully complete without
+    reaching eof.  To require the parser to reach eof, pass {!All} in the
+    [consume] argument. Passing [Prefix]
+
+    For use-cases requiring that the parser be fed input incrementally, see the
+    {!module:Buffered} and {!module:Unbuffered} modules below. *)
+
+
+val parse_string : consume:Consume.t -> 'a t -> string -> ('a, string) result
+(** [parse_string ~consume t bs] runs [t] on [bs]. The parser will receive an
+    [`Eof] after all of [bs] has been consumed. Passing {!Prefix} in the
+    [consume] argument allows the parse to successfully complete without
+    reaching eof.  To require the parser to reach eof, pass {!All} in the
+    [consume] argument.
+
+    For use-cases requiring that the parser be fed input incrementally, see the
+    {!module:Buffered} and {!module:Unbuffered} modules below. *)
 
 
 (** Buffered parsing interface.
