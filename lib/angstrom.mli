@@ -505,7 +505,7 @@ val parse_bigstring : consume:Consume.t -> 'a t -> bigstring -> ('a, string) res
     an [`Eof] after all of [bs] has been consumed. Passing {!Prefix} in the
     [consume] argument allows the parse to successfully complete without
     reaching eof.  To require the parser to reach eof, pass {!All} in the
-    [consume] argument. Passing [Prefix]
+    [consume] argument.
 
     For use-cases requiring that the parser be fed input incrementally, see the
     {!module:Buffered} and {!module:Unbuffered} modules below. *)
