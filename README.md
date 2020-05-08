@@ -8,7 +8,7 @@ give the user total control over the blocking behavior of their application,
 with the unbuffered interface enabling zero-copy IO. Parsers are backtracking
 by default and support unbounded lookahead.
 
-[![Build Status](https://travis-ci.org/inhabitedtype/angstrom.svg?branch=master)](https://travis-ci.org/inhabitedtype/angstrom)
+[![Build Status](https://travis-ci.com/inhabitedtype/angstrom.svg?branch=master)](https://travis-ci.com/inhabitedtype/angstrom)
 
 
 ## Installation
