@@ -311,6 +311,8 @@ let combinators =
         ["abc"] "ab";
       check_s ~msg:"with more input" (consumed (string "abc"))
         ["a"; "bc"] "abc";
+      check_s ~msg:"with commit" (consumed (char 'a' *> commit *> char 'b'))
+        ["a"; "b"] "ab";
       let integer =
         option '+' (char '-') *> take_while (function '0'..'9' -> true | _ -> false)
       in
