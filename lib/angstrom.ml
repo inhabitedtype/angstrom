@@ -556,10 +556,14 @@ let scan_string state f =
 let consume_with p f =
   { run = fun input pos more fail succ ->
     let start = pos in
+    let parser_committed_bytes = Input.parser_committed_bytes input  in
     let succ' input' pos' more' _ =
-      let len = pos' - start in
-      let consumed = Input.apply input' start len ~f in
-      succ input' pos' more' consumed
+      if parser_committed_bytes <> Input.parser_committed_bytes input'
+      then fail input' pos' more' [] "consumed: parser committed"
+      else (
+        let len = pos' - start in
+        let consumed = Input.apply input' start len ~f in
+        succ input' pos' more' consumed)
     in
     p.run input pos more fail succ'
   }
