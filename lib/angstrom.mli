@@ -444,6 +444,16 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
 
     If the input buffer callback functions do not do any of these things, then
     the client may consider their use safe. *)
+
+(** let binding syntax introduced from 4.08.0 *)
+module Syntax : sig
+  val (let*) : 'a t -> ('a -> 'b t) -> 'b t
+  (** syntax for mondaic bind *)
+
+  val (let+) : 'a t -> ('a -> 'b) -> 'b t
+  (** syntax for applicative bind *)
+end
+
 module Unsafe : sig
 
   val take : int -> (bigstring -> off:int -> len:int -> 'a) -> 'a t

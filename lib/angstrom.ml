@@ -678,6 +678,12 @@ module LE = struct
     ensure 8 (unsafe_apply 8 ~f:(fun bs ~off ~len:_ -> Int64.float_of_bits (Bigstringaf.unsafe_get_int64_le bs off)))
 end
 
+module Syntax = struct
+  let (let*) = (>>=)
+
+  let (let+) = (>>|)
+end
+
 module Unsafe = struct
   let take n f =
     let n = max n 0 in

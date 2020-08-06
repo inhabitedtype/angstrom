@@ -72,6 +72,22 @@ implementation of this example, see the documentation in the [`mli`][mli].
 
 [mli]: https://github.com/inhabitedtype/angstrom/blob/master/lib/angstrom.mli
 
+Support also exists for custom `let-binding` operators introduced
+from OCaml 4.08.0 onwards.
+
+```
+open Angstrom
+
+(* read a fixed length of bytes with a length prefix *)
+let bytes =
+  let* n = BE.any_int32 in
+  let* b = take_bigstring (Int32.to_int n) in
+  return b
+
+let integer =
+  let+ num = take_while (function '0'..'9' -> true | _ -> false) in
+  string_of_int num
+```
 
 ## Comparison to Other Libraries
 
