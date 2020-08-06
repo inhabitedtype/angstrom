@@ -81,8 +81,8 @@ open Angstrom
 (* read a fixed length of bytes with a length prefix *)
 let bytes =
   let* n = BE.any_int32 in
-  let* b = take_bigstring (Int32.to_int n) in
-  return b
+  let+ b = take_bigstring (Int32.to_int n) in
+  b
 
 let integer =
   let+ num = take_while (function '0'..'9' -> true | _ -> false) in
