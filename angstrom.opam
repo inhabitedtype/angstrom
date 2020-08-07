@@ -17,6 +17,7 @@ depends: [
   "bigstringaf"
   "result"
   "ppx_let" {with-test & >= "0.14.0"}
+  "ocaml-syntax-shims" {with-test}
 ]
 synopsis: "Parser combinators built for speed and memory-efficiency"
 description: """
