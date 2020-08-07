@@ -11,6 +11,7 @@ build: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
+  "cppo" {>= "1.0.0"}
   "ocaml" {>= "4.04.0"}
   "dune" {>= "1.0"}
   "alcotest" {with-test & >= "0.8.1"}
