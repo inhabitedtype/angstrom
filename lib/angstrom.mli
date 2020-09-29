@@ -271,6 +271,10 @@ val option : 'a -> 'a t -> 'a t
 (** [option v p] runs [p], returning the result of [p] if it succeeds and [v]
     if it fails. *)
 
+
+val both : 'a t -> 'b t -> ('a * 'b) t
+(** [both p q] runs [p] followed by [q] and returns both results in a tuple *)
+
 val list : 'a t list -> 'a list t
 (** [list ps] runs each [p] in [ps] in sequence, returning a list of results of
     each [p]. *)
@@ -387,6 +391,9 @@ val (>>=) : 'a t -> ('a -> 'b t) -> 'b t
 (** [p >>= f] creates a parser that will run [p], pass its result to [f], run
     the parser that [f] produces, and return its result. *)
 
+val bind : 'a t -> f:('a -> 'b t) -> 'b t
+(** [bind] is a prefix version of [>>=] *)
+
 val (>>|) : 'a t -> ('a -> 'b) -> 'b t
 (** [p >>| f] creates a parser that will run [p], and if it succeeds with
     result [v], will return [f v] *)
@@ -426,6 +433,34 @@ val lift4 : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a t -> 'b t -> 'c t -> 'd t -> 'e t
     Even with the partial application, it will be more efficient than the
     applicative implementation. *)
 
+val map : 'a t -> f:('a -> 'b) -> 'b t
+val map2 : 'a t -> 'b t -> f:('a -> 'b -> 'c) -> 'c t
+val map3 : 'a t -> 'b t -> 'c t -> f:('a -> 'b -> 'c -> 'd) -> 'd t
+val map4 : 'a t -> 'b t -> 'c t -> 'd t -> f:('a -> 'b -> 'c -> 'd -> 'e) -> 'e t
+(** The [mapn] family of functions are just like [liftn], with a slightly
+    different interface. *)
+
+(** The [Let_syntax] module is intended to be used with the [ppx_let]
+    pre-processor, and just contains copies of functions described elsewhere. *)
+module Let_syntax : sig
+  val return : 'a -> 'a t
+  val ( >>| ) : 'a t -> ('a -> 'b) -> 'b t
+  val ( >>= ) : 'a t -> ('a -> 'b t) -> 'b t
+
+  module Let_syntax : sig
+    val return : 'a -> 'a t
+    val map : 'a t -> f:('a -> 'b) -> 'b t
+    val bind : 'a t -> f:('a -> 'b t) -> 'b t
+    val both : 'a t -> 'b t -> ('a * 'b) t
+    val map2 : 'a t -> 'b t -> f:('a -> 'b -> 'c) -> 'c t
+    val map3 : 'a t -> 'b t -> 'c t -> f:('a -> 'b -> 'c -> 'd) -> 'd t
+    val map4 : 'a t -> 'b t -> 'c t -> 'd t -> f:('a -> 'b -> 'c -> 'd -> 'e) -> 'e t
+  end
+end
+
+val ( let+ ) : 'a t -> ('a -> 'b) -> 'b t
+val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
+val ( and+ ) : 'a t -> 'b t -> ('a * 'b) t
 
 (** Unsafe Operations on Angstrom's Internal Buffer
 

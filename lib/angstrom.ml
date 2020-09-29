@@ -571,6 +571,33 @@ let consume_with p f =
 let consumed           p = consume_with p Bigstringaf.substring
 let consumed_bigstring p = consume_with p Bigstringaf.copy
 
+let both a b = lift2 (fun a b -> a, b) a b
+let map t ~f = t >>| f
+let bind t ~f = t >>= f
+let map2 a b ~f = lift2 f a b
+let map3 a b c ~f = lift3 f a b c
+let map4 a b c d ~f = lift4 f a b c d
+
+module Let_syntax = struct
+  let return = return
+  let ( >>| ) = ( >>| )
+  let ( >>= ) = ( >>= )
+
+  module Let_syntax = struct
+    let return = return
+    let map = map
+    let bind = bind
+    let both = both
+    let map2 = map2
+    let map3 = map3
+    let map4 = map4
+  end
+end
+
+let ( let+ ) = ( >>| )
+let ( let* ) = ( >>= )
+let ( and+ ) = both
+
 module BE = struct
   (* XXX(seliopou): The pattern in both this module and [LE] are a compromise
    * between efficiency and code reuse. By inlining [ensure] you can recover

@@ -10,6 +10,7 @@ env:
   - PINS="angstrom-async:. angstrom-lwt-unix:. angstrom:."
   - PACKAGE="angstrom"
   - TESTS=true
+  - EXTRA_DEPS="ppx_let"
   - POST_INSTALL_HOOK="opam install --with-test angstrom-async angstrom-lwt-unix && opam exec -- make examples"
   matrix:
   - OCAML_VERSION="4.08"
