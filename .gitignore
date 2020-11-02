@@ -2,5 +2,3 @@ _build/
 _opam/
 .vscode/
 .merlin
-*.install
-*.log
