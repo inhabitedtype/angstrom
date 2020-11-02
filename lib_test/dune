@@ -6,7 +6,8 @@
  (preprocess
   (per_module
    (future_syntax test_let_syntax_native)
-   ((pps ppx_let) test_let_syntax_ppx))))
+   ((pps ppx_let)
+    test_let_syntax_ppx))))
 
 (executables
  (libraries alcotest angstrom angstrom_test)
@@ -18,9 +19,9 @@
  (modules test_json)
  (names test_json))
 
-(alias
- (name runtest)
- (package angstrom)
+(rule
+ (alias runtest)
+ (mode promote)
  (deps
   (:< test_angstrom.exe))
  (action

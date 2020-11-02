@@ -21,7 +21,7 @@ let zero =
 
 let make_bench name parser contents =
   Bench.Test.create ~name (fun () ->
-    match Angstrom.(parse_bigstring parser contents) with
+    match Angstrom.(parse_bigstring ~consume:All parser contents) with
     | Ok _ -> ()
     | Error err -> failwith err)
 ;;
@@ -58,10 +58,10 @@ let main () =
     ]
   in
   let http =
-    Bench.make_command [ make_http "http" http_get ] 
+    Bench.make_command [ make_http "http" http_get ]
   in
   let numbers =
-    Bench.make_command [ 
+    Bench.make_command [
       Bench.Test.create ~name:"float" (fun () ->
         float_of_string "1.7242915150166418e+36");
       Bench.Test.create ~name:"int" (fun () ->
@@ -111,7 +111,7 @@ let main () =
     ]
   in
   Command.run
-    (Command.group ~summary:"various angstrom benchmarks" 
+    (Command.group ~summary:"various angstrom benchmarks"
       [ "json"         , json
       ; "endian"       , endian
       ; "http"         , http
