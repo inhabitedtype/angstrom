@@ -15,7 +15,6 @@ depends: [
   "dune" {>= "1.8"}
   "alcotest" {with-test & >= "0.8.1"}
   "bigstringaf"
-  "result"
   "ppx_let" {with-test & >= "0.14.0"}
   "ocaml-syntax-shims" {build}
 ]
