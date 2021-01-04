@@ -1,5 +1,6 @@
 language: c
 sudo: false
+dist: focal
 services:
   - docker
 install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-docker.sh
