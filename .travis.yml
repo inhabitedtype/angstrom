@@ -13,6 +13,6 @@ env:
   - TESTS=true
   - POST_INSTALL_HOOK="opam install --with-test angstrom-async angstrom-lwt-unix && opam exec -- make examples"
   matrix:
+  - OCAML_VERSION="4.11"
   - OCAML_VERSION="4.08"
   - OCAML_VERSION="4.07"
-  - OCAML_VERSION="4.06"
