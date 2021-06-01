@@ -48,8 +48,7 @@ type +'a t
 (** A parser for values of type ['a]. *)
 
 
-type bigstring =
-  (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+type bigstring = Bigstringaf.t
 
 (** {2 Basic parsers} *)
 
