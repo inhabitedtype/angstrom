@@ -8,8 +8,7 @@ give the user total control over the blocking behavior of their application,
 with the unbuffered interface enabling zero-copy IO. Parsers are backtracking
 by default and support unbounded lookahead.
 
-[![Build Status](https://travis-ci.com/inhabitedtype/angstrom.svg?branch=master)](https://travis-ci.com/inhabitedtype/angstrom)
-[![Build Status](https://github.com/inhabitedtype/angstrom/workflows/build/badge.svg)](https://github.com/inhabitedtype/angstrom/actions?query=workflow%3A%22build%22)]
+[![Build Status](https://github.com/inhabitedtype/angstrom/workflows/build/badge.svg)](https://github.com/inhabitedtype/angstrom/actions?query=workflow%3A%22build%22)
 
 
 ## Installation

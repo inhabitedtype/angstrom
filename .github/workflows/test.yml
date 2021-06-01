@@ -61,6 +61,8 @@ jobs:
       - name: Deps
         run: |
           opam pin add -n angstrom .
+          opam pin add -n angstrom-async .
+          opam pin add -n angstrom-lwt-unix .
           opam install -t --deps-only .
 
       - name: Build
@@ -68,3 +70,8 @@ jobs:
 
       - name: Test
         run: opam exec -- dune runtest
+
+      - name: Examples
+        run: |
+          opam install -t angstrom-async angstrom-lwt-unix
+          opam exec -- make examples
