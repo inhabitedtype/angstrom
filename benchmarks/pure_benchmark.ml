@@ -21,7 +21,7 @@ let zero =
 
 let make_bench name parser contents =
   Bench.Test.create ~name (fun () ->
-    match Angstrom.(parse_bigstring parser contents) with
+    match Angstrom.(parse_bigstring ~consume:Consume.Prefix parser contents) with
     | Ok _ -> ()
     | Error err -> failwith err)
 ;;
