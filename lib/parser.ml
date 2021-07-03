@@ -55,13 +55,13 @@ module Monad = struct
 
   let (>>=) p f =
     { run = fun input pos more fail succ ->
-      let succ' input' pos' more' v = (f v).run input' pos' more' fail succ in
+      let succ' input' pos' more' v = State.Lazy (lazy ((f v).run input' pos' more' fail succ)) in
       p.run input pos more fail succ'
     }
 
   let (>>|) p f =
     { run = fun input pos more fail succ ->
-      let succ' input' pos' more' v = succ input' pos' more' (f v) in
+      let succ' input' pos' more' v = State.Lazy (lazy (succ input' pos' more' (f v))) in
       p.run input pos more fail succ'
     }
 
@@ -72,7 +72,8 @@ module Monad = struct
     (* f >>= fun f -> m >>| f *)
     { run = fun input pos more fail succ ->
       let succ0 input0 pos0 more0 f =
-        let succ1 input1 pos1 more1 m = succ input1 pos1 more1 (f m) in
+        let succ1 input1 pos1 more1 m =
+          State.Lazy (lazy (succ input1 pos1 more1 (f m))) in
         m.run input0 pos0 more0 fail succ1
       in
       f.run input pos more fail succ0 }
@@ -83,7 +84,8 @@ module Monad = struct
   let lift2 f m1 m2 =
     { run = fun input pos more fail succ ->
       let succ1 input1 pos1 more1 m1 =
-        let succ2 input2 pos2 more2 m2 = succ input2 pos2 more2 (f m1 m2) in
+        let succ2 input2 pos2 more2 m2 =
+          State.Lazy (lazy (succ input2 pos2 more2 (f m1 m2))) in
         m2.run input1 pos1 more1 fail succ2
       in
       m1.run input pos more fail succ1 }
@@ -93,7 +95,7 @@ module Monad = struct
       let succ1 input1 pos1 more1 m1 =
         let succ2 input2 pos2 more2 m2 =
           let succ3 input3 pos3 more3 m3 =
-            succ input3 pos3 more3 (f m1 m2 m3) in
+            State.Lazy (lazy (succ input3 pos3 more3 (f m1 m2 m3))) in
           m3.run input2 pos2 more2 fail succ3 in
         m2.run input1 pos1 more1 fail succ2
       in
@@ -105,7 +107,7 @@ module Monad = struct
         let succ2 input2 pos2 more2 m2 =
           let succ3 input3 pos3 more3 m3 =
             let succ4 input4 pos4 more4 m4 =
-              succ input4 pos4 more4 (f m1 m2 m3 m4) in
+              State.Lazy (lazy (succ input4 pos4 more4 (f m1 m2 m3 m4))) in
             m4.run input3 pos3 more3 fail succ4 in
           m3.run input2 pos2 more2 fail succ3 in
         m2.run input1 pos1 more1 fail succ2
@@ -115,7 +117,7 @@ module Monad = struct
   let ( *>) a b =
     (* a >>= fun _ -> b *)
     { run = fun input pos more fail succ ->
-      let succ' input' pos' more' _ = b.run input' pos' more' fail succ in
+      let succ' input' pos' more' _ = State.Lazy (lazy (b.run input' pos' more' fail succ)) in
       a.run input pos more fail succ'
     }
 
@@ -123,7 +125,7 @@ module Monad = struct
     (* a >>= fun x -> b >>| fun _ -> x *)
     { run = fun input pos more fail succ ->
       let succ0 input0 pos0 more0 x =
-        let succ1 input1 pos1 more1 _ = succ input1 pos1 more1 x in
+        let succ1 input1 pos1 more1 _ = State.Lazy (lazy (succ input1 pos1 more1 x)) in
         b.run input0 pos0 more0 fail succ1
       in
       a.run input pos more fail succ0 }
@@ -133,7 +135,7 @@ module Choice = struct
   let (<?>) p mark =
     { run = fun input pos more fail succ ->
       let fail' input' pos' more' marks msg =
-        fail input' pos' more' (mark::marks) msg in
+        State.Lazy (lazy (fail input' pos' more' (mark::marks) msg)) in
       p.run input pos more fail' succ
     }
 
@@ -146,7 +148,7 @@ module Choice = struct
          * have the effect of unwinding all choices and collecting marks along
          * the way. *)
         if pos < Input.parser_committed_bytes input' then
-          fail input' pos' more marks msg
+          State.Lazy (lazy (fail input' pos' more marks msg))
         else
           q.run input' pos more' fail succ in
       p.run input pos more fail' succ
