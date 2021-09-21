@@ -348,6 +348,16 @@ val fix : ('a t -> 'a t) -> 'a t
     let obj = char '{' *> ... json ... <* char '}' in
     choice [str; num; arr json, ...])]} *)
 
+(** [fix_lazy] is like [fix], but after the function is
+    [max_steps] deep, it wraps up the remaining computation and yields
+    back to the root of the parsing loop where it continues from there.
+
+    This is an effective way to break up the stack trace into more managable
+    chunks, which is important for Js_of_ocaml due to the lack of tailrec
+    optimizations for CPS-style tail calls.  [max_steps] defaults to
+    [20], and when compiling for Js_of_ocaml, [fix] itself is defined as
+    [fix_lazy] set to [20]. *)
+val fix_lazy : ?max_steps:int-> ('a t -> 'a t) -> 'a t
 
 (** {2 Alternatives} *)
 

@@ -461,8 +461,7 @@ let fix_direct f =
   in
   r
 
-let fix_lazy f =
-  let max_steps = 20 in
+let fix_lazy ?(max_steps=20) f =
   let steps = ref max_steps in
   let rec p = lazy (f r)
   and r = { run = fun buf pos more fail succ ->
@@ -480,7 +479,7 @@ let fix_lazy f =
 let fix = match Sys.backend_type with
   | Native -> fix_direct
   | Bytecode -> fix_direct
-  | Other _ -> fix_lazy
+  | Other _ -> fun f -> fix_lazy f
 
 let option x p =
   p <|> return x
@@ -493,9 +492,9 @@ let rec list ps =
   | p::ps -> lift2 cons p (list ps)
 
 let count n p =
-  if n < 0 
+  if n < 0
   then fail "count: n < 0"
-  else 
+  else
     let rec loop = function
       | 0 -> return []
       | n -> lift2 cons p (loop (n - 1))
