@@ -14,6 +14,6 @@ let read f =
 
 let () =
   let twitter_big = read Sys.argv.(1) in
-  match Angstrom.(parse_bigstring RFC7159.json twitter_big) with
+  match Angstrom.(parse_bigstring ~consume:Consume.Prefix RFC7159.json twitter_big) with
   | Ok _ -> ()
   | Error err -> failwith err
