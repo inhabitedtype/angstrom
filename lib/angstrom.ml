@@ -461,7 +461,7 @@ let fix_direct f =
   in
   r
 
-let fix_lazy max_steps f =
+let fix_lazy ~max_steps f =
   let steps = ref max_steps in
   let rec p = lazy (f r)
   and r = { run = fun buf pos more fail succ ->
@@ -479,7 +479,7 @@ let fix_lazy max_steps f =
 let fix = match Sys.backend_type with
   | Native -> fix_direct
   | Bytecode -> fix_direct
-  | Other _ -> fun f -> fix_lazy 20 f
+  | Other _ -> fun f -> fix_lazy ~max_steps:20 f
 
 let option x p =
   p <|> return x
