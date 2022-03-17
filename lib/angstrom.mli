@@ -686,3 +686,4 @@ end
 
 val pos : int t
 val available : int t
+val backtrack : int -> unit t

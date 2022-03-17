@@ -741,3 +741,9 @@ let parse_string ~consume p s =
   let bs  = Bigstringaf.create len in
   Bigstringaf.unsafe_blit_from_string s ~src_off:0 bs ~dst_off:0 ~len;
   parse_bigstring ~consume p bs
+
+let backtrack n =
+  { run = fun input pos more fail succ ->
+    if pos - n < Input.(parser_committed_bytes input)
+    then fail input pos more [] "not enough uncommited bytes to backtrack"
+    else succ input (pos - n) more () }
