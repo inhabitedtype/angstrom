@@ -2,7 +2,7 @@ open Core
 open Core_bench
 
 let read file =
-  let open Unix in
+  let open Core_unix in
   let size = Int64.to_int_exn (stat file).st_size in
   let buf  = Bytes.create size in
   let rec loop pos len fd =
@@ -58,10 +58,10 @@ let main () =
     ]
   in
   let http =
-    Bench.make_command [ make_http "http" http_get ] 
+    Bench.make_command [ make_http "http" http_get ]
   in
   let numbers =
-    Bench.make_command [ 
+    Bench.make_command [
       Bench.Test.create ~name:"float" (fun () ->
         float_of_string "1.7242915150166418e+36");
       Bench.Test.create ~name:"int" (fun () ->
@@ -110,8 +110,8 @@ let main () =
       make_bench "LE.int32 *> char"   (Angstrom.(LE.int32 0x50545448l *> char '/')) contents;
     ]
   in
-  Command.run
-    (Command.group ~summary:"various angstrom benchmarks" 
+  Command_unix.run
+    (Command.group ~summary:"various angstrom benchmarks"
       [ "json"         , json
       ; "endian"       , endian
       ; "http"         , http

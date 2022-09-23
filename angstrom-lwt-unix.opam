@@ -25,5 +25,6 @@ depends: [
   "angstrom"
   "lwt"
   "base-unix"
+  "core_bench" {with-test}
 ]
 synopsis: "Lwt_unix support for Angstrom"

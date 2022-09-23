@@ -25,6 +25,8 @@ depends: [
   "alcotest" {with-test & >= "0.8.1"}
   "bigstringaf"
   "ppx_let" {with-test & >= "v0.14.0"}
+  "core_bench" {with-test}
+  "core_unix" {with-test & >= "v0.15.0"}
   "ocaml-syntax-shims" {build}
 ]
 synopsis: "Parser combinators built for speed and memory-efficiency"
