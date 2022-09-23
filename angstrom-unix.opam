@@ -7,12 +7,21 @@ bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "git+https://github.com/inhabitedtype/angstrom.git"
 build: [
   ["dune" "subst"] {dev}
-  ["dune" "build" "-p" name "-j" jobs]
-  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
 ]
 depends: [
   "ocaml" {>= "4.03.0"}
-  "dune" {>= "1.8"}
+  "dune" {>= "3.16"}
   "angstrom"
   "base-unix"
 ]
