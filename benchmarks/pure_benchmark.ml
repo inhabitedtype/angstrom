@@ -12,19 +12,16 @@ let read file =
   with_file ~mode:[O_RDONLY] file ~f:(fun fd ->
     loop 0 size fd);
   Bigstring.of_bytes buf
-;;
 
 let zero =
   let len = 65_536 in
   Bigstring.of_string (String.make len '\x00')
-;;
 
 let make_bench name parser contents =
   Bench.Test.create ~name (fun () ->
     match Angstrom.(parse_bigstring ~consume:Consume.Prefix parser contents) with
     | Ok _ -> ()
     | Error err -> failwith err)
-;;
 
 let make_endian name p        = make_bench name (Angstrom.skip_many p)   zero
 let make_json   name contents = make_bench name RFC7159.json             contents

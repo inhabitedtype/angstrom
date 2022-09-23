@@ -12,7 +12,6 @@ let main parser () =
   >>| function
     | Ok () -> ()
     | Error err -> failwith err
-;;
 
 let () =
   let parser = Command.Arg_type.of_alist_exn ["http", `Http; "json", `Json] in

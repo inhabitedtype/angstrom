@@ -411,7 +411,6 @@ let input =
     test take_all             "abcd"    ~off:1 ~len:2 "bc";
     test (take 4 *> take_all) "abcdefg" ~off:0 ~len:7 "efg";
   end ]
-;;
 
 let consume =
   [ "consume with choice matching prefix", `Quick, begin fun () ->
@@ -430,7 +429,6 @@ let consume =
       (Error ": end_of_input");
   end
   ]
-;;
 
 let () =
   Alcotest.run "test suite"
