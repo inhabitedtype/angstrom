@@ -163,7 +163,7 @@ module Monad_use_for_debugging = struct
   let (<$>) f m = m >>| f
   let (<*>) f m = f >>= fun f -> m >>| f
 
-  let lift  = (>>|)
+  let lift  = (<$>)
   let lift2 f m1 m2       = f <$> m1 <*> m2
   let lift3 f m1 m2 m3    = f <$> m1 <*> m2 <*> m3
   let lift4 f m1 m2 m3 m4 = f <$> m1 <*> m2 <*> m3 <*> m4
