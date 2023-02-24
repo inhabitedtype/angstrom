@@ -11,12 +11,11 @@ build: [
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
 depends: [
-  "ocaml" {>= "4.04.0"}
+  "ocaml" {>= "4.08.0"}
   "dune" {>= "1.8"}
   "alcotest" {with-test & >= "0.8.1"}
   "bigstringaf"
   "ppx_let" {with-test & >= "v0.14.0"}
-  "ocaml-syntax-shims" {build}
 ]
 synopsis: "Parser combinators built for speed and memory-efficiency"
 description: """

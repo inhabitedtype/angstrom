@@ -1,7 +1,6 @@
 (library
  (name angstrom_test)
  (libraries angstrom)
- (flags :standard -safe-string)
  (modules test_let_syntax_native test_let_syntax_ppx)
  (preprocess
   (per_module
