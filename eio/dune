@@ -1,0 +1,5 @@
+(library
+ (name angstrom_eio)
+ (public_name angstrom-eio)
+ (flags :standard -safe-string)
+ (libraries angstrom eio_main))
