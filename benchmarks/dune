@@ -12,3 +12,8 @@
  (libraries angstrom-lwt-unix RFC2616 RFC7159)
  (modules lwt_benchmark)
  (names lwt_benchmark))
+
+(executables
+ (libraries angstrom-eio RFC2616 RFC7159)
+ (modules eio_benchmark)
+ (names eio_benchmark))

@@ -82,7 +82,7 @@ to achieve backtracking, rather than providing it by default. They also all use
 something akin to a lazy character stream as the underlying input abstraction.
 While this suits Haskell quite nicely, it requires blocking read calls when the
 entire input is not immediately available&mdash;an approach that is inherently
-incompatible with monadic concurrency libraries such as [Async] and [Lwt], and
+incompatible with monadic concurrency libraries such as [Async], [Lwt] and [Eio], and
 writing high-performance, concurrent applications in general. Another
 consequence of this approach to modeling and retrieving input is that the
 parsers cannot iterate over sections of input in a tight loop, which adversely
@@ -94,6 +94,7 @@ other parser-combinator libraries.
 [parsec]: https://hackage.haskell.org/package/parsec
 [async]: https://github.com/janestreet/async
 [lwt]: https://ocsigen.org/lwt/
+[eio]: https://github.com/ocaml-multicore/eio
 
 
 Feature \ Library                   | Angstrom | [mparser] | [planck] | [opal] |
@@ -107,6 +108,7 @@ Unbuffered (zero-copy) interface    | ✅        | ❌         | ❌        | �
 Non-blocking incremental interface  | ✅        | ❌         | ❌        | ❌      |
 Async Support                       | ✅        | ❌         | ❌        | ❌      |
 Lwt Support                         | ✅        | ❌         | ❌        | ❌      |
+Eio Support                         | ✅        | ❌         | ❌        | ❌      |
 
 [mparser]: https://github.com/cakeplus/mparser
 [opal]: https://github.com/pyrocat101/opal

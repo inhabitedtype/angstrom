@@ -639,7 +639,7 @@ end
     The logic that must be implemented in order to make proper use of this
     module is intricate and tied to your OS environment. It's advisable to use
     the {!Buffered} module when initially developing and testing your parsers.
-    For production use-cases, consider the Async and Lwt support that this
+    For production use-cases, consider the Async, Lwt and Eio support that this
     library includes before attempting to use this module directly. *)
 module Unbuffered : sig
   type more =
