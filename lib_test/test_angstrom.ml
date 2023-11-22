@@ -33,7 +33,6 @@ let check_lc  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list char)     p
 let check_co  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(option char)   p is r
 let check_s   ?size ~msg p is r = check_ok ?size ~msg Alcotest.string          p is r
 let check_bs  ?size ~msg p is r = check_ok ?size ~msg Alcotest.bigstring       p is r
-let check_ls  ?size ~msg p is r = check_ok ?size ~msg Alcotest.(list string)   p is r
 let check_int ?size ~msg p is r = check_ok ?size ~msg Alcotest.int             p is r
 
 let bigstring_of_string s = Bigstringaf.of_string s ~off:0 ~len:(String.length s)
@@ -189,7 +188,6 @@ module Endian(Es : EndianBigstring) = struct
   }
 
   let uint16 = { int16 with name = "uint16"; min = 0; max = 65535 }
-  let uint32 = { int32 with name = "uint32" }
 
    let dump actual size value =
      let buf = Bigstringaf.of_string ~off:0 ~len:size (String.make size '\xff') in
@@ -411,7 +409,6 @@ let input =
     test take_all             "abcd"    ~off:1 ~len:2 "bc";
     test (take 4 *> take_all) "abcdefg" ~off:0 ~len:7 "efg";
   end ]
-;;
 
 let consume =
   [ "consume with choice matching prefix", `Quick, begin fun () ->
@@ -430,7 +427,6 @@ let consume =
       (Error ": end_of_input");
   end
   ]
-;;
 
 let () =
   Alcotest.run "test suite"

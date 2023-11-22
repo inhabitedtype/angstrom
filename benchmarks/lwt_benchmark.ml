@@ -13,6 +13,5 @@ let main () =
   >|= function
     | _, Ok ()     -> ()
     | _, Error err -> failwith err
-;;
 
-Lwt_main.run (main ())
+let () = Lwt_main.run (main ())

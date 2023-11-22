@@ -10,7 +10,6 @@ let read f =
     b
   with e ->
     failwith (Printf.sprintf "Cannot read content of %s.\n%s" f (Printexc.to_string e))
-;;
 
 let () =
   let twitter_big = read Sys.argv.(1) in

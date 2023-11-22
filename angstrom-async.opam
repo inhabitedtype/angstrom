@@ -6,14 +6,25 @@ homepage: "https://github.com/inhabitedtype/angstrom"
 bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "git+https://github.com/inhabitedtype/angstrom.git"
 build: [
-  ["dune" "subst"] {pinned}
-  ["dune" "build" "-p" name "-j" jobs]
-  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
 ]
 depends: [
   "ocaml" {>= "4.04.1"}
-  "dune" {>= "1.8"}
-  "angstrom" {>= "0.7.0"}
+  "dune" {>= "3.0"}
+  "angstrom" {= version}
   "async" {>= "v0.10.0"}
+  "core_bench" {with-test}
+  "core_unix" {with-test & >= "v0.15.0"}
 ]
 synopsis: "Async support for Angstrom"

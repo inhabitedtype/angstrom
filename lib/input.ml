@@ -57,8 +57,7 @@ let parser_uncommitted_bytes t = t.len - bytes_for_client_to_commit t
 
 let invariant t =
   assert (parser_committed_bytes t + parser_uncommitted_bytes t = length t);
-  assert (parser_committed_bytes t - client_committed_bytes   t = bytes_for_client_to_commit t);
-;;
+  assert (parser_committed_bytes t - client_committed_bytes   t = bytes_for_client_to_commit t)
 
 let offset_in_buffer t pos =
   t.off + pos - t.client_committed_bytes
@@ -104,8 +103,6 @@ let count_while t pos ~f =
     incr i
   done;
   !i - off
-;;
 
 let commit t pos =
   t.parser_committed_bytes <- pos
-;;

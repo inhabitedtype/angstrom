@@ -6,14 +6,23 @@ homepage: "https://github.com/inhabitedtype/angstrom"
 bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
 dev-repo: "git+https://github.com/inhabitedtype/angstrom.git"
 build: [
-  ["dune" "subst"] {pinned}
-  ["dune" "build" "-p" name "-j" jobs]
-  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
 ]
 depends: [
   "ocaml" {>= "4.03.0"}
-  "dune" {>= "1.8"}
-  "angstrom"
+  "dune" {>= "3.0"}
+  "angstrom" {= version}
   "base-unix"
 ]
 synopsis: "Unix support for Angstrom"
