@@ -454,11 +454,14 @@ let take_till f =
 let choice ?(failure_msg="no more choices") ps =
   List.fold_right (<|>) ps (fail failure_msg)
 
+let notset = { run = fun _buf _pos _more _fail _succ -> failwith "Angstrom.fix_direct not set" }
+
 let fix_direct f =
-  let rec p = lazy (f r)
+  let rec p = ref notset
   and r = { run = fun buf pos more fail succ ->
-    (Lazy.force p).run buf pos more fail succ }
+    (!p).run buf pos more fail succ }
   in
+  p := f r;
   r
 
 let fix_lazy ~max_steps f =
