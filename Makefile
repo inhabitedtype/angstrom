@@ -21,4 +21,4 @@ doc:
 	dune build @doc
 
 clean:
-	rm -rf _build *.install
+	dune clean
