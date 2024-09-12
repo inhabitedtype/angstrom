@@ -1,77 +1,39 @@
-name: build
+name: Builds, tests & co
 
 on:
   - push
   - pull_request
 
+permissions: read-all
+
 jobs:
-  builds:
-    name: Earliest Supported Version
+  build:
     strategy:
       fail-fast: false
       matrix:
         os:
           - ubuntu-latest
-        ocaml-version:
-          - 4.04.0
+          - macos-latest
+          - windows-latest
+        ocaml-compiler:
+          - 4
+          - 5
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout tree
+        uses: actions/checkout@v4
 
-      - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-version: ${{ matrix.ocaml-version }}
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
 
-      - name: Deps
-        run: |
-          opam pin add -n angstrom .
-          opam install --deps-only angstrom
+      - run: opam install . --deps-only --with-test
 
-      - name: Build
-        run: opam exec -- dune build -p angstrom
+      - run: opam exec -- dune build
 
-  tests:
-    name: Tests
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-        ocaml-version:
-          - 4.08.1
-          - 4.10.2
-          - 4.11.2
-          - 4.12.0
+      - run: opam exec -- dune runtest
 
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1
-        with:
-          ocaml-version: ${{ matrix.ocaml-version }}
-
-      - name: Deps
-        run: |
-          opam pin add -n angstrom .
-          opam pin add -n angstrom-async .
-          opam pin add -n angstrom-lwt-unix .
-          opam install -t --deps-only .
-
-      - name: Build
-        run: opam exec -- dune build
-
-      - name: Test
-        run: opam exec -- dune runtest
-
-      - name: Examples
-        run: |
-          opam install -t angstrom-async angstrom-lwt-unix
-          opam exec -- make examples
+      - run: opam exec -- make examples
