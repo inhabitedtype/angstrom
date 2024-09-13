@@ -1,6 +1,7 @@
 .*.sw[a-z]
 *~
 _build/
+_opam/
 _tests/
 lib_test/tests_
 setup.log

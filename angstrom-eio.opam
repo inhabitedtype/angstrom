@@ -1,0 +1,20 @@
+opam-version: "2.0"
+maintainer: "Simon Grondin"
+authors: [ "Simon Grondin" ]
+license: "BSD-3-clause"
+homepage: "https://github.com/inhabitedtype/angstrom"
+bug-reports: "https://github.com/inhabitedtype/angstrom/issues"
+dev-repo: "git+https://github.com/inhabitedtype/angstrom.git"
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+]
+depends: [
+  "ocaml" {>= "5.0.0"}
+  "dune" {>= "1.8"}
+  "angstrom"
+  "eio_main" {>= "0.12"}
+  "base-unix"
+]
+synopsis: "Eio support for Angstrom"
