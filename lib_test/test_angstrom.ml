@@ -432,6 +432,41 @@ let consume =
   ]
 ;;
 
+let backtrack =
+  let parse name p res =
+    let open Angstrom in
+    Alcotest.(check (result (string) string))
+      name
+      (parse_string ~consume:Prefix p "abcdef")
+      res
+  in
+  [ "backtrack 0 is nop", `Quick, begin fun () ->
+    parse
+      "backtracking works"
+      (char 'a' *> char 'b' *> backtrack 0 *> take 3)
+      (Ok "cde")
+  end;
+    "backtracking works", `Quick, begin fun () ->
+    parse
+      "backtracking works"
+      (char 'a' *> char 'b' *> backtrack 2 *> take 3)
+      (Ok "abc")
+  end;
+    "backtracking past beginning fails", `Quick, begin fun () ->
+    parse
+      "backtracking works"
+      (char 'a' *> char 'b' *> backtrack 3 *> take 3)
+      (Error ": not enough uncommited bytes to backtrack")
+  end;
+    "backtracking past commit point fails", `Quick, begin fun () ->
+    parse
+      "backtracking works"
+      (char 'a' *> commit *> char 'b' *> backtrack 2 *> take 3)
+      (Error ": not enough uncommited bytes to backtrack")
+  end
+  ]
+;;
+
 let () =
   Alcotest.run "test suite"
     [ "basic constructors"    , basic_constructors
@@ -446,4 +481,5 @@ let () =
     ; "choice and commit"     , choice_commit
     ; "input"                 , input
     ; "consume"               , consume
+    ; "backtrack"             , backtrack
   ]
