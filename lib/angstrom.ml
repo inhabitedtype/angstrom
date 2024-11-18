@@ -183,13 +183,6 @@ let unsafe_apply len ~f =
     succ input (pos + len) more (Input.apply input pos len ~f)
   }
 
-let unsafe_apply_opt len ~f =
-  { run = fun input pos more fail succ ->
-    match Input.apply input pos len ~f with
-    | Error e -> fail input pos more [] e
-    | Ok    x -> succ input (pos + len) more x
-  }
-
 let ensure n p =
   { run = fun input pos more fail succ ->
     if pos + n <= Input.length input
@@ -395,24 +388,6 @@ let rec count_while1 ~f ~with_buffer =
       prompt input pos fail' succ'
   }
 
-let string_ f s =
-  (* XXX(seliopou): Inefficient. Could check prefix equality to short-circuit
-   * the io. *)
-  let len = String.length s in
-  ensure  len (unsafe_apply_opt len ~f:(fun buffer ~off ~len ->
-    let i = ref 0 in
-    while !i < len && Char.equal (f (Bigstringaf.unsafe_get buffer (off + !i)))
-                                 (f (String.unsafe_get s !i))
-    do
-      incr i
-    done;
-    if len = !i
-    then Ok (Bigstringaf.substring buffer ~off ~len)
-    else Error "string"))
-
-let string s    = string_ (fun x -> x) s
-let string_ci s = string_ Char.lowercase_ascii s
-
 let skip_while f =
   count_while ~init:0 ~f ~with_buffer:(fun _ ~off:_ ~len:_ -> ())
 
@@ -450,6 +425,47 @@ let take_while1 f =
 
 let take_till f =
   take_while (fun c -> not (f c))
+
+let string_ f s =
+  {
+    run =
+      (fun input pos more fail succ ->
+        let len = String.length s in
+        (* Empty string matches trivially *)
+        if len = 0 then succ input pos more s
+        else
+          let curr_index = ref 0 in
+          let successful_match = ref false in
+          let p =
+            take_while (fun c ->
+                if
+                  !curr_index < len
+                  && Char.equal (f c) (f (String.unsafe_get s !curr_index))
+                then (
+                  incr curr_index;
+                  (* Proactively check if there are no more characters left in `s` and set as successful if that is so.
+                   * We need to do this *now* without waiting for the next call to this callback, in case the stream
+                   * is eof (and no more characters will available) in which case this callback will not be called again *)
+                  if !curr_index = len then successful_match := true;
+                  (* We always return `true` here to so that `c` can get incorporated into the matched string *)
+                  true)
+                else false)
+          in
+          let succ' input' pos' more' matched_s =
+            (* `fail` with original `pos` rather than new `pos'` as pos <> pos' in case of partial prefix match *)
+            if !successful_match = false then fail input' pos more' [] "string"
+            else succ input' pos' more' matched_s
+          in
+          let fail' _ _ _ _ =
+            failwith
+              "string_: the impossible happened! `take_while` called `fail`"
+          in
+          (* [take_while] never fails so p should never fail *)
+          p.run input pos more fail' succ');
+  }
+
+let string s = string_ (fun x -> x) s
+let string_ci s = string_ Char.lowercase_ascii s
 
 let choice ?(failure_msg="no more choices") ps =
   List.fold_right (<|>) ps (fail failure_msg)
