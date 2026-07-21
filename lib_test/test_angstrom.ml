@@ -285,6 +285,10 @@ let combinators =
       check_lc ~msg:"exact input" (count 1 (char 'a')) ["a"] ['a'];
       check_lc ~msg:"additonal input" (count 2 (char 'a')) ["aaa"] ['a'; 'a'];
       check_fail ~msg:"bad input" (count 2 (char 'a')) ["abb"];
+      check_lc ~msg:"preserves input order" (count 3 any_char) ["abc"] ['a'; 'b'; 'c'];
+      check_int ~msg:"large n does not overflow the stack"
+        (count 1_000_000 (return 0) >>| List.length)
+        [""] 1_000_000;
     end
   ; "scan_state", `Quick, begin fun () ->
       check_s ~msg:"scan_state" (scan_state "" (fun s -> function

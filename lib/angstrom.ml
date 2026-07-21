@@ -498,11 +498,11 @@ let count n p =
   if n < 0
   then fail "count: n < 0"
   else
-    let rec loop = function
-      | 0 -> return []
-      | n -> lift2 cons p (loop (n - 1))
+    let rec loop acc = function
+      | 0 -> acc
+      | n -> loop (lift2 cons p acc) (n - 1)
     in
-    loop n
+    loop (return []) n
 
 let many p =
   fix (fun m ->
